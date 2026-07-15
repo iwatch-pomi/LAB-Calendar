@@ -170,6 +170,18 @@ export function useUpdateTask() {
       const { error } = await supabase.from("tasks").update(patch).eq("id", id);
       if (error) throw error;
     },
+    onMutate: async (args) => {
+      await qc.cancelQueries({ queryKey: qk.tasks });
+      const prev = qc.getQueryData<Task[]>(qk.tasks);
+      const { id, ...patch } = args;
+      qc.setQueryData<Task[]>(qk.tasks, (old) =>
+        (old ?? []).map((t) => (t.id === id ? { ...t, ...patch } : t)),
+      );
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(qk.tasks, ctx.prev);
+    },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.tasks });
       qc.invalidateQueries({ queryKey: qk.experiments });

@@ -47,6 +47,9 @@ export function TaskModal({
   const [endInput, setEndInput] = useState(() => isoToJstInput(task.end_time));
   const [timeError, setTimeError] = useState<string | null>(null);
 
+  // 常に最新のタスク状態を参照（完了/装置変更などを即時反映）
+  const liveTask = tasks.find((t) => t.id === task.id) ?? task;
+
   const exp = experiments.find((e) => e.id === task.experiment_id);
   const pal = paletteFor(exp?.color ?? "teal");
   const taskById = useMemo(
@@ -130,9 +133,14 @@ export function TaskModal({
           <div>
             <div className="mb-1 flex items-center gap-2">
               <label className="text-xs font-semibold text-gray-500">日時</label>
-              {task.is_wait && (
+              {liveTask.is_wait && (
                 <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700">
                   待機ブロック
+                </span>
+              )}
+              {liveTask.status === "done" && (
+                <span className="rounded bg-brand-100 px-1.5 py-0.5 text-xs font-medium text-brand-700">
+                  完了済み
                 </span>
               )}
             </div>
@@ -173,7 +181,7 @@ export function TaskModal({
               使用装置
             </label>
             <select
-              value={task.equipment_id ?? ""}
+              value={liveTask.equipment_id ?? ""}
               onChange={(e) =>
                 updateTask.mutate({
                   id: task.id,
@@ -263,7 +271,7 @@ export function TaskModal({
 
           {/* アクション */}
           <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
-            {task.status === "done" ? (
+            {liveTask.status === "done" ? (
               <button
                 onClick={() =>
                   updateTask.mutate({ id: task.id, status: "planned" })
