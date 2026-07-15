@@ -84,6 +84,18 @@ export interface Todo {
   created_at: string;
 }
 
+/** ユーザーごとの機能フラグ（プロフィールの設定で切替） */
+export interface FeatureFlags {
+  /** 培養リネージュ記録（前培養・継代培養の相関） */
+  culture_lineage?: boolean;
+}
+
+export interface UserSettings {
+  user_id: string;
+  features: FeatureFlags;
+  updated_at: string;
+}
+
 /** 実験カラーのプリセット（淡いパステル） */
 export const EXPERIMENT_PALETTE: Record<
   string,

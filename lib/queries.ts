@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import type {
   Equipment,
   Experiment,
+  FeatureFlags,
   Task,
   TaskDependency,
   Template,
@@ -26,6 +27,7 @@ export const qk = {
   tasks: ["tasks"] as const,
   deps: ["deps"] as const,
   todos: ["todos"] as const,
+  settings: ["settings"] as const,
 };
 
 // ---------------- Queries ----------------
@@ -123,6 +125,21 @@ export function useTodos() {
         .order("sort_order");
       if (error) throw error;
       return data ?? [];
+    },
+  });
+}
+
+export function useSettings() {
+  return useQuery({
+    queryKey: qk.settings,
+    queryFn: async (): Promise<FeatureFlags> => {
+      const { data, error } = await supabase
+        .from("user_settings")
+        .select("features")
+        .maybeSingle();
+      // テーブル未作成でもクラッシュさせず既定（全機能オフ）を返す
+      if (error) return {};
+      return ((data?.features as FeatureFlags) ?? {}) as FeatureFlags;
     },
   });
 }
@@ -369,6 +386,39 @@ export function useDeleteTodo() {
       if (ctx?.prev) qc.setQueryData(qk.todos, ctx.prev);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: qk.todos }),
+  });
+}
+
+export function useUpdateFeature() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { key: keyof FeatureFlags; value: boolean }) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("not authenticated");
+      const current = qc.getQueryData<FeatureFlags>(qk.settings) ?? {};
+      const features = { ...current, [args.key]: args.value };
+      const { error } = await supabase.from("user_settings").upsert({
+        user_id: user.id,
+        features,
+        updated_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+    },
+    onMutate: async (args) => {
+      await qc.cancelQueries({ queryKey: qk.settings });
+      const prev = qc.getQueryData<FeatureFlags>(qk.settings);
+      qc.setQueryData<FeatureFlags>(qk.settings, (old) => ({
+        ...(old ?? {}),
+        [args.key]: args.value,
+      }));
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(qk.settings, ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.settings }),
   });
 }
 

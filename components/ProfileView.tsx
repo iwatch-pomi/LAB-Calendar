@@ -2,10 +2,22 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useExperiments, useTasks, useEquipment } from "@/lib/queries";
-import { useUpdateExperiment } from "@/lib/queries";
+import {
+  useExperiments,
+  useTasks,
+  useEquipment,
+  useDependencies,
+  useUpdateExperiment,
+  useSettings,
+  useUpdateFeature,
+} from "@/lib/queries";
 import { fmtTime } from "@/lib/calendar";
-import { paletteFor, type Experiment, type Task } from "@/lib/types";
+import {
+  paletteFor,
+  type Experiment,
+  type Task,
+  type TaskDependency,
+} from "@/lib/types";
 import {
   ChevronLeft,
   ChevronDown,
@@ -14,7 +26,14 @@ import {
   FlaskConical,
   Beaker,
   Calendar,
+  Settings,
+  GitBranch,
+  ArrowRight,
+  Sprout,
 } from "lucide-react";
+
+// 培養関連タスクの判定（前培養・本培養・継代培養 など）
+const CULTURE_RE = /前培養|本培養|継代|植[えつ]?継ぎ|培養|サブカルチャ|passage|subculture/i;
 
 const STATUS_META: Record<
   Experiment["status"],
@@ -44,7 +63,10 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
   const experimentsQ = useExperiments();
   const tasksQ = useTasks();
   const equipmentQ = useEquipment();
+  const depsQ = useDependencies();
+  const settingsQ = useSettings();
   const updateExp = useUpdateExperiment();
+  const updateFeature = useUpdateFeature();
 
   const [filter, setFilter] = useState<Filter>("all");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -52,6 +74,8 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
   const experiments = experimentsQ.data ?? [];
   const tasks = tasksQ.data ?? [];
   const equipment = equipmentQ.data ?? [];
+  const deps = depsQ.data ?? [];
+  const features = settingsQ.data ?? {};
 
   const equipNameById = useMemo(
     () => new Map(equipment.map((e) => [e.id, e.name])),
@@ -148,6 +172,32 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
             value={doneTasks}
           />
         </section>
+
+        {/* 設定: 個別機能の表示/非表示 */}
+        <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
+          <div className="mb-3 flex items-center gap-1.5">
+            <Settings className="h-4 w-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-700">設定</h2>
+          </div>
+          <FeatureToggle
+            icon={<Sprout className="h-4 w-4 text-emerald-600" />}
+            title="培養リネージュ記録"
+            description="前培養・本培養・継代培養など培養ステップの前後関係（相関）をまとめて表示します。生物系の実験向け。"
+            checked={!!features.culture_lineage}
+            onChange={(v) =>
+              updateFeature.mutate({ key: "culture_lineage", value: v })
+            }
+          />
+        </section>
+
+        {/* 培養リネージュ（機能ONのとき表示） */}
+        {features.culture_lineage && (
+          <CultureLineage
+            experiments={experiments}
+            tasks={tasks}
+            deps={deps}
+          />
+        )}
 
         {/* フィルタ */}
         <div className="mb-3 flex items-center justify-between">
@@ -353,5 +403,144 @@ function StatCard({
       <div className="mt-1 text-2xl font-bold text-gray-800">{value}</div>
       <div className="text-xs text-gray-500">{label}</div>
     </div>
+  );
+}
+
+function FeatureToggle({
+  icon,
+  title,
+  description,
+  checked,
+  onChange,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-100 p-3 transition hover:bg-gray-50">
+      <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-50">
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold text-gray-800">{title}</div>
+        <p className="mt-0.5 text-xs leading-relaxed text-gray-500">
+          {description}
+        </p>
+      </div>
+      {/* トグルスイッチ */}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative mt-0.5 h-5 w-9 shrink-0 rounded-full transition ${
+          checked ? "bg-emerald-500" : "bg-gray-300"
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${
+            checked ? "left-4" : "left-0.5"
+          }`}
+        />
+      </button>
+    </label>
+  );
+}
+
+/** 培養リネージュ: 実験ごとに培養関連タスクの前後関係（相関）を表示 */
+function CultureLineage({
+  experiments,
+  tasks,
+  deps,
+}: {
+  experiments: Experiment[];
+  tasks: Task[];
+  deps: TaskDependency[];
+}) {
+  const taskById = new Map(tasks.map((t) => [t.id, t]));
+  const isCulture = (t: Task) => CULTURE_RE.test(t.title) && !t.is_wait;
+
+  // 実験ごとの培養タスク（開始順）
+  const groups = experiments
+    .map((exp) => {
+      const cultureTasks = tasks
+        .filter((t) => t.experiment_id === exp.id && isCulture(t))
+        .sort(
+          (a, b) =>
+            new Date(a.start_time).getTime() -
+            new Date(b.start_time).getTime(),
+        );
+      return { exp, cultureTasks };
+    })
+    .filter((g) => g.cultureTasks.length > 0);
+
+  // 依存関係のうち、培養タスク同士のもの（相関の明示リンク）
+  const cultureLinks = deps.filter((d) => {
+    const p = taskById.get(d.predecessor_id);
+    const s = taskById.get(d.successor_id);
+    return p && s && isCulture(p) && isCulture(s);
+  });
+
+  return (
+    <section className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4">
+      <div className="mb-1 flex items-center gap-1.5">
+        <GitBranch className="h-4 w-4 text-emerald-600" />
+        <h2 className="text-sm font-semibold text-gray-800">
+          培養リネージュ（前培養・継代培養の相関）
+        </h2>
+      </div>
+      <p className="mb-3 text-xs text-gray-500">
+        培養に関わるステップ（前培養・本培養・継代 など）の前後関係をまとめて記録・確認できます。
+      </p>
+
+      {groups.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-emerald-200 bg-white/60 py-6 text-center text-xs text-gray-400">
+          培養関連のタスクがまだありません。カレンダーに「前培養」「本培養」「継代培養」などを追加すると、ここに系統が表示されます。
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {groups.map(({ exp, cultureTasks }) => {
+            const pal = paletteFor(exp.color);
+            return (
+              <div
+                key={exp.id}
+                className="rounded-xl border border-gray-200 bg-white p-3"
+              >
+                <div className="mb-2 flex items-center gap-2">
+                  <span className={`h-2 w-2 rounded-full ${pal.dot}`} />
+                  <span className="text-sm font-semibold text-gray-800">
+                    {exp.name}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-y-2">
+                  {cultureTasks.map((t, i) => (
+                    <div key={t.id} className="flex items-center">
+                      <div className="rounded-lg bg-emerald-50 px-2.5 py-1.5">
+                        <div className="text-xs font-medium text-emerald-800">
+                          {t.title}
+                        </div>
+                        <div className="text-[10px] text-gray-500">
+                          {fmtDate(new Date(t.start_time).getTime())}{" "}
+                          {fmtTime(new Date(t.start_time).getTime())}
+                        </div>
+                      </div>
+                      {i < cultureTasks.length - 1 && (
+                        <ArrowRight className="mx-1 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          <p className="text-[11px] text-gray-400">
+            明示的な依存リンク: {cultureLinks.length} 件（カレンダーで培養タスク同士を「前提タスク」でつなぐと増えます）
+          </p>
+        </div>
+      )}
+    </section>
   );
 }
