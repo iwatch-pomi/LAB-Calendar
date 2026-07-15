@@ -14,11 +14,13 @@ export function MonthView({
   tasks,
   expColorById,
   onTaskClick,
+  onCreateAt,
 }: {
   refMs: number;
   tasks: Task[];
   expColorById: Map<string, string>;
   onTaskClick: (t: Task) => void;
+  onCreateAt: (startMs: number) => void;
 }) {
   const weeks = buildMonthGrid(refMs, nowMs());
   const curMonth = new Date(refMs + 540 * 60000).getUTCMonth() + 1;
@@ -66,7 +68,9 @@ export function MonthView({
                 return (
                   <div
                     key={cell.startMs}
-                    className={`min-h-0 overflow-hidden border-b border-l border-gray-100 p-1.5 ${
+                    onClick={() => onCreateAt(cell.startMs + 9 * 60 * 60 * 1000)}
+                    title="クリックで予定を追加"
+                    className={`min-h-0 cursor-pointer overflow-hidden border-b border-l border-gray-100 p-1.5 hover:bg-brand-50/40 ${
                       cell.isWeekend ? "bg-gray-50/40" : ""
                     }`}
                   >
@@ -91,7 +95,10 @@ export function MonthView({
                         return (
                           <button
                             key={t.id}
-                            onClick={() => onTaskClick(t)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onTaskClick(t);
+                            }}
                             className={`flex w-full items-center gap-1 truncate rounded px-1 py-0.5 text-left text-[11px] ${pal.bg} ${pal.text} hover:brightness-95`}
                           >
                             <span

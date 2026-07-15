@@ -182,6 +182,7 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
               tasks={tasks}
               expColorById={expColorById}
               onTaskClick={(t) => setOpenTask(t)}
+              onCreateAt={handleCreateAt}
             />
           )}
         </div>
