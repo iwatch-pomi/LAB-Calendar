@@ -1,9 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type Mode = "signin" | "signup";
+
+/** Supabase の英語エラーを分かりやすい日本語に */
+function jpError(msg: string): string {
+  const m = msg.toLowerCase();
+  if (m.includes("invalid login credentials"))
+    return "メールアドレスまたはパスワードが違います。";
+  if (m.includes("email not confirmed"))
+    return "メールの確認が未完了です。届いた確認メールのリンクを開いてください。";
+  if (m.includes("user already registered") || m.includes("already registered"))
+    return "このメールアドレスは既に登録されています。ログインしてください。";
+  if (m.includes("password should be at least"))
+    return "パスワードは6文字以上にしてください。";
+  if (m.includes("provider is not enabled"))
+    return "このログイン方法は未設定です（Supabaseでプロバイダを有効化してください）。";
+  if (m.includes("redirect") && m.includes("not allowed"))
+    return "リダイレクトURLが未許可です（SupabaseのURL設定を確認してください）。";
+  return msg;
+}
 
 export function AuthForm() {
   const supabase = createClient();
@@ -15,6 +33,17 @@ export function AuthForm() {
     type: "error" | "info";
     text: string;
   } | null>(null);
+
+  // 認証コールバック失敗時の ?error=auth を表示
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("error")) {
+      setMessage({
+        type: "error",
+        text: "ログインに失敗しました。もう一度お試しください。",
+      });
+    }
+  }, []);
 
   const redirectTo =
     typeof window !== "undefined"
@@ -39,13 +68,23 @@ export function AuthForm() {
     setLoading("email");
     setMessage(null);
     if (mode === "signup") {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: { emailRedirectTo: redirectTo },
       });
       if (error) {
-        setMessage({ type: "error", text: error.message });
+        setMessage({ type: "error", text: jpError(error.message) });
+      } else if (data.session) {
+        // メール確認オフ → その場でログイン完了
+        window.location.href = "/";
+        return;
+      } else if (data.user && data.user.identities?.length === 0) {
+        // 既に登録済みのメール
+        setMessage({
+          type: "error",
+          text: "このメールアドレスは既に登録されています。ログインしてください。",
+        });
       } else {
         setMessage({
           type: "info",
@@ -58,9 +97,10 @@ export function AuthForm() {
         password,
       });
       if (error) {
-        setMessage({ type: "error", text: error.message });
+        setMessage({ type: "error", text: jpError(error.message) });
       } else {
         window.location.href = "/";
+        return;
       }
     }
     setLoading(null);
