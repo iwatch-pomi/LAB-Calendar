@@ -125,3 +125,20 @@ export function buildMonthGrid(refMs: number, nowMs: number): DayCell[][] {
 export function nowMs(): number {
   return Date.now();
 }
+
+/** ISO(UTC) → datetime-local 入力値 "YYYY-MM-DDThh:mm"（JST 壁時計） */
+export function isoToJstInput(iso: string): string {
+  const jst = new Date(new Date(iso).getTime() + TZ);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${jst.getUTCFullYear()}-${p(jst.getUTCMonth() + 1)}-${p(
+    jst.getUTCDate(),
+  )}T${p(jst.getUTCHours())}:${p(jst.getUTCMinutes())}`;
+}
+
+/** datetime-local 入力値("YYYY-MM-DDThh:mm", JST壁時計) → ISO(UTC) */
+export function jstInputToISO(local: string): string | null {
+  const m = local.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!m) return null;
+  const [, y, mo, d, h, mi] = m.map(Number);
+  return new Date(Date.UTC(y, mo - 1, d, h - 9, mi)).toISOString();
+}

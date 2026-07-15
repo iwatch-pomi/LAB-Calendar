@@ -7,7 +7,7 @@ import {
   useAddDependency,
   useRemoveDependency,
 } from "@/lib/queries";
-import { fmtTimeRange } from "@/lib/calendar";
+import { isoToJstInput, jstInputToISO } from "@/lib/calendar";
 import {
   paletteFor,
   type Equipment,
@@ -41,11 +41,14 @@ export function TaskModal({
 
   const [title, setTitle] = useState(task.title);
   const [addingPred, setAddingPred] = useState(false);
+  const [startInput, setStartInput] = useState(() =>
+    isoToJstInput(task.start_time),
+  );
+  const [endInput, setEndInput] = useState(() => isoToJstInput(task.end_time));
+  const [timeError, setTimeError] = useState<string | null>(null);
 
   const exp = experiments.find((e) => e.id === task.experiment_id);
   const pal = paletteFor(exp?.color ?? "teal");
-  const startMs = new Date(task.start_time).getTime();
-  const endMs = new Date(task.end_time).getTime();
   const taskById = useMemo(
     () => new Map(tasks.map((t) => [t.id, t])),
     [tasks],
@@ -64,6 +67,30 @@ export function TaskModal({
   function saveTitle() {
     if (title.trim() && title !== task.title) {
       updateTask.mutate({ id: task.id, title: title.trim() });
+    }
+  }
+
+  function commitTime(nextStart: string, nextEnd: string) {
+    const startISO = jstInputToISO(nextStart);
+    const endISO = jstInputToISO(nextEnd);
+    if (!startISO || !endISO) {
+      setTimeError("日時の形式が正しくありません。");
+      return;
+    }
+    if (new Date(endISO).getTime() <= new Date(startISO).getTime()) {
+      setTimeError("終了は開始より後にしてください。");
+      return;
+    }
+    setTimeError(null);
+    const changed =
+      new Date(startISO).getTime() !== new Date(task.start_time).getTime() ||
+      new Date(endISO).getTime() !== new Date(task.end_time).getTime();
+    if (changed) {
+      updateTask.mutate({
+        id: task.id,
+        start_time: startISO,
+        end_time: endISO,
+      });
     }
   }
 
@@ -99,14 +126,44 @@ export function TaskModal({
             className="w-full border-b border-transparent pb-1 text-lg font-bold text-gray-800 outline-none focus:border-gray-300"
           />
 
-          {/* 時間 */}
-          <div className="text-sm text-gray-600">
-            <span className="font-medium">日時</span>
-            <span className="ml-2">{fmtTimeRange(startMs, endMs)}</span>
-            {task.is_wait && (
-              <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700">
-                待機ブロック
-              </span>
+          {/* 日時（手動編集・日をまたぐ変更も可） */}
+          <div>
+            <div className="mb-1 flex items-center gap-2">
+              <label className="text-xs font-semibold text-gray-500">日時</label>
+              {task.is_wait && (
+                <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700">
+                  待機ブロック
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <label className="text-[11px] text-gray-500">
+                開始
+                <input
+                  type="datetime-local"
+                  value={startInput}
+                  onChange={(e) => {
+                    setStartInput(e.target.value);
+                    commitTime(e.target.value, endInput);
+                  }}
+                  className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
+                />
+              </label>
+              <label className="text-[11px] text-gray-500">
+                終了
+                <input
+                  type="datetime-local"
+                  value={endInput}
+                  onChange={(e) => {
+                    setEndInput(e.target.value);
+                    commitTime(startInput, e.target.value);
+                  }}
+                  className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
+                />
+              </label>
+            </div>
+            {timeError && (
+              <p className="mt-1 text-xs text-rose-500">{timeError}</p>
             )}
           </div>
 

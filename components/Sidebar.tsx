@@ -5,17 +5,8 @@ import { Logo } from "./Logo";
 import { paletteFor, type Experiment, type Todo } from "@/lib/types";
 import { useToggleTodo, useAddTodo, useDeleteTodo } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/client";
-import { fmtTime } from "@/lib/calendar";
+import { fmtTime, jstInputToISO } from "@/lib/calendar";
 import { Plus, LogOut, Link2, Check, X } from "lucide-react";
-
-/** datetime-local の値("YYYY-MM-DDThh:mm")を JST 壁時計として UTC ISO に変換 */
-function jstLocalToISO(local: string): string | null {
-  if (!local) return null;
-  const m = local.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-  if (!m) return null;
-  const [, y, mo, d, h, mi] = m.map(Number);
-  return new Date(Date.UTC(y, mo - 1, d, h - 9, mi)).toISOString();
-}
 
 const STATUS_LABEL: Record<Experiment["status"], string> = {
   planning: "未着手",
@@ -51,7 +42,7 @@ export function Sidebar({
       addTodo.mutate({
         title: newTodo.trim(),
         sort_order: todos.length,
-        due_at: jstLocalToISO(newDue),
+        due_at: jstInputToISO(newDue),
       });
     }
     setNewTodo("");
