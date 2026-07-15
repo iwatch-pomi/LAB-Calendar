@@ -219,18 +219,23 @@ export function useCreateTask() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) throw new Error("not authenticated");
-      const { error } = await supabase.from("tasks").insert({
-        user_id: user.id,
-        title: args.title,
-        start_time: args.start_time,
-        end_time: args.end_time,
-        experiment_id: args.experiment_id ?? null,
-        subtitle: args.subtitle ?? null,
-        equipment_id: args.equipment_id ?? null,
-        needs_reservation: !!args.equipment_id,
-        is_wait: args.is_wait ?? false,
-      });
+      const { data, error } = await supabase
+        .from("tasks")
+        .insert({
+          user_id: user.id,
+          title: args.title,
+          start_time: args.start_time,
+          end_time: args.end_time,
+          experiment_id: args.experiment_id ?? null,
+          subtitle: args.subtitle ?? null,
+          equipment_id: args.equipment_id ?? null,
+          needs_reservation: !!args.equipment_id,
+          is_wait: args.is_wait ?? false,
+        })
+        .select()
+        .single();
       if (error) throw error;
+      return data as Task;
     },
     onSettled: () => qc.invalidateQueries({ queryKey: qk.tasks }),
   });

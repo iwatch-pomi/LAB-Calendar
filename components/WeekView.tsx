@@ -38,6 +38,7 @@ export function WeekView({
   selectedExperiment,
   highlightIds,
   onTaskClick,
+  onCreateAt,
 }: {
   refMs: number;
   tasks: Task[];
@@ -47,6 +48,7 @@ export function WeekView({
   selectedExperiment: string | null;
   highlightIds: string[];
   onTaskClick: (t: Task) => void;
+  onCreateAt: (startMs: number) => void;
 }) {
   const moveTask = useMoveTask();
   const gridRef = useRef<HTMLDivElement>(null);
@@ -113,6 +115,17 @@ export function WeekView({
   function colWidth(): number {
     const w = gridRef.current?.clientWidth ?? 0;
     return (w - GUTTER) / 7;
+  }
+
+  // 空き枠クリック → クリック位置の時刻(30分スナップ)で新規予定
+  function onColumnClick(dayStartMs: number, e: React.MouseEvent) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const snapped = Math.floor((y / HOUR_PX) * 60 / 30) * 30; // 分（グリッド先頭から）
+    let startMin = CAL_START_HOUR * 60 + snapped;
+    const maxStart = CAL_END_HOUR * 60 - 60; // 1時間の予定が収まるよう制限
+    startMin = Math.max(CAL_START_HOUR * 60, Math.min(startMin, maxStart));
+    onCreateAt(dayStartMs + startMin * 60000);
   }
 
   function onDragEnd(ev: DragEndEvent) {
@@ -227,7 +240,9 @@ export function WeekView({
             {cells.map((c) => (
               <div
                 key={c.index}
-                className={`relative border-l border-gray-100 ${
+                onClick={(e) => onColumnClick(c.startMs, e)}
+                title="クリックで予定を追加"
+                className={`relative cursor-pointer border-l border-gray-100 ${
                   c.isWeekend ? "bg-gray-50/40" : ""
                 }`}
                 style={{ height: TOTAL_H }}
@@ -323,7 +338,10 @@ function TaskBlock({
       style={style}
       {...listeners}
       {...attributes}
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
       className={`group absolute inset-x-1 cursor-grab overflow-hidden rounded-lg border px-2 py-1 text-left shadow-sm transition active:cursor-grabbing ${
         isWait
           ? "wait-hatch border-amber-300"

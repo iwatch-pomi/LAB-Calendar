@@ -9,6 +9,7 @@ import {
   useEquipment,
   useTemplates,
 } from "@/lib/queries";
+import { useCreateTask } from "@/lib/queries";
 import { useCommitReschedule } from "@/lib/mutations";
 import {
   rescheduleFromFailure,
@@ -44,6 +45,7 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
   const equipmentQ = useEquipment();
   const templatesQ = useTemplates();
   const commitReschedule = useCommitReschedule();
+  const createTask = useCreateTask();
 
   const [view, setView] = useState<ViewMode>("week");
   const [refMs, setRefMs] = useState<number>(() => nowMs());
@@ -98,6 +100,17 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
   function onMarkFailed(task: Task) {
     setOpenTask(null);
     setPlan(computeReschedule(task));
+  }
+
+  // 空き枠クリック → 新規予定を作成してモーダルを開く
+  async function handleCreateAt(startMs: number) {
+    const created = await createTask.mutateAsync({
+      title: "新しい予定",
+      start_time: new Date(startMs).toISOString(),
+      end_time: new Date(startMs + 60 * 60 * 1000).toISOString(),
+      experiment_id: selectedExperiment ?? undefined,
+    });
+    if (created) setOpenTask(created);
   }
 
   async function confirmReschedule() {
@@ -161,6 +174,7 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
               selectedExperiment={selectedExperiment}
               highlightIds={highlightIds}
               onTaskClick={(t) => setOpenTask(t)}
+              onCreateAt={handleCreateAt}
             />
           ) : (
             <MonthView
