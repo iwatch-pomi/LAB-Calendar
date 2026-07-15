@@ -9,14 +9,7 @@ import {
   useDraggable,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import {
-  buildWeek,
-  nowMs,
-  minutesFromMidnight,
-  tokyoMidnightMs,
-  fmtTimeRange,
-  DAY,
-} from "@/lib/calendar";
+import { buildWeek, nowMs, fmtTimeRange, DAY } from "@/lib/calendar";
 import { CAL_START_HOUR, CAL_END_HOUR } from "@/lib/config";
 import { useMoveTask } from "@/lib/queries";
 import { paletteFor, type Task, type TaskDependency } from "@/lib/types";
@@ -28,10 +21,12 @@ const TOTAL_H = (CAL_END_HOUR - CAL_START_HOUR) * HOUR_PX;
 interface Positioned {
   task: Task;
   dayIndex: number;
-  startMs: number;
-  endMs: number;
+  startMs: number; // タスク全体の開始
+  endMs: number; // タスク全体の終了
   top: number;
   height: number;
+  continuesFromPrev: boolean; // 前日から続いている
+  continuesToNext: boolean; // 翌日へ続く
 }
 
 export function WeekView({
@@ -73,26 +68,46 @@ export function WeekView({
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
   );
 
-  // 週内タスクを配置情報に変換
+  // 週内タスクを配置情報に変換（日をまたぐ予定は日ごとのセグメントに分割）
   const positioned: Positioned[] = [];
   for (const task of tasks) {
     const s = new Date(task.start_time).getTime();
-    const e = new Date(task.end_time).getTime();
+    const e =
+      draftEnd?.id === task.id
+        ? draftEnd.endMs
+        : new Date(task.end_time).getTime();
     if (s >= weekEnd || e <= weekStart) continue;
-    const dayIndex = Math.floor((tokyoMidnightMs(s) - weekStart) / DAY);
-    if (dayIndex < 0 || dayIndex > 6) continue;
-    const endMs = draftEnd?.id === task.id ? draftEnd.endMs : e;
-    const topMin = minutesFromMidnight(s) - CAL_START_HOUR * 60;
-    const durMin = (endMs - s) / 60000;
-    let top = (topMin / 60) * HOUR_PX;
-    let height = (durMin / 60) * HOUR_PX;
-    if (top < 0) {
-      height += top;
-      top = 0;
+
+    for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+      const dayStart = cells[dayIndex].startMs;
+      const dayEnd = dayStart + DAY;
+      const segStart = Math.max(s, dayStart);
+      const segEnd = Math.min(e, dayEnd);
+      if (segStart >= segEnd) continue; // この日には掛からない
+
+      const topMin = (segStart - dayStart) / 60000 - CAL_START_HOUR * 60;
+      const durMin = (segEnd - segStart) / 60000;
+      let top = (topMin / 60) * HOUR_PX;
+      let height = (durMin / 60) * HOUR_PX;
+      if (top < 0) {
+        height += top;
+        top = 0;
+      }
+      if (top + height > TOTAL_H) height = TOTAL_H - top;
+      if (height <= 0) continue;
+      height = Math.max(height, 18);
+
+      positioned.push({
+        task,
+        dayIndex,
+        startMs: s,
+        endMs: e,
+        top,
+        height,
+        continuesFromPrev: segStart > s, // その日の頭が実際の開始より後 = 前日から継続
+        continuesToNext: segEnd < e, // その日の末尾が実際の終了より前 = 翌日へ継続
+      });
     }
-    if (top + height > TOTAL_H) height = TOTAL_H - top;
-    height = Math.max(height, 18);
-    positioned.push({ task, dayIndex, startMs: s, endMs, top, height });
   }
 
   function colWidth(): number {
@@ -101,7 +116,8 @@ export function WeekView({
   }
 
   function onDragEnd(ev: DragEndEvent) {
-    const id = String(ev.active.id);
+    // セグメント id は `${taskId}__${dayIndex}` 形式
+    const id = String(ev.active.id).split("__")[0];
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
     const cw = colWidth();
@@ -225,12 +241,13 @@ export function WeekView({
                   />
                 ))}
 
-                {/* タスク */}
+                {/* タスク（日ごとのセグメント） */}
                 {positioned
                   .filter((p) => p.dayIndex === c.index)
                   .map((p) => (
                     <TaskBlock
-                      key={p.task.id}
+                      key={`${p.task.id}__${p.dayIndex}`}
+                      dndId={`${p.task.id}__${p.dayIndex}`}
                       p={p}
                       color={
                         p.task.experiment_id
@@ -261,6 +278,7 @@ export function WeekView({
 }
 
 function TaskBlock({
+  dndId,
   p,
   color,
   equipmentName,
@@ -269,6 +287,7 @@ function TaskBlock({
   onClick,
   onResizeStart,
 }: {
+  dndId: string;
   p: Positioned;
   color: string;
   equipmentName: string | null;
@@ -278,7 +297,7 @@ function TaskBlock({
   onResizeStart: (e: React.PointerEvent) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
-    useDraggable({ id: p.task.id });
+    useDraggable({ id: dndId });
   const pal = paletteFor(color);
   const isWait = p.task.is_wait;
   const done = p.task.status === "done";
@@ -291,6 +310,11 @@ function TaskBlock({
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
       : undefined,
     zIndex: isDragging ? 40 : undefined,
+    // 継続する側の角を丸めない（日をまたぐ連続表示）
+    borderTopLeftRadius: p.continuesFromPrev ? 0 : undefined,
+    borderTopRightRadius: p.continuesFromPrev ? 0 : undefined,
+    borderBottomLeftRadius: p.continuesToNext ? 0 : undefined,
+    borderBottomRightRadius: p.continuesToNext ? 0 : undefined,
   };
 
   return (
@@ -311,31 +335,39 @@ function TaskBlock({
       }`}
     >
       <div
-        className={`truncate text-xs font-semibold ${
+        className={`flex items-center gap-1 truncate text-xs font-semibold ${
           isWait ? "text-amber-800" : pal.text
         } ${done ? "line-through opacity-60" : ""}`}
       >
-        {p.task.title}
+        {p.continuesFromPrev && <span className="text-gray-400">↑</span>}
+        <span className="truncate">{p.task.title}</span>
       </div>
       {p.height > 34 && (
         <div className="truncate text-[11px] text-gray-500">
           {p.task.subtitle ?? fmtTimeRange(p.startMs, p.endMs)}
         </div>
       )}
-      {equipmentName && p.height > 48 && (
+      {p.continuesToNext && (
+        <div className="absolute bottom-0.5 right-1.5 text-[11px] text-gray-400">
+          翌日へ続く ↓
+        </div>
+      )}
+      {equipmentName && p.height > 48 && !p.continuesToNext && (
         <span className="mt-1 inline-block rounded bg-white/70 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 ring-1 ring-gray-200">
           {equipmentName}予約
         </span>
       )}
 
-      {/* リサイズハンドル */}
-      <div
-        onPointerDown={onResizeStart}
-        onClick={(e) => e.stopPropagation()}
-        className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize opacity-0 group-hover:opacity-100"
-      >
-        <div className="mx-auto h-1 w-6 translate-y-0.5 rounded-full bg-gray-400/60" />
-      </div>
+      {/* リサイズハンドル（実際の終了があるセグメントのみ） */}
+      {!p.continuesToNext && (
+        <div
+          onPointerDown={onResizeStart}
+          onClick={(e) => e.stopPropagation()}
+          className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize opacity-0 group-hover:opacity-100"
+        >
+          <div className="mx-auto h-1 w-6 translate-y-0.5 rounded-full bg-gray-400/60" />
+        </div>
+      )}
     </div>
   );
 }
