@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Logo } from "./Logo";
 import { paletteFor, type Experiment, type Todo } from "@/lib/types";
 import {
@@ -89,7 +90,13 @@ export function Sidebar({
   return (
     <aside className="flex h-full w-[264px] shrink-0 flex-col border-r border-gray-200 bg-white">
       <div className="flex items-center justify-between px-4 py-4">
-        <Logo />
+        <Link
+          href="/profile"
+          title="プロフィール（過去の実験）"
+          className="rounded-lg transition hover:opacity-80"
+        >
+          <Logo />
+        </Link>
         <button
           onClick={signOut}
           title="ログアウト"

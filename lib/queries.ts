@@ -287,6 +287,33 @@ export function useAddTodo() {
   });
 }
 
+export function useUpdateExperiment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { id: string } & Partial<Experiment>) => {
+      const { id, ...patch } = args;
+      const { error } = await supabase
+        .from("experiments")
+        .update(patch)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onMutate: async (args) => {
+      await qc.cancelQueries({ queryKey: qk.experiments });
+      const prev = qc.getQueryData<Experiment[]>(qk.experiments);
+      const { id, ...patch } = args;
+      qc.setQueryData<Experiment[]>(qk.experiments, (old) =>
+        (old ?? []).map((e) => (e.id === id ? { ...e, ...patch } : e)),
+      );
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(qk.experiments, ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.experiments }),
+  });
+}
+
 export function useUpdateTodo() {
   const qc = useQueryClient();
   return useMutation({
