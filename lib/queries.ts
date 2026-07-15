@@ -254,7 +254,11 @@ export function useToggleTodo() {
 export function useAddTodo() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (args: { title: string; sort_order: number }) => {
+    mutationFn: async (args: {
+      title: string;
+      sort_order: number;
+      due_at?: string | null;
+    }) => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -263,8 +267,31 @@ export function useAddTodo() {
         user_id: user.id,
         title: args.title,
         sort_order: args.sort_order,
+        due_at: args.due_at ?? null,
       });
       if (error) throw error;
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.todos }),
+  });
+}
+
+export function useDeleteTodo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("todos").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: qk.todos });
+      const prev = qc.getQueryData<Todo[]>(qk.todos);
+      qc.setQueryData<Todo[]>(qk.todos, (old) =>
+        (old ?? []).filter((t) => t.id !== id),
+      );
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(qk.todos, ctx.prev);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: qk.todos }),
   });

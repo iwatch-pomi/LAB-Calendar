@@ -3,10 +3,19 @@
 import { useState } from "react";
 import { Logo } from "./Logo";
 import { paletteFor, type Experiment, type Todo } from "@/lib/types";
-import { useToggleTodo, useAddTodo } from "@/lib/queries";
+import { useToggleTodo, useAddTodo, useDeleteTodo } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/client";
 import { fmtTime } from "@/lib/calendar";
-import { Plus, LogOut, Link2, Check } from "lucide-react";
+import { Plus, LogOut, Link2, Check, X } from "lucide-react";
+
+/** datetime-local の値("YYYY-MM-DDThh:mm")を JST 壁時計として UTC ISO に変換 */
+function jstLocalToISO(local: string): string | null {
+  if (!local) return null;
+  const m = local.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!m) return null;
+  const [, y, mo, d, h, mi] = m.map(Number);
+  return new Date(Date.UTC(y, mo - 1, d, h - 9, mi)).toISOString();
+}
 
 const STATUS_LABEL: Record<Experiment["status"], string> = {
   planning: "未着手",
@@ -32,8 +41,23 @@ export function Sidebar({
 }) {
   const toggleTodo = useToggleTodo();
   const addTodo = useAddTodo();
+  const deleteTodo = useDeleteTodo();
   const [newTodo, setNewTodo] = useState("");
+  const [newDue, setNewDue] = useState("");
   const [adding, setAdding] = useState(false);
+
+  function submitTodo() {
+    if (newTodo.trim()) {
+      addTodo.mutate({
+        title: newTodo.trim(),
+        sort_order: todos.length,
+        due_at: jstLocalToISO(newDue),
+      });
+    }
+    setNewTodo("");
+    setNewDue("");
+    setAdding(false);
+  }
 
   const doneCount = todos.filter((t) => t.done).length;
 
@@ -125,9 +149,9 @@ export function Sidebar({
         </div>
         <div className="space-y-1">
           {todos.map((todo) => (
-            <label
+            <div
               key={todo.id}
-              className="flex cursor-pointer items-start gap-2.5 rounded-lg px-1.5 py-1.5 hover:bg-gray-50"
+              className="group flex items-start gap-2.5 rounded-lg px-1.5 py-1.5 hover:bg-gray-50"
             >
               <button
                 onClick={() =>
@@ -141,12 +165,10 @@ export function Sidebar({
               >
                 {todo.done && <Check className="h-3 w-3" strokeWidth={3} />}
               </button>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div
                   className={`text-sm ${
-                    todo.done
-                      ? "text-gray-400 line-through"
-                      : "text-gray-700"
+                    todo.done ? "text-gray-400 line-through" : "text-gray-700"
                   }`}
                 >
                   {todo.title}
@@ -157,32 +179,59 @@ export function Sidebar({
                   </div>
                 )}
               </div>
-            </label>
+              <button
+                onClick={() => deleteTodo.mutate(todo.id)}
+                title="削除"
+                className="mt-0.5 shrink-0 rounded p-0.5 text-gray-300 opacity-0 transition hover:bg-gray-200 hover:text-rose-500 group-hover:opacity-100"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
           ))}
 
           {adding ? (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                if (newTodo.trim()) {
-                  addTodo.mutate({
-                    title: newTodo.trim(),
-                    sort_order: todos.length,
-                  });
-                  setNewTodo("");
-                }
-                setAdding(false);
+                submitTodo();
               }}
-              className="px-1.5 py-1"
+              className="space-y-1.5 rounded-lg border border-gray-200 bg-gray-50/60 p-2"
             >
               <input
                 autoFocus
                 value={newTodo}
                 onChange={(e) => setNewTodo(e.target.value)}
-                onBlur={() => setAdding(false)}
                 placeholder="ToDoを入力…"
                 className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
               />
+              <label className="block text-[11px] text-gray-500">
+                期日（任意）
+                <input
+                  type="datetime-local"
+                  value={newDue}
+                  onChange={(e) => setNewDue(e.target.value)}
+                  className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1 text-xs outline-none focus:border-brand-500"
+                />
+              </label>
+              <div className="flex gap-1.5">
+                <button
+                  type="submit"
+                  className="flex-1 rounded-lg bg-brand-500 py-1.5 text-xs font-semibold text-white hover:bg-brand-600"
+                >
+                  追加
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdding(false);
+                    setNewTodo("");
+                    setNewDue("");
+                  }}
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+                >
+                  キャンセル
+                </button>
+              </div>
             </form>
           ) : (
             <button
@@ -212,8 +261,7 @@ export function Sidebar({
 
 function dueLabel(iso: string): string {
   const ms = new Date(iso).getTime();
-  const weekday = ["日", "月", "火", "水", "木", "金", "土"][
-    new Date(ms + 540 * 60000).getUTCDay()
-  ];
-  return `${weekday} ${fmtTime(ms)}まで`;
+  const jst = new Date(ms + 540 * 60000);
+  const weekday = ["日", "月", "火", "水", "木", "金", "土"][jst.getUTCDay()];
+  return `${jst.getUTCMonth() + 1}/${jst.getUTCDate()}(${weekday}) ${fmtTime(ms)}まで`;
 }
