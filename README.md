@@ -10,76 +10,92 @@
 - **DB / 認証**: Supabase (Postgres + Auth + Row Level Security)
 - **UI**: Tailwind CSS / lucide-react、カレンダーは @dnd-kit でフルドラッグ＆ドロップ
 - **データ取得**: TanStack Query
-- **デプロイ**: Vercel 前提
+- **デプロイ**: Vercel
 
 ---
 
-## 1. セットアップ手順
+## クイックスタート（Vercel だけで確認・ローカル環境不要）
 
-### 1-1. リポジトリと依存関係
+ローカルに何もインストールせず、ブラウザ操作だけで公開・確認できます。
+**Supabase → Vercel の順**で進めるのがコツ（先に DB を用意しておくと初回ログインで
+デモデータが自動投入されます）。
 
-```bash
-npm install
-cp .env.local.example .env.local   # 値は 1-3 で設定
-```
+### STEP 1. Supabase プロジェクトを作成
 
-### 1-2. Supabase プロジェクトと SQL
+1. [supabase.com](https://supabase.com) にログインし **New project** を作成（無料枠でOK）。
+2. 作成後、**Project Settings → API** で次の2つを控えておく（STEP 3 で使用）:
+   - **Project URL**（例: `https://xxxx.supabase.co`）
+   - **anon public** キー（`eyJhbGci...`）
 
-1. [supabase.com](https://supabase.com) でプロジェクトを作成。
-2. ダッシュボードの **SQL Editor** を開き、以下を **この順番で** 貼り付けて実行します。
-   （各ファイルの中身をそのままコピーして「Run」）
-   1. `supabase/sql/01_schema.sql` … テーブル・インデックス
-   2. `supabase/sql/02_rls.sql` … Row Level Security（ユーザーごとのデータ隔離）
-   3. `supabase/sql/03_seed_function.sql` … デモデータ投入用の `seed_demo_data()` 関数
+### STEP 2. データベースを作る（SQL エディター）
+
+左メニューの **SQL Editor** を開き、リポジトリの以下を **この順番で** 貼り付けて Run:
+
+1. `supabase/sql/01_schema.sql` … テーブル・インデックス
+2. `supabase/sql/02_rls.sql` … Row Level Security（ユーザーごとのデータ隔離）
+3. `supabase/sql/03_seed_function.sql` … デモデータ投入用 `seed_demo_data()` 関数
 
 > デモデータは初回ログイン時にアプリが自動で `seed_demo_data()` を呼び出し、
 > **その週（月曜始まり）** を基準にスクリーンショットと同じ実験・予定・ToDo を投入します。
 
-### 1-3. 環境変数
+### STEP 3. Vercel にデプロイ
 
-Supabase の **Project Settings → API** から取得し、`.env.local` に設定します。
+1. [vercel.com](https://vercel.com) に GitHub でログイン → **Add New… → Project**。
+2. このリポジトリをインポートし、ブランチ `claude/labocale-research-scheduler-czuqub`
+   を選択（Framework は Next.js が自動検出）。
+3. **Environment Variables** に STEP 1 の値を登録（**デプロイ前に必ず設定**）:
 
-```
-NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
-```
+   | Name | Value |
+   | --- | --- |
+   | `NEXT_PUBLIC_SUPABASE_URL` | `https://xxxx.supabase.co` |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJhbGci...` |
 
-### 1-4. 認証プロバイダの設定（Supabase → Authentication → Providers）
+4. **Deploy**。発行される URL（例 `https://lab-calendar-xxx.vercel.app`）を控える。
 
-- **Email**: 既定で有効。開発中は「Confirm email」をオフにするとすぐログインできます。
-- **Google**: Google Cloud で OAuth クライアントを作成し、Client ID / Secret を登録。
-- **Apple**: Apple Developer で Service ID・Key を作成し登録（Developer 加入済み前提）。
+> ⚠️ 環境変数はビルド時に必要です。未設定のままデプロイするとビルドが失敗するので、
+> STEP 3-3 を必ず先に済ませてください。
 
-**Redirect URLs**（Authentication → URL Configuration）に以下を追加:
+### STEP 4. ログインを有効化（Supabase → Authentication）
 
-```
-http://localhost:3000/auth/callback
-https://<your-vercel-domain>/auth/callback
-https://<your-project>-*.vercel.app/auth/callback   # プレビュー用
-```
+**Providers** で使う方式を有効化:
 
-`Site URL` は本番ドメイン（例: `https://labocale.vercel.app`）を設定します。
+- **Email**（最短）: 既定で有効。動作確認だけなら **Confirm email をオフ**にすると
+  メール登録後すぐログインできます。
+- **Google**: Google Cloud で OAuth クライアントを作成し Client ID / Secret を登録。
+- **Apple**: Apple Developer で Service ID・Key を作成し登録。
 
-### 1-5. 起動
+**URL Configuration** に STEP 3 の Vercel URL を登録:
+
+- **Site URL**: `https://lab-calendar-xxx.vercel.app`
+- **Redirect URLs** に追加:
+  ```
+  https://lab-calendar-xxx.vercel.app/auth/callback
+  https://<プロジェクト名>-*.vercel.app/auth/callback   # プレビュー用（任意）
+  ```
+
+### STEP 5. 確認
+
+Vercel の URL を開く → ログイン → 写真通りのデモカレンダーが表示されます。
+コードを GitHub に push するたび Vercel が自動で再デプロイします。
+
+---
+
+## ローカルで開発する場合（任意）
+
+Vercel だけで確認するなら不要です。手元で開発・改修したいときのみ:
 
 ```bash
-npm run dev
-# http://localhost:3000
+npm install
+cp .env.local.example .env.local   # STEP 1 の URL / anon key を記入
+npm run dev                        # http://localhost:3000
 ```
 
----
-
-## 2. Vercel へのデプロイ
-
-1. GitHub リポジトリを Vercel に接続（Framework は自動で Next.js を検出）。
-2. **Environment Variables** に `NEXT_PUBLIC_SUPABASE_URL` と
-   `NEXT_PUBLIC_SUPABASE_ANON_KEY` を登録。
-3. Deploy。
-4. 発行された本番 / プレビュー URL を、Supabase の **Redirect URLs** に追加（1-4 参照）。
+ローカル用に Supabase の **Redirect URLs** へ `http://localhost:3000/auth/callback`
+も追加してください。
 
 ---
 
-## 3. 使い方
+## 使い方
 
 - **実験を追加**: ヘッダー右上「＋実験を追加」→ テンプレートを選ぶと、一連のステップが
   待ち時間・装置予約を考慮して一括登録されます。「テンプレを作成」で独自テンプレも作成可能。
@@ -90,7 +106,7 @@ npm run dev
 
 ---
 
-## 4. 開発コマンド
+## 開発コマンド
 
 ```bash
 npm run dev        # 開発サーバー
@@ -99,9 +115,11 @@ npm run typecheck  # 型チェック
 npm run test       # 自動リスケのユニットテスト (vitest)
 ```
 
-## 5. 構成メモ
+## 構成メモ
 
 - コアの自動リスケは `lib/reschedule.ts`（DB 非依存の純粋関数、`lib/reschedule.test.ts` で検証）。
 - テンプレート展開は `lib/expandTemplate.ts`。
 - 時刻計算はブラウザのタイムゾーンに依存せず Asia/Tokyo 固定（`lib/calendar.ts` / `lib/config.ts`）。
 - データ取得は `lib/queries.ts`、複合的な書き込み（テンプレ展開・リスケ確定）は `lib/mutations.ts`。
+- 認証コールバックは `app/auth/callback/route.ts`（`x-forwarded-host` 対応で Vercel の
+  本番・プレビュー両ドメインに追従）。
