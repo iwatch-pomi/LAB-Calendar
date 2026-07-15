@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f6f8fa;
+  --foreground: #1f2933;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 待機ブロックのハッチ塗り（培養待機 37℃/6h など） */
+.wait-hatch {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(217, 119, 6, 0.12),
+    rgba(217, 119, 6, 0.12) 8px,
+    rgba(217, 119, 6, 0.04) 8px,
+    rgba(217, 119, 6, 0.04) 16px
+  );
+}
+
+/* スクロールバーを控えめに */
+.thin-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+}
