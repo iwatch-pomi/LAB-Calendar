@@ -3,9 +3,14 @@
 import { useState } from "react";
 import { Logo } from "./Logo";
 import { paletteFor, type Experiment, type Todo } from "@/lib/types";
-import { useToggleTodo, useAddTodo, useDeleteTodo } from "@/lib/queries";
+import {
+  useToggleTodo,
+  useAddTodo,
+  useDeleteTodo,
+  useUpdateTodo,
+} from "@/lib/queries";
 import { createClient } from "@/lib/supabase/client";
-import { fmtTime, jstInputToISO } from "@/lib/calendar";
+import { fmtTime, jstInputToISO, isoToJstInput } from "@/lib/calendar";
 import { Plus, LogOut, Link2, Check, X } from "lucide-react";
 
 const STATUS_LABEL: Record<Experiment["status"], string> = {
@@ -33,9 +38,32 @@ export function Sidebar({
   const toggleTodo = useToggleTodo();
   const addTodo = useAddTodo();
   const deleteTodo = useDeleteTodo();
+  const updateTodo = useUpdateTodo();
   const [newTodo, setNewTodo] = useState("");
   const [newDue, setNewDue] = useState("");
   const [adding, setAdding] = useState(false);
+
+  // 編集中の ToDo
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDue, setEditDue] = useState("");
+
+  function startEdit(todo: Todo) {
+    setEditId(todo.id);
+    setEditTitle(todo.title);
+    setEditDue(todo.due_at ? isoToJstInput(todo.due_at) : "");
+  }
+
+  function saveEdit() {
+    if (editId && editTitle.trim()) {
+      updateTodo.mutate({
+        id: editId,
+        title: editTitle.trim(),
+        due_at: jstInputToISO(editDue),
+      });
+    }
+    setEditId(null);
+  }
 
   function submitTodo() {
     if (newTodo.trim()) {
@@ -139,46 +167,103 @@ export function Sidebar({
           </span>
         </div>
         <div className="space-y-1">
-          {todos.map((todo) => (
-            <div
-              key={todo.id}
-              className="group flex items-start gap-2.5 rounded-lg px-1.5 py-1.5 hover:bg-gray-50"
-            >
-              <button
-                onClick={() =>
-                  toggleTodo.mutate({ id: todo.id, done: !todo.done })
-                }
-                className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded border transition ${
-                  todo.done
-                    ? "border-brand-500 bg-brand-500 text-white"
-                    : "border-gray-300 bg-white"
-                }`}
+          {todos.map((todo) =>
+            editId === todo.id ? (
+              <form
+                key={todo.id}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  saveEdit();
+                }}
+                className="space-y-1.5 rounded-lg border border-brand-200 bg-brand-50/40 p-2"
               >
-                {todo.done && <Check className="h-3 w-3" strokeWidth={3} />}
-              </button>
-              <div className="min-w-0 flex-1">
-                <div
-                  className={`text-sm ${
-                    todo.done ? "text-gray-400 line-through" : "text-gray-700"
+                <input
+                  autoFocus
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="ToDo名"
+                  className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
+                />
+                <label className="block text-[11px] text-gray-500">
+                  期日（任意）
+                  <input
+                    type="datetime-local"
+                    value={editDue}
+                    onChange={(e) => setEditDue(e.target.value)}
+                    className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1 text-xs outline-none focus:border-brand-500"
+                  />
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="submit"
+                    className="flex-1 rounded-lg bg-brand-500 py-1.5 text-xs font-semibold text-white hover:bg-brand-600"
+                  >
+                    保存
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditId(null)}
+                    className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+                  >
+                    キャンセル
+                  </button>
+                  {editDue && (
+                    <button
+                      type="button"
+                      onClick={() => setEditDue("")}
+                      title="期日をクリア"
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-rose-500"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </form>
+            ) : (
+              <div
+                key={todo.id}
+                className="group flex items-start gap-2.5 rounded-lg px-1.5 py-1.5 hover:bg-gray-50"
+              >
+                <button
+                  onClick={() =>
+                    toggleTodo.mutate({ id: todo.id, done: !todo.done })
+                  }
+                  className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded border transition ${
+                    todo.done
+                      ? "border-brand-500 bg-brand-500 text-white"
+                      : "border-gray-300 bg-white"
                   }`}
                 >
-                  {todo.title}
-                </div>
-                {todo.due_at && !todo.done && (
-                  <div className="text-xs text-rose-500">
-                    {dueLabel(todo.due_at)}
+                  {todo.done && <Check className="h-3 w-3" strokeWidth={3} />}
+                </button>
+                <button
+                  onClick={() => startEdit(todo)}
+                  title="クリックで編集"
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <div
+                    className={`text-sm ${
+                      todo.done ? "text-gray-400 line-through" : "text-gray-700"
+                    }`}
+                  >
+                    {todo.title}
                   </div>
-                )}
+                  {todo.due_at && !todo.done && (
+                    <div className="text-xs text-rose-500">
+                      {dueLabel(todo.due_at)}
+                    </div>
+                  )}
+                </button>
+                <button
+                  onClick={() => deleteTodo.mutate(todo.id)}
+                  title="削除"
+                  className="mt-0.5 shrink-0 rounded p-0.5 text-gray-300 opacity-0 transition hover:bg-gray-200 hover:text-rose-500 group-hover:opacity-100"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
               </div>
-              <button
-                onClick={() => deleteTodo.mutate(todo.id)}
-                title="削除"
-                className="mt-0.5 shrink-0 rounded p-0.5 text-gray-300 opacity-0 transition hover:bg-gray-200 hover:text-rose-500 group-hover:opacity-100"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ))}
+            ),
+          )}
 
           {adding ? (
             <form

@@ -287,6 +287,37 @@ export function useAddTodo() {
   });
 }
 
+export function useUpdateTodo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      id: string;
+      title?: string;
+      due_at?: string | null;
+    }) => {
+      const { id, ...patch } = args;
+      const { error } = await supabase
+        .from("todos")
+        .update(patch)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onMutate: async (args) => {
+      await qc.cancelQueries({ queryKey: qk.todos });
+      const prev = qc.getQueryData<Todo[]>(qk.todos);
+      const { id, ...patch } = args;
+      qc.setQueryData<Todo[]>(qk.todos, (old) =>
+        (old ?? []).map((t) => (t.id === id ? { ...t, ...patch } : t)),
+      );
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(qk.todos, ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.todos }),
+  });
+}
+
 export function useDeleteTodo() {
   const qc = useQueryClient();
   return useMutation({
