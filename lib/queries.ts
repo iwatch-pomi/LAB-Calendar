@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import type {
+  CultureLink,
   Equipment,
   Experiment,
   FeatureFlags,
@@ -28,6 +29,7 @@ export const qk = {
   deps: ["deps"] as const,
   todos: ["todos"] as const,
   settings: ["settings"] as const,
+  cultureLinks: ["culture_links"] as const,
 };
 
 // ---------------- Queries ----------------
@@ -140,6 +142,20 @@ export function useSettings() {
       // テーブル未作成でもクラッシュさせず既定（全機能オフ）を返す
       if (error) return {};
       return ((data?.features as FeatureFlags) ?? {}) as FeatureFlags;
+    },
+  });
+}
+
+export function useCultureLinks() {
+  return useQuery({
+    queryKey: qk.cultureLinks,
+    queryFn: async (): Promise<CultureLink[]> => {
+      const { data, error } = await supabase
+        .from("culture_links")
+        .select("*")
+        .order("created_at");
+      if (error) return []; // テーブル未作成でも空で返す
+      return data ?? [];
     },
   });
 }
@@ -419,6 +435,57 @@ export function useUpdateFeature() {
       if (ctx?.prev) qc.setQueryData(qk.settings, ctx.prev);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: qk.settings }),
+  });
+}
+
+export function useAddCultureLink() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      parent_task_id: string;
+      child_task_id: string;
+      passage_no?: number | null;
+      note?: string | null;
+    }) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("not authenticated");
+      const { error } = await supabase.from("culture_links").insert({
+        user_id: user.id,
+        parent_task_id: args.parent_task_id,
+        child_task_id: args.child_task_id,
+        passage_no: args.passage_no ?? null,
+        note: args.note ?? null,
+      });
+      if (error) throw error;
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.cultureLinks }),
+  });
+}
+
+export function useDeleteCultureLink() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("culture_links")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: qk.cultureLinks });
+      const prev = qc.getQueryData<CultureLink[]>(qk.cultureLinks);
+      qc.setQueryData<CultureLink[]>(qk.cultureLinks, (old) =>
+        (old ?? []).filter((l) => l.id !== id),
+      );
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(qk.cultureLinks, ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.cultureLinks }),
   });
 }
 

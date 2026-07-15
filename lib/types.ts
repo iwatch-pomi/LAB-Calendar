@@ -96,6 +96,17 @@ export interface UserSettings {
   updated_at: string;
 }
 
+/** 継代培養の親子リンク（前培養→本培養、継代元→継代先 などの系統） */
+export interface CultureLink {
+  id: string;
+  user_id: string;
+  parent_task_id: string;
+  child_task_id: string;
+  passage_no: number | null;
+  note: string | null;
+  created_at: string;
+}
+
 /** 実験カラーのプリセット（淡いパステル） */
 export const EXPERIMENT_PALETTE: Record<
   string,

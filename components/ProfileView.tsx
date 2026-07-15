@@ -6,17 +6,19 @@ import {
   useExperiments,
   useTasks,
   useEquipment,
-  useDependencies,
   useUpdateExperiment,
   useSettings,
   useUpdateFeature,
+  useCultureLinks,
+  useAddCultureLink,
+  useDeleteCultureLink,
 } from "@/lib/queries";
 import { fmtTime } from "@/lib/calendar";
 import {
   paletteFor,
+  type CultureLink,
   type Experiment,
   type Task,
-  type TaskDependency,
 } from "@/lib/types";
 import {
   ChevronLeft,
@@ -28,12 +30,10 @@ import {
   Calendar,
   Settings,
   GitBranch,
-  ArrowRight,
   Sprout,
+  Plus,
+  X,
 } from "lucide-react";
-
-// 培養関連タスクの判定（前培養・本培養・継代培養 など）
-const CULTURE_RE = /前培養|本培養|継代|植[えつ]?継ぎ|培養|サブカルチャ|passage|subculture/i;
 
 const STATUS_META: Record<
   Experiment["status"],
@@ -63,7 +63,6 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
   const experimentsQ = useExperiments();
   const tasksQ = useTasks();
   const equipmentQ = useEquipment();
-  const depsQ = useDependencies();
   const settingsQ = useSettings();
   const updateExp = useUpdateExperiment();
   const updateFeature = useUpdateFeature();
@@ -74,7 +73,6 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
   const experiments = experimentsQ.data ?? [];
   const tasks = tasksQ.data ?? [];
   const equipment = equipmentQ.data ?? [];
-  const deps = depsQ.data ?? [];
   const features = settingsQ.data ?? {};
 
   const equipNameById = useMemo(
@@ -192,11 +190,7 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
 
         {/* 培養リネージュ（機能ONのとき表示） */}
         {features.culture_lineage && (
-          <CultureLineage
-            experiments={experiments}
-            tasks={tasks}
-            deps={deps}
-          />
+          <CultureLineage experiments={experiments} tasks={tasks} />
         )}
 
         {/* フィルタ */}
@@ -450,95 +444,253 @@ function FeatureToggle({
   );
 }
 
-/** 培養リネージュ: 実験ごとに培養関連タスクの前後関係（相関）を表示 */
+/** 培養リネージュ: 継代の親子を手動登録し、系統ツリーで表示 */
 function CultureLineage({
   experiments,
   tasks,
-  deps,
 }: {
   experiments: Experiment[];
   tasks: Task[];
-  deps: TaskDependency[];
 }) {
+  const linksQ = useCultureLinks();
+  const addLink = useAddCultureLink();
+  const delLink = useDeleteCultureLink();
+  const links = linksQ.data ?? [];
+
+  const expName = new Map(experiments.map((e) => [e.id, e.name]));
   const taskById = new Map(tasks.map((t) => [t.id, t]));
-  const isCulture = (t: Task) => CULTURE_RE.test(t.title) && !t.is_wait;
+  const options = [...tasks].sort(
+    (a, b) =>
+      new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
+  );
+  const label = (t: Task) => {
+    const en = t.experiment_id ? expName.get(t.experiment_id) : null;
+    return `${t.title}（${en ? en + "・" : ""}${fmtDate(
+      new Date(t.start_time).getTime(),
+    )}）`;
+  };
 
-  // 実験ごとの培養タスク（開始順）
-  const groups = experiments
-    .map((exp) => {
-      const cultureTasks = tasks
-        .filter((t) => t.experiment_id === exp.id && isCulture(t))
-        .sort(
-          (a, b) =>
-            new Date(a.start_time).getTime() -
-            new Date(b.start_time).getTime(),
-        );
-      return { exp, cultureTasks };
-    })
-    .filter((g) => g.cultureTasks.length > 0);
+  const [showForm, setShowForm] = useState(false);
+  const [parentId, setParentId] = useState("");
+  const [childId, setChildId] = useState("");
+  const [passage, setPassage] = useState("");
+  const [note, setNote] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  // 依存関係のうち、培養タスク同士のもの（相関の明示リンク）
-  const cultureLinks = deps.filter((d) => {
-    const p = taskById.get(d.predecessor_id);
-    const s = taskById.get(d.successor_id);
-    return p && s && isCulture(p) && isCulture(s);
-  });
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!parentId || !childId) {
+      setError("親（継代元）と子（継代先）の両方を選択してください。");
+      return;
+    }
+    if (parentId === childId) {
+      setError("親と子は別のタスクにしてください。");
+      return;
+    }
+    if (
+      links.some(
+        (l) => l.parent_task_id === parentId && l.child_task_id === childId,
+      )
+    ) {
+      setError("この親子関係は既に登録済みです。");
+      return;
+    }
+    addLink.mutate({
+      parent_task_id: parentId,
+      child_task_id: childId,
+      passage_no: passage ? Number(passage) : null,
+      note: note.trim() || null,
+    });
+    setParentId("");
+    setChildId("");
+    setPassage("");
+    setNote("");
+    setShowForm(false);
+  }
+
+  // ツリー構築
+  const childrenByParent = new Map<string, CultureLink[]>();
+  for (const l of links) {
+    if (!childrenByParent.has(l.parent_task_id))
+      childrenByParent.set(l.parent_task_id, []);
+    childrenByParent.get(l.parent_task_id)!.push(l);
+  }
+  const childIds = new Set(links.map((l) => l.child_task_id));
+  const rootIds = Array.from(
+    new Set(links.map((l) => l.parent_task_id)),
+  ).filter((id) => !childIds.has(id));
+
+  function renderNode(
+    taskId: string,
+    linkToHere: CultureLink | null,
+    visited: Set<string>,
+    depth: number,
+  ): React.ReactNode {
+    const t = taskById.get(taskId);
+    const cyclic = visited.has(taskId);
+    const nextVisited = new Set(visited);
+    nextVisited.add(taskId);
+    const children = cyclic ? [] : childrenByParent.get(taskId) ?? [];
+    return (
+      <div
+        key={(linkToHere?.id ?? "root") + taskId}
+        className={depth > 0 ? "ml-3 border-l-2 border-emerald-200 pl-3" : ""}
+      >
+        <div className="flex flex-wrap items-center gap-1.5 py-1">
+          <span className="rounded-lg bg-white px-2.5 py-1 ring-1 ring-emerald-200">
+            <span className="text-xs font-medium text-emerald-800">
+              {t ? t.title : "（削除済み）"}
+            </span>
+            {t && (
+              <span className="ml-1 text-[10px] text-gray-400">
+                {fmtDate(new Date(t.start_time).getTime())}
+              </span>
+            )}
+          </span>
+          {linkToHere?.passage_no != null && (
+            <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+              P{linkToHere.passage_no}
+            </span>
+          )}
+          {linkToHere?.note && (
+            <span className="text-[11px] text-gray-500">
+              {linkToHere.note}
+            </span>
+          )}
+          {linkToHere && (
+            <button
+              onClick={() => delLink.mutate(linkToHere.id)}
+              title="この継代リンクを削除"
+              className="rounded p-0.5 text-gray-300 hover:bg-gray-100 hover:text-rose-500"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+        {children.map((cl) =>
+          renderNode(cl.child_task_id, cl, nextVisited, depth + 1),
+        )}
+      </div>
+    );
+  }
 
   return (
     <section className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4">
-      <div className="mb-1 flex items-center gap-1.5">
-        <GitBranch className="h-4 w-4 text-emerald-600" />
-        <h2 className="text-sm font-semibold text-gray-800">
-          培養リネージュ（前培養・継代培養の相関）
-        </h2>
+      <div className="mb-1 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <GitBranch className="h-4 w-4 text-emerald-600" />
+          <h2 className="text-sm font-semibold text-gray-800">
+            培養リネージュ（継代の親子登録）
+          </h2>
+        </div>
+        <button
+          onClick={() => {
+            setShowForm((v) => !v);
+            setError(null);
+          }}
+          className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-600"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          継代を登録
+        </button>
       </div>
       <p className="mb-3 text-xs text-gray-500">
-        培養に関わるステップ（前培養・本培養・継代 など）の前後関係をまとめて記録・確認できます。
+        継代元（親）と継代先（子）を選んで系統を記録します。前培養→本培養、継代 1→2→3 などを親子でつなげます。
       </p>
 
-      {groups.length === 0 ? (
+      {/* 登録フォーム */}
+      {showForm && (
+        <form
+          onSubmit={submit}
+          className="mb-3 space-y-2 rounded-xl border border-emerald-200 bg-white p-3"
+        >
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="text-[11px] text-gray-500">
+              親（継代元）
+              <select
+                value={parentId}
+                onChange={(e) => setParentId(e.target.value)}
+                className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-emerald-500"
+              >
+                <option value="">選択…</option>
+                {options.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {label(t)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-[11px] text-gray-500">
+              子（継代先）
+              <select
+                value={childId}
+                onChange={(e) => setChildId(e.target.value)}
+                className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-emerald-500"
+              >
+                <option value="">選択…</option>
+                {options.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {label(t)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="text-[11px] text-gray-500">
+              継代数 P（任意）
+              <input
+                type="number"
+                min={0}
+                value={passage}
+                onChange={(e) => setPassage(e.target.value)}
+                placeholder="例: 3"
+                className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-emerald-500"
+              />
+            </label>
+            <label className="text-[11px] text-gray-500">
+              メモ（任意）
+              <input
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="分割比 1:10 など"
+                className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-emerald-500"
+              />
+            </label>
+          </div>
+          {error && <p className="text-xs text-rose-500">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600"
+            >
+              登録
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowForm(false);
+                setError(null);
+              }}
+              className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+            >
+              キャンセル
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* 系統ツリー */}
+      {links.length === 0 ? (
         <p className="rounded-lg border border-dashed border-emerald-200 bg-white/60 py-6 text-center text-xs text-gray-400">
-          培養関連のタスクがまだありません。カレンダーに「前培養」「本培養」「継代培養」などを追加すると、ここに系統が表示されます。
+          まだ継代の親子関係が登録されていません。「継代を登録」から追加してください。
+          <br />
+          カレンダーに前培養・本培養・継代培養の予定を作っておくと選択できます。
         </p>
       ) : (
-        <div className="space-y-3">
-          {groups.map(({ exp, cultureTasks }) => {
-            const pal = paletteFor(exp.color);
-            return (
-              <div
-                key={exp.id}
-                className="rounded-xl border border-gray-200 bg-white p-3"
-              >
-                <div className="mb-2 flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full ${pal.dot}`} />
-                  <span className="text-sm font-semibold text-gray-800">
-                    {exp.name}
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center gap-y-2">
-                  {cultureTasks.map((t, i) => (
-                    <div key={t.id} className="flex items-center">
-                      <div className="rounded-lg bg-emerald-50 px-2.5 py-1.5">
-                        <div className="text-xs font-medium text-emerald-800">
-                          {t.title}
-                        </div>
-                        <div className="text-[10px] text-gray-500">
-                          {fmtDate(new Date(t.start_time).getTime())}{" "}
-                          {fmtTime(new Date(t.start_time).getTime())}
-                        </div>
-                      </div>
-                      {i < cultureTasks.length - 1 && (
-                        <ArrowRight className="mx-1 h-3.5 w-3.5 shrink-0 text-emerald-400" />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-          <p className="text-[11px] text-gray-400">
-            明示的な依存リンク: {cultureLinks.length} 件（カレンダーで培養タスク同士を「前提タスク」でつなぐと増えます）
-          </p>
+        <div className="space-y-2 rounded-xl border border-gray-200 bg-white p-3">
+          {rootIds.map((id) => renderNode(id, null, new Set(), 0))}
         </div>
       )}
     </section>
