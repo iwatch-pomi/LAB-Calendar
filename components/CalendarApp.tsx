@@ -58,12 +58,22 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
   const [plan, setPlan] = useState<ReschedulePlan | null>(null);
   const [highlightIds, setHighlightIds] = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [visibleDays, setVisibleDays] = useState(7);
 
   // 初回マウント時、狭い画面ではサイドバーを閉じておく
   useEffect(() => {
     if (typeof window !== "undefined" && window.innerWidth < 1024) {
       setSidebarOpen(false);
     }
+  }, []);
+
+  // スマホ(〜639px)は3日表示、タブレット以上は7日(1週間)表示
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const apply = () => setVisibleDays(mq.matches ? 3 : 7);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
   }, []);
 
   const tasks = tasksQ.data ?? [];
@@ -171,6 +181,7 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
           refMs={refMs}
           onRefChange={setRefMs}
           onToggleSidebar={() => setSidebarOpen((v) => !v)}
+          visibleDays={visibleDays}
           onAddClick={() => setAddMenuOpen((v) => !v)}
           addMenuOpen={addMenuOpen}
           addMenu={
@@ -200,6 +211,7 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
               equipNameById={equipNameById}
               selectedExperiment={selectedExperiment}
               highlightIds={highlightIds}
+              visibleDays={visibleDays}
               onTaskClick={(t) => setOpenTask(t)}
               onCreateAt={handleCreateAt}
             />

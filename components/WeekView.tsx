@@ -9,7 +9,7 @@ import {
   useDraggable,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { buildWeek, nowMs, fmtTimeRange, DAY } from "@/lib/calendar";
+import { buildRange, nowMs, fmtTimeRange, DAY } from "@/lib/calendar";
 import { CAL_START_HOUR, CAL_END_HOUR } from "@/lib/config";
 import { useMoveTask } from "@/lib/queries";
 import { paletteFor, type Task, type TaskDependency } from "@/lib/types";
@@ -37,6 +37,7 @@ export function WeekView({
   equipNameById,
   selectedExperiment,
   highlightIds,
+  visibleDays,
   onTaskClick,
   onCreateAt,
 }: {
@@ -47,6 +48,7 @@ export function WeekView({
   equipNameById: Map<string, string>;
   selectedExperiment: string | null;
   highlightIds: string[];
+  visibleDays: number;
   onTaskClick: (t: Task) => void;
   onCreateAt: (startMs: number) => void;
 }) {
@@ -62,9 +64,10 @@ export function WeekView({
     startMs: number;
   } | null>(null);
 
-  const cells = buildWeek(refMs, nowMs());
+  const cells = buildRange(refMs, nowMs(), visibleDays);
+  const dayCount = cells.length;
   const weekStart = cells[0].startMs;
-  const weekEnd = cells[6].startMs + DAY;
+  const weekEnd = cells[dayCount - 1].startMs + DAY;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -80,7 +83,7 @@ export function WeekView({
         : new Date(task.end_time).getTime();
     if (s >= weekEnd || e <= weekStart) continue;
 
-    for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+    for (let dayIndex = 0; dayIndex < dayCount; dayIndex++) {
       const dayStart = cells[dayIndex].startMs;
       const dayEnd = dayStart + DAY;
       const segStart = Math.max(s, dayStart);
@@ -114,7 +117,7 @@ export function WeekView({
 
   function colWidth(): number {
     const w = gridRef.current?.clientWidth ?? 0;
-    return (w - GUTTER) / 7;
+    return (w - GUTTER) / dayCount;
   }
 
   // 空き枠クリック → クリック位置の時刻(30分スナップ)で新規予定
@@ -193,7 +196,9 @@ export function WeekView({
       {/* 曜日ヘッダー */}
       <div
         className="grid border-b border-gray-200"
-        style={{ gridTemplateColumns: `${GUTTER}px repeat(7, minmax(0,1fr))` }}
+        style={{
+          gridTemplateColumns: `${GUTTER}px repeat(${dayCount}, minmax(0,1fr))`,
+        }}
       >
         <div />
         {cells.map((c) => (
@@ -220,7 +225,7 @@ export function WeekView({
             ref={gridRef}
             className="grid"
             style={{
-              gridTemplateColumns: `${GUTTER}px repeat(7, minmax(0,1fr))`,
+              gridTemplateColumns: `${GUTTER}px repeat(${dayCount}, minmax(0,1fr))`,
             }}
           >
             {/* 時間ラベル列 */}

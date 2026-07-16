@@ -40,10 +40,23 @@ export interface DayCell {
 }
 
 export function buildWeek(refMs: number, nowMs: number): DayCell[] {
-  const start = weekStartMs(refMs);
+  return buildRange(refMs, nowMs, 7);
+}
+
+/**
+ * 表示日数分の DayCell を返す。
+ * 7日以上は週（月曜始まり）を基準、それ未満は refMs の当日を起点とする
+ * スライディングウィンドウ（スマホの3日表示など）。
+ */
+export function buildRange(
+  refMs: number,
+  nowMs: number,
+  count: number,
+): DayCell[] {
+  const start = count >= 7 ? weekStartMs(refMs) : tokyoMidnightMs(refMs);
   const todayMid = tokyoMidnightMs(nowMs);
   const cells: DayCell[] = [];
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < count; i++) {
     const startMs = start + i * DAY;
     const s = shift(startMs);
     const dow = s.getUTCDay();

@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import {
-  buildWeek,
+  buildRange,
   fmtWeekRange,
   fmtMonthTitle,
   nowMs,
@@ -17,6 +17,7 @@ export function CalendarHeader({
   refMs,
   onRefChange,
   onToggleSidebar,
+  visibleDays,
   onAddClick,
   addMenuOpen,
   addMenu,
@@ -26,14 +27,17 @@ export function CalendarHeader({
   refMs: number;
   onRefChange: (ms: number) => void;
   onToggleSidebar: () => void;
+  visibleDays: number;
   onAddClick: () => void;
   addMenuOpen: boolean;
   addMenu: ReactNode;
 }) {
-  const cells = buildWeek(refMs, nowMs());
+  const cells = buildRange(refMs, nowMs(), visibleDays);
   const title =
     view === "week" ? fmtWeekRange(cells) : fmtMonthTitle(refMs);
-  const step = view === "week" ? 7 * DAY : 30 * DAY;
+  const step = view === "week" ? visibleDays * DAY : 30 * DAY;
+  const todayLabel =
+    view === "month" ? "今月" : visibleDays >= 7 ? "今週" : "今日";
 
   return (
     <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
@@ -96,7 +100,7 @@ export function CalendarHeader({
           onClick={() => onRefChange(nowMs())}
           className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
         >
-          {view === "week" ? "今週" : "今月"}
+          {todayLabel}
         </button>
 
         <div className="relative">
