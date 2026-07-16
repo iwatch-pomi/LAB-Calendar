@@ -33,6 +33,7 @@ import {
   Sprout,
   Plus,
   X,
+  Download,
 } from "lucide-react";
 
 const STATUS_META: Record<
@@ -57,6 +58,25 @@ type Filter = "all" | "done" | "in_progress";
 function fmtDate(ms: number): string {
   const s = new Date(ms + 540 * 60000);
   return `${s.getUTCMonth() + 1}/${s.getUTCDate()}`;
+}
+
+/** CSV セルのエスケープ */
+function csvCell(v: string): string {
+  return /[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+}
+
+/** 行配列を CSV としてダウンロード（Excel 向けに UTF-8 BOM 付き） */
+function downloadCsv(filename: string, rows: string[][]) {
+  const csv = rows.map((r) => r.map(csvCell).join(",")).join("\r\n");
+  const blob = new Blob(["﻿" + csv], {
+    type: "text/csv;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export function ProfileView({ userEmail }: { userEmail: string }) {
@@ -510,6 +530,41 @@ function CultureLineage({
     setShowForm(false);
   }
 
+  function taskDateTime(id: string): string {
+    const t = taskById.get(id);
+    if (!t) return "";
+    const ms = new Date(t.start_time).getTime();
+    return `${fmtDate(ms)} ${fmtTime(ms)}`;
+  }
+
+  function exportCsv() {
+    const header = [
+      "親（継代元）",
+      "親_実験",
+      "親_開始",
+      "子（継代先）",
+      "子_実験",
+      "子_開始",
+      "継代数P",
+      "メモ",
+    ];
+    const rows = links.map((l) => {
+      const p = taskById.get(l.parent_task_id);
+      const c = taskById.get(l.child_task_id);
+      return [
+        p?.title ?? "（削除済み）",
+        (p?.experiment_id ? expName.get(p.experiment_id) : "") ?? "",
+        taskDateTime(l.parent_task_id),
+        c?.title ?? "（削除済み）",
+        (c?.experiment_id ? expName.get(c.experiment_id) : "") ?? "",
+        taskDateTime(l.child_task_id),
+        l.passage_no != null ? String(l.passage_no) : "",
+        l.note ?? "",
+      ];
+    });
+    downloadCsv("culture_lineage.csv", [header, ...rows]);
+  }
+
   // ツリー構築
   const childrenByParent = new Map<string, CultureLink[]>();
   for (const l of links) {
@@ -600,16 +655,28 @@ function CultureLineage({
             培養リネージュ（継代の親子登録）
           </h2>
         </div>
-        <button
-          onClick={() => {
-            setShowForm((v) => !v);
-            setError(null);
-          }}
-          className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-600"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          継代を登録
-        </button>
+        <div className="flex items-center gap-1.5">
+          {links.length > 0 && (
+            <button
+              onClick={exportCsv}
+              title="継代系統をCSVで書き出し"
+              className="flex items-center gap-1 rounded-lg border border-emerald-300 bg-white px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
+            >
+              <Download className="h-3.5 w-3.5" />
+              CSV
+            </button>
+          )}
+          <button
+            onClick={() => {
+              setShowForm((v) => !v);
+              setError(null);
+            }}
+            className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-600"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            継代を登録
+          </button>
+        </div>
       </div>
       <p className="mb-3 text-xs text-gray-500">
         継代元（親）と継代先（子）を選んで系統を記録します。前培養→本培養、継代 1→2→3 などを親子でつなげます。
