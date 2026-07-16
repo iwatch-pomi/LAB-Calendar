@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   useTasks,
   useExperiments,
@@ -57,6 +57,14 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
   const [templateBuilderOpen, setTemplateBuilderOpen] = useState(false);
   const [plan, setPlan] = useState<ReschedulePlan | null>(null);
   const [highlightIds, setHighlightIds] = useState<string[]>([]);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // 初回マウント時、狭い画面ではサイドバーを閉じておく
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+  }, []);
 
   const tasks = tasksQ.data ?? [];
   const experiments = experimentsQ.data ?? [];
@@ -129,14 +137,32 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f6f8fa]">
-      <Sidebar
-        experiments={experiments}
-        todos={todosQ.data ?? []}
-        selectedExperiment={selectedExperiment}
-        onSelectExperiment={setSelectedExperiment}
-        onOpenAddMenu={() => setAddMenuOpen(true)}
-        userEmail={userEmail}
-      />
+      {/* 背景（狭い画面でドロワーを開いたとき） */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* サイドバー（折りたたみ式） */}
+      <div
+        className={`fixed inset-y-0 left-0 z-40 h-full shrink-0 overflow-hidden transition-[width,transform] duration-200 lg:static ${
+          sidebarOpen
+            ? "w-[264px] translate-x-0"
+            : "w-0 -translate-x-full lg:translate-x-0"
+        }`}
+      >
+        <Sidebar
+          experiments={experiments}
+          todos={todosQ.data ?? []}
+          selectedExperiment={selectedExperiment}
+          onSelectExperiment={setSelectedExperiment}
+          onOpenAddMenu={() => setAddMenuOpen(true)}
+          onClose={() => setSidebarOpen(false)}
+          userEmail={userEmail}
+        />
+      </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <CalendarHeader
@@ -144,6 +170,7 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
           onViewChange={setView}
           refMs={refMs}
           onRefChange={setRefMs}
+          onToggleSidebar={() => setSidebarOpen((v) => !v)}
           onAddClick={() => setAddMenuOpen((v) => !v)}
           addMenuOpen={addMenuOpen}
           addMenu={

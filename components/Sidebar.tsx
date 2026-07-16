@@ -27,6 +27,7 @@ export function Sidebar({
   selectedExperiment,
   onSelectExperiment,
   onOpenAddMenu,
+  onClose,
   userEmail,
 }: {
   experiments: Experiment[];
@@ -34,6 +35,7 @@ export function Sidebar({
   selectedExperiment: string | null;
   onSelectExperiment: (id: string | null) => void;
   onOpenAddMenu: () => void;
+  onClose: () => void;
   userEmail: string;
 }) {
   const toggleTodo = useToggleTodo();
@@ -97,13 +99,22 @@ export function Sidebar({
         >
           <Logo />
         </Link>
-        <button
-          onClick={signOut}
-          title="ログアウト"
-          className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
-        >
-          <LogOut className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={signOut}
+            title="ログアウト"
+            className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+          <button
+            onClick={onClose}
+            title="サイドバーを閉じる"
+            className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 lg:hidden"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <div className="thin-scroll flex-1 overflow-y-auto px-4 pb-4">

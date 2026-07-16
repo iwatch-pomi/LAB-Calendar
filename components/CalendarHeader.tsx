@@ -9,13 +9,14 @@ import {
   DAY,
 } from "@/lib/calendar";
 import type { ViewMode } from "./CalendarApp";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, PanelLeft } from "lucide-react";
 
 export function CalendarHeader({
   view,
   onViewChange,
   refMs,
   onRefChange,
+  onToggleSidebar,
   onAddClick,
   addMenuOpen,
   addMenu,
@@ -24,6 +25,7 @@ export function CalendarHeader({
   onViewChange: (v: ViewMode) => void;
   refMs: number;
   onRefChange: (ms: number) => void;
+  onToggleSidebar: () => void;
   onAddClick: () => void;
   addMenuOpen: boolean;
   addMenu: ReactNode;
@@ -35,7 +37,16 @@ export function CalendarHeader({
 
   return (
     <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
+        {/* サイドバー開閉 */}
+        <button
+          onClick={onToggleSidebar}
+          title="サイドバーを開閉"
+          className="rounded-lg p-1.5 text-gray-500 transition hover:bg-gray-100"
+        >
+          <PanelLeft className="h-4 w-4" />
+        </button>
+
         {/* 週/月 トグル */}
         <div className="flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-sm">
           <button
