@@ -342,7 +342,7 @@ function TaskBlock({
         e.stopPropagation();
         onClick();
       }}
-      className={`group absolute inset-x-1 cursor-grab overflow-hidden rounded-lg border px-2 py-1 text-left shadow-sm transition active:cursor-grabbing ${
+      className={`group absolute inset-x-0.5 cursor-grab overflow-hidden rounded-lg border px-1.5 py-1 text-left shadow-sm transition active:cursor-grabbing ${
         isWait
           ? "wait-hatch border-amber-300"
           : `${pal.bg} ${pal.border}`
@@ -353,25 +353,32 @@ function TaskBlock({
       }`}
     >
       <div
-        className={`flex items-center gap-1 truncate text-xs font-semibold ${
+        className={`text-[11px] font-semibold leading-tight sm:text-xs ${
           isWait ? "text-amber-800" : pal.text
         } ${done ? "line-through opacity-60" : ""}`}
+        style={{
+          display: "-webkit-box",
+          WebkitLineClamp: p.height > 46 ? 2 : 1,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+          wordBreak: "break-word",
+        }}
       >
-        {p.continuesFromPrev && <span className="text-gray-400">↑</span>}
-        <span className="truncate">{p.task.title}</span>
+        {p.continuesFromPrev && <span className="text-gray-400">↑ </span>}
+        {p.task.title}
       </div>
-      {p.height > 34 && (
-        <div className="truncate text-[11px] text-gray-500">
+      {p.height > 32 && (
+        <div className="truncate text-[10px] leading-tight text-gray-500">
           {p.task.subtitle ?? fmtTimeRange(p.startMs, p.endMs)}
         </div>
       )}
       {p.continuesToNext && (
-        <div className="absolute bottom-0.5 right-1.5 text-[11px] text-gray-400">
-          翌日へ続く ↓
+        <div className="absolute bottom-0.5 right-1 text-[10px] text-gray-400">
+          翌日へ ↓
         </div>
       )}
-      {equipmentName && p.height > 48 && !p.continuesToNext && (
-        <span className="mt-1 inline-block rounded bg-white/70 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 ring-1 ring-gray-200">
+      {equipmentName && p.height > 52 && !p.continuesToNext && (
+        <span className="mt-1 inline-block whitespace-nowrap rounded bg-white/70 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 ring-1 ring-gray-200">
           {equipmentName}予約
         </span>
       )}
