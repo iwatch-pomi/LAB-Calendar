@@ -12,7 +12,7 @@ import {
 } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/client";
 import { fmtTime, jstInputToISO, isoToJstInput } from "@/lib/calendar";
-import { Plus, LogOut, Link2, Check, X } from "lucide-react";
+import { Plus, LogOut, Check, X } from "lucide-react";
 
 const STATUS_LABEL: Record<Experiment["status"], string> = {
   planning: "未着手",
@@ -339,16 +339,6 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* 依存関係リンク 説明 */}
-      <div className="m-3 rounded-xl border border-brand-100 bg-brand-50 p-3">
-        <div className="flex items-center gap-1.5 text-sm font-semibold text-brand-800">
-          <Link2 className="h-4 w-4" />
-          依存関係リンク
-        </div>
-        <p className="mt-1 text-xs leading-relaxed text-brand-700/80">
-          タスクをつなぐと、失敗時に後続を自動リスケします。
-        </p>
-      </div>
     </aside>
   );
 }
