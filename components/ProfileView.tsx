@@ -458,6 +458,7 @@ function CultureLineage({
   const links = linksQ.data ?? [];
 
   const expName = new Map(experiments.map((e) => [e.id, e.name]));
+  const expColor = new Map(experiments.map((e) => [e.id, e.color]));
   const taskById = new Map(tasks.map((t) => [t.id, t]));
   const options = [...tasks].sort(
     (a, b) =>
@@ -525,36 +526,41 @@ function CultureLineage({
     taskId: string,
     linkToHere: CultureLink | null,
     visited: Set<string>,
-    depth: number,
   ): React.ReactNode {
     const t = taskById.get(taskId);
     const cyclic = visited.has(taskId);
     const nextVisited = new Set(visited);
     nextVisited.add(taskId);
     const children = cyclic ? [] : childrenByParent.get(taskId) ?? [];
+    const pal = paletteFor(
+      t?.experiment_id ? expColor.get(t.experiment_id) : "teal",
+    );
+    const en = t?.experiment_id ? expName.get(t.experiment_id) : null;
+
     return (
-      <div
-        key={(linkToHere?.id ?? "root") + taskId}
-        className={depth > 0 ? "ml-3 border-l-2 border-emerald-200 pl-3" : ""}
-      >
-        <div className="flex flex-wrap items-center gap-1.5 py-1">
-          <span className="rounded-lg bg-white px-2.5 py-1 ring-1 ring-emerald-200">
-            <span className="text-xs font-medium text-emerald-800">
+      <div key={(linkToHere?.id ?? "root") + taskId}>
+        {/* ノードカード */}
+        <div className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-1.5 shadow-sm ring-1 ring-emerald-200">
+          <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${pal.dot}`} />
+          <div className="min-w-0">
+            <div className="truncate text-xs font-semibold text-gray-800">
               {t ? t.title : "（削除済み）"}
-            </span>
+            </div>
             {t && (
-              <span className="ml-1 text-[10px] text-gray-400">
-                {fmtDate(new Date(t.start_time).getTime())}
-              </span>
+              <div className="truncate text-[10px] text-gray-400">
+                {en ? `${en} · ` : ""}
+                {fmtDate(new Date(t.start_time).getTime())}{" "}
+                {fmtTime(new Date(t.start_time).getTime())}
+              </div>
             )}
-          </span>
+          </div>
           {linkToHere?.passage_no != null && (
-            <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+            <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
               P{linkToHere.passage_no}
             </span>
           )}
           {linkToHere?.note && (
-            <span className="text-[11px] text-gray-500">
+            <span className="shrink-0 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-700">
               {linkToHere.note}
             </span>
           )}
@@ -562,14 +568,24 @@ function CultureLineage({
             <button
               onClick={() => delLink.mutate(linkToHere.id)}
               title="この継代リンクを削除"
-              className="rounded p-0.5 text-gray-300 hover:bg-gray-100 hover:text-rose-500"
+              className="shrink-0 rounded p-0.5 text-gray-300 hover:bg-gray-100 hover:text-rose-500"
             >
               <X className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
-        {children.map((cl) =>
-          renderNode(cl.child_task_id, cl, nextVisited, depth + 1),
+
+        {/* 子ノード（接続線つき） */}
+        {children.length > 0 && (
+          <div className="relative ml-3.5 mt-1.5 space-y-1.5 border-l-2 border-emerald-200 pl-4">
+            {children.map((cl) => (
+              <div key={cl.id} className="relative">
+                {/* 親から子への横枝（エルボー） */}
+                <span className="absolute -left-4 top-4 h-0.5 w-4 rounded-full bg-emerald-200" />
+                {renderNode(cl.child_task_id, cl, nextVisited)}
+              </div>
+            ))}
+          </div>
         )}
       </div>
     );
@@ -689,8 +705,24 @@ function CultureLineage({
           カレンダーに前培養・本培養・継代培養の予定を作っておくと選択できます。
         </p>
       ) : (
-        <div className="space-y-2 rounded-xl border border-gray-200 bg-white p-3">
-          {rootIds.map((id) => renderNode(id, null, new Set(), 0))}
+        <div className="space-y-3">
+          {rootIds.map((id) => (
+            <div
+              key={id}
+              className="overflow-x-auto rounded-xl border border-gray-200 bg-white p-3 thin-scroll"
+            >
+              {renderNode(id, null, new Set())}
+            </div>
+          ))}
+          <div className="flex items-center gap-3 px-1 text-[10px] text-gray-400">
+            <span className="flex items-center gap-1">
+              <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 font-bold text-emerald-700">
+                P◯
+              </span>
+              継代数
+            </span>
+            <span>親（継代元）→ 下にぶら下がるほど後の継代</span>
+          </div>
         </div>
       )}
     </section>
