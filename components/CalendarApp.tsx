@@ -57,13 +57,32 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
   const [templateBuilderOpen, setTemplateBuilderOpen] = useState(false);
   const [plan, setPlan] = useState<ReschedulePlan | null>(null);
   const [highlightIds, setHighlightIds] = useState<string[]>([]);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpenState] = useState(true);
   const [visibleDays, setVisibleDays] = useState(7);
 
-  // 初回マウント時、狭い画面ではサイドバーを閉じておく
+  const SIDEBAR_KEY = "labocale.sidebarOpen";
+
+  // サイドバーの開閉状態を localStorage に保存し「固定表示」を維持する
+  const setSidebarOpen = (
+    value: boolean | ((prev: boolean) => boolean),
+  ) => {
+    setSidebarOpenState((prev) => {
+      const next = typeof value === "function" ? value(prev) : value;
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(SIDEBAR_KEY, next ? "1" : "0");
+      }
+      return next;
+    });
+  };
+
+  // 初回マウント時: 保存済みの設定があればそれを復元、無ければ画面幅から既定値を決める
   useEffect(() => {
-    if (typeof window !== "undefined" && window.innerWidth < 1024) {
-      setSidebarOpen(false);
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem(SIDEBAR_KEY);
+    if (stored !== null) {
+      setSidebarOpenState(stored === "1");
+    } else if (window.innerWidth < 1024) {
+      setSidebarOpenState(false);
     }
   }, []);
 
@@ -181,6 +200,7 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
           refMs={refMs}
           onRefChange={setRefMs}
           onToggleSidebar={() => setSidebarOpen((v) => !v)}
+          sidebarOpen={sidebarOpen}
           visibleDays={visibleDays}
           onAddClick={() => setAddMenuOpen((v) => !v)}
           addMenuOpen={addMenuOpen}

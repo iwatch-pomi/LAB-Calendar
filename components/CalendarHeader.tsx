@@ -17,6 +17,7 @@ export function CalendarHeader({
   refMs,
   onRefChange,
   onToggleSidebar,
+  sidebarOpen,
   visibleDays,
   onAddClick,
   addMenuOpen,
@@ -27,6 +28,7 @@ export function CalendarHeader({
   refMs: number;
   onRefChange: (ms: number) => void;
   onToggleSidebar: () => void;
+  sidebarOpen: boolean;
   visibleDays: number;
   onAddClick: () => void;
   addMenuOpen: boolean;
@@ -42,11 +44,13 @@ export function CalendarHeader({
   return (
     <header className="flex items-center justify-between gap-1 border-b border-gray-200 bg-white px-2 py-3 sm:px-4">
       <div className="flex min-w-0 items-center gap-1.5 sm:gap-4">
-        {/* サイドバー開閉 */}
+        {/* サイドバー固定表示/非表示 */}
         <button
           onClick={onToggleSidebar}
-          title="サイドバーを開閉"
-          className="shrink-0 rounded-lg p-1.5 text-gray-500 transition hover:bg-gray-100"
+          title={sidebarOpen ? "サイドバーを非表示" : "サイドバーを固定表示"}
+          className={`shrink-0 rounded-lg p-1.5 transition hover:bg-gray-100 ${
+            sidebarOpen ? "bg-gray-100 text-gray-700" : "text-gray-500"
+          }`}
         >
           <PanelLeft className="h-4 w-4" />
         </button>
