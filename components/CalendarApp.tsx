@@ -8,8 +8,12 @@ import {
   useTodos,
   useEquipment,
   useTemplates,
+  useSettings,
+  useUpdateFeatures,
 } from "@/lib/queries";
 import { useCreateTask } from "@/lib/queries";
+import type { FeatureFlags } from "@/lib/types";
+import { Onboarding } from "./Onboarding";
 import { useCommitReschedule } from "@/lib/mutations";
 import {
   rescheduleFromFailure,
@@ -46,6 +50,8 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
   const templatesQ = useTemplates();
   const commitReschedule = useCommitReschedule();
   const createTask = useCreateTask();
+  const settingsQ = useSettings();
+  const updateFeatures = useUpdateFeatures();
 
   const [view, setView] = useState<ViewMode>("week");
   const [refMs, setRefMs] = useState<number>(() => nowMs());
@@ -164,8 +170,22 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
   const loading =
     tasksQ.isLoading || experimentsQ.isLoading || depsQ.isLoading;
 
+  // 初回起動: 設定が読み込めて未オンボーディングなら分野選択を表示
+  const showOnboarding =
+    settingsQ.isSuccess && !settingsQ.data?.onboarded;
+
+  function completeOnboarding(flags: FeatureFlags) {
+    updateFeatures.mutate(flags);
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#f6f8fa]">
+      {showOnboarding && (
+        <Onboarding
+          onComplete={completeOnboarding}
+          saving={updateFeatures.isPending}
+        />
+      )}
       {/* サイドバー（常にドッキング表示。開くとカレンダーを横へ押し出す） */}
       <div
         className={`h-full shrink-0 overflow-hidden transition-[width] duration-200 ${

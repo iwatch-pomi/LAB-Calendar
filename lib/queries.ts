@@ -484,6 +484,40 @@ export function useUpdateFeature() {
   });
 }
 
+/** 複数のフラグを一括更新（オンボーディング等） */
+export function useUpdateFeatures() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (partial: FeatureFlags) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("not authenticated");
+      const current = qc.getQueryData<FeatureFlags>(qk.settings) ?? {};
+      const features = { ...current, ...partial };
+      const { error } = await supabase.from("user_settings").upsert({
+        user_id: user.id,
+        features,
+        updated_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+    },
+    onMutate: async (partial) => {
+      await qc.cancelQueries({ queryKey: qk.settings });
+      const prev = qc.getQueryData<FeatureFlags>(qk.settings);
+      qc.setQueryData<FeatureFlags>(qk.settings, (old) => ({
+        ...(old ?? {}),
+        ...partial,
+      }));
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(qk.settings, ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.settings }),
+  });
+}
+
 export function useAddCultureLink() {
   const qc = useQueryClient();
   return useMutation({

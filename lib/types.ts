@@ -95,6 +95,8 @@ export interface FeatureFlags {
   physics_mode?: boolean;
   /** 工学実験モード（単位変換など） */
   engineering_mode?: boolean;
+  /** 初回オンボーディング（研究分野の選択）完了フラグ */
+  onboarded?: boolean;
 }
 
 export interface UserSettings {
