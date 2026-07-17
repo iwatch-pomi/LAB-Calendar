@@ -4,8 +4,6 @@ import { useMemo, useState } from "react";
 import {
   useUpdateTask,
   useDeleteTask,
-  useAddDependency,
-  useRemoveDependency,
   useSettings,
   useCultureLinks,
   useAddCultureLink,
@@ -22,7 +20,6 @@ import {
 import {
   X,
   Trash2,
-  Link2,
   Plus,
   AlertTriangle,
   Check,
@@ -46,15 +43,12 @@ export function TaskModal({
 }) {
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
-  const addDep = useAddDependency();
-  const removeDep = useRemoveDependency();
   const settings = useSettings().data ?? {};
   const cultureLinks = useCultureLinks().data ?? [];
   const addCultureLink = useAddCultureLink();
   const deleteCultureLink = useDeleteCultureLink();
 
   const [title, setTitle] = useState(task.title);
-  const [addingPred, setAddingPred] = useState(false);
   const [startInput, setStartInput] = useState(() =>
     isoToJstInput(task.start_time),
   );
@@ -76,16 +70,6 @@ export function TaskModal({
   const taskById = useMemo(
     () => new Map(tasks.map((t) => [t.id, t])),
     [tasks],
-  );
-
-  const predecessors = deps.filter((d) => d.successor_id === task.id);
-  const successors = deps.filter((d) => d.predecessor_id === task.id);
-
-  // 先行に選べる候補（自分・既存先行・後続を除く）
-  const predIds = new Set(predecessors.map((d) => d.predecessor_id));
-  const succIds = new Set(successors.map((d) => d.successor_id));
-  const candidates = tasks.filter(
-    (t) => t.id !== task.id && !predIds.has(t.id) && !succIds.has(t.id),
   );
 
   // 種別: 待機時間(is_wait) のとき培養リネージュ、実験操作のとき使用機器
@@ -278,75 +262,6 @@ export function TaskModal({
               </select>
             </div>
           )}
-
-          {/* 先行タスク（依存関係） */}
-          <div>
-            <div className="mb-1 flex items-center gap-1.5">
-              <Link2 className="h-3.5 w-3.5 text-brand-600" />
-              <span className="text-xs font-semibold text-gray-500">
-                前提タスク（これらの後に実行）
-              </span>
-            </div>
-            <div className="space-y-1">
-              {predecessors.length === 0 && !addingPred && (
-                <p className="text-xs text-gray-400">なし</p>
-              )}
-              {predecessors.map((d) => {
-                const pt = taskById.get(d.predecessor_id);
-                return (
-                  <div
-                    key={d.id}
-                    className="flex items-center gap-2 rounded-lg bg-gray-50 px-2.5 py-1.5 text-sm"
-                  >
-                    <span className="flex-1 truncate text-gray-700">
-                      {pt?.title ?? "（削除済み）"}
-                    </span>
-                    <button
-                      onClick={() => removeDep.mutate(d.id)}
-                      className="text-gray-400 hover:text-rose-500"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                );
-              })}
-
-              {addingPred ? (
-                <select
-                  autoFocus
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      addDep.mutate({
-                        predecessor_id: e.target.value,
-                        successor_id: task.id,
-                      });
-                    }
-                    setAddingPred(false);
-                  }}
-                  onBlur={() => setAddingPred(false)}
-                  defaultValue=""
-                  className="w-full rounded-lg border border-gray-300 px-2.5 py-2 text-sm outline-none focus:border-brand-500"
-                >
-                  <option value="" disabled>
-                    前提タスクを選択…
-                  </option>
-                  {candidates.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.title}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <button
-                  onClick={() => setAddingPred(true)}
-                  className="flex items-center gap-1 text-xs text-brand-600 hover:underline"
-                >
-                  <Plus className="h-3 w-3" />
-                  前提を追加
-                </button>
-              )}
-            </div>
-          </div>
 
           {/* 培養リネージュ（継代） — 継代培養の記録ON かつ 待機時間のとき */}
           {isWait && settings.bio_culture_lineage && (
