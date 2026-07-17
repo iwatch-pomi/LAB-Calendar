@@ -45,6 +45,16 @@ export function AuthForm() {
     }
   }, []);
 
+  // ブラウザの「戻る」でbfcacheから復元されたとき、ローディング状態を解除
+  // （OAuthへ遷移→戻る、でボタンが押せなくなるのを防ぐ）
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) setLoading(null);
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
   const redirectTo =
     typeof window !== "undefined"
       ? `${window.location.origin}/auth/callback`
