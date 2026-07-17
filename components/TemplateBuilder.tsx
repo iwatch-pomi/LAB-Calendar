@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { qk } from "@/lib/queries";
-import { PALETTE_KEYS, paletteFor } from "@/lib/types";
+import { PALETTE_KEYS, paletteFor, type Template } from "@/lib/types";
 import { X, Plus, Trash2 } from "lucide-react";
 
 interface StepDraft {
@@ -21,15 +21,54 @@ const emptyStep = (): StepDraft => ({
   equipment_name: "",
 });
 
-export function TemplateBuilder({ onClose }: { onClose: () => void }) {
+export function TemplateBuilder({
+  template,
+  onClose,
+}: {
+  template?: Template;
+  onClose: () => void;
+}) {
   const supabase = createClient();
   const qc = useQueryClient();
-  const [name, setName] = useState("");
-  const [estimatedLabel, setEstimatedLabel] = useState("");
-  const [color, setColor] = useState("teal");
-  const [steps, setSteps] = useState<StepDraft[]>([emptyStep()]);
+  const isEdit = !!template;
+  const [name, setName] = useState(template?.name ?? "");
+  const [estimatedLabel, setEstimatedLabel] = useState(
+    template?.estimated_label ?? "",
+  );
+  const [color, setColor] = useState(template?.color ?? "teal");
+  const [steps, setSteps] = useState<StepDraft[]>(
+    isEdit ? [] : [emptyStep()],
+  );
+  const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 編集時: 既存ステップを読み込む
+  useEffect(() => {
+    if (!template) return;
+    let active = true;
+    (async () => {
+      const { data } = await supabase
+        .from("template_steps")
+        .select("*")
+        .eq("template_id", template.id)
+        .order("step_order");
+      if (!active) return;
+      const drafts: StepDraft[] = (data ?? []).map((s) => ({
+        title: s.title,
+        duration_minutes: s.duration_minutes,
+        wait_after_minutes: s.wait_after_minutes,
+        equipment_name: s.equipment_name ?? "",
+      }));
+      setSteps(drafts.length ? drafts : [emptyStep()]);
+      setLoading(false);
+    })();
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [template?.id]);
 
   function updateStep(i: number, patch: Partial<StepDraft>) {
     setSteps((s) => s.map((st, idx) => (idx === i ? { ...st, ...patch } : st)));
@@ -49,24 +88,42 @@ export function TemplateBuilder({ onClose }: { onClose: () => void }) {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("not authenticated");
 
-      const { data: tpl, error: tErr } = await supabase
-        .from("templates")
-        .insert({
-          user_id: user.id,
-          name: name.trim(),
-          description: `全${validSteps.length}ステップ${
-            estimatedLabel ? `・${estimatedLabel}` : ""
-          }`,
-          estimated_label: estimatedLabel || null,
-          total_steps: validSteps.length,
-          color,
-        })
-        .select()
-        .single();
-      if (tErr || !tpl) throw tErr ?? new Error("insert failed");
+      const fields = {
+        name: name.trim(),
+        description: `全${validSteps.length}ステップ${
+          estimatedLabel ? `・${estimatedLabel}` : ""
+        }`,
+        estimated_label: estimatedLabel || null,
+        total_steps: validSteps.length,
+        color,
+      };
+
+      let templateId: string;
+      if (isEdit && template) {
+        const { error: uErr } = await supabase
+          .from("templates")
+          .update(fields)
+          .eq("id", template.id);
+        if (uErr) throw uErr;
+        templateId = template.id;
+        // ステップは差し替え（全削除→再挿入）
+        const { error: dErr } = await supabase
+          .from("template_steps")
+          .delete()
+          .eq("template_id", templateId);
+        if (dErr) throw dErr;
+      } else {
+        const { data: tpl, error: tErr } = await supabase
+          .from("templates")
+          .insert({ user_id: user.id, ...fields })
+          .select()
+          .single();
+        if (tErr || !tpl) throw tErr ?? new Error("insert failed");
+        templateId = tpl.id;
+      }
 
       const stepRows = validSteps.map((s, i) => ({
-        template_id: tpl.id,
+        template_id: templateId,
         step_order: i + 1,
         title: s.title.trim(),
         duration_minutes: s.duration_minutes,
@@ -89,6 +146,30 @@ export function TemplateBuilder({ onClose }: { onClose: () => void }) {
     }
   }
 
+  async function remove() {
+    if (!template) return;
+    if (
+      !confirm(
+        `テンプレート「${template.name}」を削除しますか？\n（登録済みの実験・予定は残ります）`,
+      )
+    )
+      return;
+    setDeleting(true);
+    try {
+      const { error: dErr } = await supabase
+        .from("templates")
+        .delete()
+        .eq("id", template.id);
+      if (dErr) throw dErr;
+      qc.invalidateQueries({ queryKey: qk.templates });
+      qc.invalidateQueries({ queryKey: qk.templateSteps });
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "削除に失敗しました");
+      setDeleting(false);
+    }
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
@@ -99,7 +180,9 @@ export function TemplateBuilder({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
-          <h3 className="text-base font-bold text-gray-800">テンプレを作成</h3>
+          <h3 className="text-base font-bold text-gray-800">
+            {isEdit ? "テンプレを編集" : "テンプレを作成"}
+          </h3>
           <button
             onClick={onClose}
             className="rounded-lg p-1 text-gray-500 hover:bg-gray-100"
@@ -159,6 +242,11 @@ export function TemplateBuilder({ onClose }: { onClose: () => void }) {
             <div className="mb-1.5 text-xs font-semibold text-gray-500">
               ステップ
             </div>
+            {loading && (
+              <p className="py-4 text-center text-xs text-gray-400">
+                読み込み中…
+              </p>
+            )}
             <div className="space-y-2">
               {steps.map((s, i) => (
                 <div
@@ -248,7 +336,17 @@ export function TemplateBuilder({ onClose }: { onClose: () => void }) {
           )}
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-3">
+        <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-5 py-3">
+          {isEdit && (
+            <button
+              onClick={remove}
+              disabled={deleting || saving}
+              className="mr-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-60"
+            >
+              <Trash2 className="h-4 w-4" />
+              {deleting ? "削除中…" : "削除"}
+            </button>
+          )}
           <button
             onClick={onClose}
             className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
@@ -257,10 +355,10 @@ export function TemplateBuilder({ onClose }: { onClose: () => void }) {
           </button>
           <button
             onClick={save}
-            disabled={saving}
+            disabled={saving || deleting}
             className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
           >
-            {saving ? "保存中…" : "テンプレを保存"}
+            {saving ? "保存中…" : isEdit ? "変更を保存" : "テンプレを保存"}
           </button>
         </div>
       </div>

@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useCreateExperimentFromTemplate } from "@/lib/mutations";
-import { useCreateTask } from "@/lib/queries";
+import { useCreateTask, useDeleteTemplate } from "@/lib/queries";
 import { paletteFor, type Template } from "@/lib/types";
 import { nowMs, weekStartMs } from "@/lib/calendar";
-import { FileText, CalendarPlus, Wand2 } from "lucide-react";
+import { FileText, CalendarPlus, Wand2, Pencil, Trash2 } from "lucide-react";
 
 /** now を 30分単位に切り上げ */
 function nextSlotISO(): string {
@@ -19,15 +19,28 @@ export function AddExperimentMenu({
   refMs,
   onClose,
   onCreateTemplate,
+  onEditTemplate,
 }: {
   templates: Template[];
   refMs: number;
   onClose: () => void;
   onCreateTemplate: () => void;
+  onEditTemplate: (t: Template) => void;
 }) {
   const createFromTemplate = useCreateExperimentFromTemplate();
   const createTask = useCreateTask();
+  const deleteTemplate = useDeleteTemplate();
   const [busy, setBusy] = useState<string | null>(null);
+
+  function handleDelete(t: Template) {
+    if (
+      confirm(
+        `テンプレート「${t.name}」を削除しますか？\n（登録済みの実験・予定は残ります）`,
+      )
+    ) {
+      deleteTemplate.mutate(t.id);
+    }
+  }
 
   async function pickTemplate(t: Template) {
     setBusy(t.id);
@@ -74,30 +87,50 @@ export function AddExperimentMenu({
           {templates.map((t) => {
             const p = paletteFor(t.color);
             return (
-              <button
+              <div
                 key={t.id}
-                disabled={busy !== null}
-                onClick={() => pickTemplate(t)}
-                className={`flex w-full items-start gap-2.5 rounded-xl border p-2.5 text-left transition hover:border-gray-300 ${
+                className={`group flex items-stretch rounded-xl border transition hover:border-gray-300 ${
                   busy === t.id
                     ? "border-brand-300 bg-brand-50"
                     : "border-gray-200 bg-white"
                 }`}
               >
-                <span
-                  className={`mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg ${p.soft}`}
+                <button
+                  disabled={busy !== null}
+                  onClick={() => pickTemplate(t)}
+                  className="flex min-w-0 flex-1 items-start gap-2.5 p-2.5 text-left"
                 >
-                  <FileText className={`h-4 w-4 ${p.text}`} />
-                </span>
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-gray-800">
-                    {t.name}
+                  <span
+                    className={`mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg ${p.soft}`}
+                  >
+                    <FileText className={`h-4 w-4 ${p.text}`} />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-gray-800">
+                      {t.name}
+                    </div>
+                    <div className="truncate text-xs text-gray-500">
+                      {t.description}
+                    </div>
                   </div>
-                  <div className="truncate text-xs text-gray-500">
-                    {t.description}
-                  </div>
+                </button>
+                <div className="flex flex-col justify-center gap-0.5 pr-1.5 opacity-0 transition group-hover:opacity-100">
+                  <button
+                    onClick={() => onEditTemplate(t)}
+                    title="編集"
+                    className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-brand-600"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(t)}
+                    title="削除"
+                    className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-rose-500"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>

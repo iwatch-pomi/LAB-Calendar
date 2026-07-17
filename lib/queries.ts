@@ -131,6 +131,31 @@ export function useTodos() {
   });
 }
 
+export function useDeleteTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("templates").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: qk.templates });
+      const prev = qc.getQueryData<Template[]>(qk.templates);
+      qc.setQueryData<Template[]>(qk.templates, (old) =>
+        (old ?? []).filter((t) => t.id !== id),
+      );
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(qk.templates, ctx.prev);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: qk.templates });
+      qc.invalidateQueries({ queryKey: qk.templateSteps });
+    },
+  });
+}
+
 export function useSettings() {
   return useQuery({
     queryKey: qk.settings,

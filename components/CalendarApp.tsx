@@ -15,7 +15,7 @@ import { useCreateTask } from "@/lib/queries";
 import type { FeatureFlags } from "@/lib/types";
 import { Onboarding } from "./Onboarding";
 import { nowMs } from "@/lib/calendar";
-import type { Task } from "@/lib/types";
+import type { Task, Template } from "@/lib/types";
 import { Sidebar } from "./Sidebar";
 import { CalendarHeader } from "./CalendarHeader";
 import { WeekView } from "./WeekView";
@@ -44,7 +44,9 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
   );
   const [openTask, setOpenTask] = useState<Task | null>(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
-  const [templateBuilderOpen, setTemplateBuilderOpen] = useState(false);
+  const [templateEdit, setTemplateEdit] = useState<Template | "new" | null>(
+    null,
+  );
   const [sidebarOpen, setSidebarOpenState] = useState(true);
   const [visibleDays, setVisibleDays] = useState(7);
 
@@ -165,7 +167,11 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
               onClose={() => setAddMenuOpen(false)}
               onCreateTemplate={() => {
                 setAddMenuOpen(false);
-                setTemplateBuilderOpen(true);
+                setTemplateEdit("new");
+              }}
+              onEditTemplate={(t) => {
+                setAddMenuOpen(false);
+                setTemplateEdit(t);
               }}
             />
           }
@@ -211,8 +217,11 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
         />
       )}
 
-      {templateBuilderOpen && (
-        <TemplateBuilder onClose={() => setTemplateBuilderOpen(false)} />
+      {templateEdit && (
+        <TemplateBuilder
+          template={templateEdit === "new" ? undefined : templateEdit}
+          onClose={() => setTemplateEdit(null)}
+        />
       )}
     </div>
   );
