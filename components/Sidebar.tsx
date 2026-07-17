@@ -10,9 +10,8 @@ import {
   useDeleteTodo,
   useUpdateTodo,
 } from "@/lib/queries";
-import { createClient } from "@/lib/supabase/client";
 import { fmtTime, jstInputToISO, isoToJstInput } from "@/lib/calendar";
-import { Plus, LogOut, Check, X } from "lucide-react";
+import { Plus, Check, X } from "lucide-react";
 
 const STATUS_LABEL: Record<Experiment["status"], string> = {
   planning: "未着手",
@@ -83,12 +82,6 @@ export function Sidebar({
 
   const doneCount = todos.filter((t) => t.done).length;
 
-  async function signOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    window.location.href = "/login";
-  }
-
   return (
     <aside className="flex h-full w-[264px] shrink-0 flex-col border-r border-gray-200 bg-white">
       <div className="flex items-center justify-between px-4 py-4">
@@ -100,13 +93,6 @@ export function Sidebar({
           <Logo />
         </Link>
         <div className="flex items-center gap-1">
-          <button
-            onClick={signOut}
-            title="ログアウト"
-            className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
           <button
             onClick={onClose}
             title="サイドバーを閉じる"

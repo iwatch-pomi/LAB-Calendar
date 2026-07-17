@@ -13,6 +13,7 @@ import {
   useAddCultureLink,
   useDeleteCultureLink,
 } from "@/lib/queries";
+import { createClient } from "@/lib/supabase/client";
 import { fmtTime } from "@/lib/calendar";
 import {
   paletteFor,
@@ -34,6 +35,7 @@ import {
   Plus,
   X,
   Download,
+  LogOut,
 } from "lucide-react";
 
 const STATUS_META: Record<
@@ -143,13 +145,20 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
     });
   }
 
+  async function signOut() {
+    if (!confirm("ログアウトしますか？")) return;
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  }
+
   const initial = (userEmail[0] ?? "?").toUpperCase();
 
   return (
     <div className="min-h-screen bg-[#f6f8fa]">
       {/* ヘッダー */}
       <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-3xl items-center gap-3 px-5 py-3">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-5 py-3">
           <Link
             href="/"
             className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100"
@@ -157,6 +166,13 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
             <ChevronLeft className="h-4 w-4" />
             カレンダーへ戻る
           </Link>
+          <button
+            onClick={signOut}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+          >
+            <LogOut className="h-4 w-4" />
+            ログアウト
+          </button>
         </div>
       </header>
 
