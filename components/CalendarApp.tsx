@@ -166,20 +166,10 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f6f8fa]">
-      {/* 背景（狭い画面でドロワーを開いたとき） */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/30 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* サイドバー（折りたたみ式） */}
+      {/* サイドバー（常にドッキング表示。開くとカレンダーを横へ押し出す） */}
       <div
-        className={`fixed inset-y-0 left-0 z-40 h-full shrink-0 overflow-hidden transition-[width,transform] duration-200 lg:static ${
-          sidebarOpen
-            ? "w-[264px] translate-x-0"
-            : "w-0 -translate-x-full lg:translate-x-0"
+        className={`h-full shrink-0 overflow-hidden transition-[width] duration-200 ${
+          sidebarOpen ? "w-[264px]" : "w-0"
         }`}
       >
         <Sidebar

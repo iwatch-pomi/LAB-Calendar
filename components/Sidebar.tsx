@@ -96,7 +96,7 @@ export function Sidebar({
           <button
             onClick={onClose}
             title="サイドバーを閉じる"
-            className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 lg:hidden"
+            className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
           >
             <X className="h-4 w-4" />
           </button>
