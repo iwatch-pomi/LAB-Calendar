@@ -155,6 +155,109 @@ export function useCreateExperimentFromTemplate() {
 }
 
 /**
+ * テンプレートのステップを「連続で」配置する（並び替え前提の簡易版）。
+ * offset/wait/装置の空き判定は行わず、クリック位置から各ステップの所要時間ぶんだけ
+ * 隙間なく順番に並べる。後でドラッグして自由に並び替えることを前提とした登録。
+ */
+export function usePlaceTemplateAt() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { templateId: string; startISO: string }) => {
+      const userId = await getUserId();
+      const startMs = new Date(args.startISO).getTime();
+
+      const [{ data: tpl }, { data: steps }, { data: equip }] =
+        await Promise.all([
+          supabase
+            .from("templates")
+            .select("*")
+            .eq("id", args.templateId)
+            .single(),
+          supabase
+            .from("template_steps")
+            .select("*")
+            .eq("template_id", args.templateId)
+            .order("step_order"),
+          supabase.from("equipment").select("*"),
+        ]);
+      if (!tpl) throw new Error("template not found");
+      const template = tpl as Template;
+      const templateSteps = ((steps ?? []) as TemplateStep[]).slice().sort(
+        (a, b) => a.step_order - b.step_order,
+      );
+      const equipment = (equip ?? []) as Equipment[];
+
+      // 装置名→id（無ければ作成）
+      const equipByName = new Map(equipment.map((e) => [e.name, e]));
+      const neededNames = new Set(
+        templateSteps
+          .map((s) => s.equipment_name)
+          .filter((n): n is string => !!n),
+      );
+      for (const name of neededNames) {
+        if (!equipByName.has(name)) {
+          const { data: created } = await supabase
+            .from("equipment")
+            .insert({ user_id: userId, name, color: "slate" })
+            .select()
+            .single();
+          if (created) equipByName.set(name, created as Equipment);
+        }
+      }
+
+      // 実験を作成
+      const { data: exp, error: expErr } = await supabase
+        .from("experiments")
+        .insert({
+          user_id: userId,
+          template_id: template.id,
+          name: template.name,
+          status: "in_progress",
+          current_step: 1,
+          total_steps: template.total_steps,
+          color: template.color,
+        })
+        .select()
+        .single();
+      if (expErr || !exp) throw expErr ?? new Error("experiment insert failed");
+
+      // ステップを隙間なく連続で並べる
+      let cursor = startMs;
+      const taskRows = templateSteps.map((s) => {
+        const start = cursor;
+        const end = start + s.duration_minutes * 60000;
+        cursor = end;
+        return {
+          user_id: userId,
+          experiment_id: exp.id,
+          title: s.title,
+          subtitle: s.subtitle,
+          start_time: new Date(start).toISOString(),
+          end_time: new Date(end).toISOString(),
+          status: "planned" as const,
+          equipment_id: s.equipment_name
+            ? (equipByName.get(s.equipment_name)?.id ?? null)
+            : null,
+          needs_reservation: s.needs_reservation,
+          is_wait: /待機|培養待|インキュベート|静置|反応待/.test(s.title),
+          template_step_id: s.id,
+        };
+      });
+
+      const { error: tErr } = await supabase.from("tasks").insert(taskRows);
+      if (tErr) throw tErr;
+
+      return exp.id as string;
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: qk.tasks });
+      qc.invalidateQueries({ queryKey: qk.experiments });
+      qc.invalidateQueries({ queryKey: qk.equipment });
+    },
+  });
+}
+
+/**
  * 自動リスケの確定: 計算済みの移動(moves)を一括で永続化し、
  * 失敗タスクをやり直し(planned)へ戻す。
  */

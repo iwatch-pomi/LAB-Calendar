@@ -1,18 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useCreateExperimentFromTemplate } from "@/lib/mutations";
 import { useCreateTask, useDeleteTemplate } from "@/lib/queries";
 import { paletteFor, type Template } from "@/lib/types";
-import { nowMs, weekStartMs } from "@/lib/calendar";
+import { weekStartMs } from "@/lib/calendar";
 import { FileText, CalendarPlus, Wand2, Pencil, Trash2 } from "lucide-react";
-
-/** now を 30分単位に切り上げ */
-function nextSlotISO(): string {
-  const now = nowMs();
-  const rounded = Math.ceil(now / (30 * 60000)) * 30 * 60000;
-  return new Date(rounded).toISOString();
-}
 
 export function AddExperimentMenu({
   templates,
@@ -20,14 +12,15 @@ export function AddExperimentMenu({
   onClose,
   onCreateTemplate,
   onEditTemplate,
+  onPlaceTemplate,
 }: {
   templates: Template[];
   refMs: number;
   onClose: () => void;
   onCreateTemplate: () => void;
   onEditTemplate: (t: Template) => void;
+  onPlaceTemplate: (t: Template) => void;
 }) {
-  const createFromTemplate = useCreateExperimentFromTemplate();
   const createTask = useCreateTask();
   const deleteTemplate = useDeleteTemplate();
   const [busy, setBusy] = useState<string | null>(null);
@@ -42,17 +35,10 @@ export function AddExperimentMenu({
     }
   }
 
-  async function pickTemplate(t: Template) {
-    setBusy(t.id);
-    try {
-      await createFromTemplate.mutateAsync({
-        templateId: t.id,
-        startISO: nextSlotISO(),
-      });
-      onClose();
-    } finally {
-      setBusy(null);
-    }
+  // テンプレを選ぶ → 配置モードに入り、カレンダーのクリック位置に展開
+  function pickTemplate(t: Template) {
+    onPlaceTemplate(t);
+    onClose();
   }
 
   async function createEmpty() {

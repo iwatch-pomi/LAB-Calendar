@@ -12,6 +12,7 @@ import {
   useUpdateFeatures,
 } from "@/lib/queries";
 import { useCreateTask } from "@/lib/queries";
+import { usePlaceTemplateAt } from "@/lib/mutations";
 import type { FeatureFlags } from "@/lib/types";
 import { Onboarding } from "./Onboarding";
 import { nowMs } from "@/lib/calendar";
@@ -34,6 +35,7 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
   const equipmentQ = useEquipment();
   const templatesQ = useTemplates();
   const createTask = useCreateTask();
+  const placeTemplate = usePlaceTemplateAt();
   const settingsQ = useSettings();
   const updateFeatures = useUpdateFeatures();
 
@@ -45,6 +47,9 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
   const [openTask, setOpenTask] = useState<Task | null>(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [templateEdit, setTemplateEdit] = useState<Template | "new" | null>(
+    null,
+  );
+  const [placingTemplate, setPlacingTemplate] = useState<Template | null>(
     null,
   );
   const [sidebarOpen, setSidebarOpenState] = useState(true);
@@ -102,8 +107,17 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
     return m;
   }, [equipment]);
 
-  // 空き枠クリック → 新規予定を作成してモーダルを開く
+  // 空き枠クリック → テンプレ配置モード中ならステップを連続配置、そうでなければ新規予定を作成
   async function handleCreateAt(startMs: number) {
+    if (placingTemplate) {
+      const tpl = placingTemplate;
+      setPlacingTemplate(null);
+      await placeTemplate.mutateAsync({
+        templateId: tpl.id,
+        startISO: new Date(startMs).toISOString(),
+      });
+      return;
+    }
     const created = await createTask.mutateAsync({
       title: "新しい予定",
       start_time: new Date(startMs).toISOString(),
@@ -112,6 +126,16 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
     });
     if (created) setOpenTask(created);
   }
+
+  // 配置モード中に Escape でキャンセル
+  useEffect(() => {
+    if (!placingTemplate) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPlacingTemplate(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [placingTemplate]);
 
   const loading =
     tasksQ.isLoading || experimentsQ.isLoading || depsQ.isLoading;
@@ -173,9 +197,24 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
                 setAddMenuOpen(false);
                 setTemplateEdit(t);
               }}
+              onPlaceTemplate={(t) => setPlacingTemplate(t)}
             />
           }
         />
+
+        {placingTemplate && (
+          <div className="flex items-center justify-between gap-3 border-b border-brand-200 bg-brand-50 px-4 py-2 text-sm">
+            <span className="text-brand-800">
+              「{placingTemplate.name}」の全ステップを配置します。カレンダー上で開始位置をクリックしてください（隙間なく連続配置・後で自由に並び替え可）。
+            </span>
+            <button
+              onClick={() => setPlacingTemplate(null)}
+              className="shrink-0 rounded-lg border border-brand-300 bg-white px-3 py-1 text-xs font-medium text-brand-700 hover:bg-brand-100"
+            >
+              キャンセル
+            </button>
+          </div>
+        )}
 
         <div className="min-h-0 flex-1 overflow-hidden p-3">
           {loading ? (
