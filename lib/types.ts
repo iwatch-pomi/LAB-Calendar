@@ -85,10 +85,16 @@ export interface Todo {
   created_at: string;
 }
 
-/** ユーザーごとの機能フラグ（プロフィールの設定で切替） */
+/** ユーザーごとの実験モードフラグ（プロフィールの設定で切替） */
 export interface FeatureFlags {
-  /** 培養リネージュ記録（前培養・継代培養の相関） */
-  culture_lineage?: boolean;
+  /** 生物実験モード（継代培養の記録） */
+  bio_mode?: boolean;
+  /** 化学実験モード（収率・モル計算） */
+  chem_mode?: boolean;
+  /** 物理実験モード（測定統計） */
+  physics_mode?: boolean;
+  /** 工学実験モード（単位変換など） */
+  engineering_mode?: boolean;
 }
 
 export interface UserSettings {

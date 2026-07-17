@@ -6,6 +6,7 @@ import {
   useDeleteTask,
   useAddDependency,
   useRemoveDependency,
+  useSettings,
   useCultureLinks,
   useAddCultureLink,
   useDeleteCultureLink,
@@ -49,6 +50,7 @@ export function TaskModal({
   const deleteTask = useDeleteTask();
   const addDep = useAddDependency();
   const removeDep = useRemoveDependency();
+  const settings = useSettings().data ?? {};
   const cultureLinks = useCultureLinks().data ?? [];
   const addCultureLink = useAddCultureLink();
   const deleteCultureLink = useDeleteCultureLink();
@@ -348,8 +350,8 @@ export function TaskModal({
             </div>
           </div>
 
-          {/* 培養リネージュ（継代） — 待機時間のとき */}
-          {isWait && (
+          {/* 培養リネージュ（継代） — 生物実験モード かつ 待機時間のとき */}
+          {isWait && settings.bio_mode && (
             <div>
               <div className="mb-1 flex items-center gap-1.5">
                 <GitBranch className="h-3.5 w-3.5 text-emerald-600" />

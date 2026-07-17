@@ -42,6 +42,8 @@ import {
   Wrench,
   LogOut,
   ListChecks,
+  Atom,
+  Cog,
 } from "lucide-react";
 
 const STATUS_META: Record<
@@ -282,17 +284,53 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
         <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
           <div className="mb-3 flex items-center gap-1.5">
             <Settings className="h-4 w-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-700">設定</h2>
+            <h2 className="text-sm font-semibold text-gray-700">実験モード</h2>
           </div>
-          <FeatureToggle
-            icon={<Sprout className="h-4 w-4 text-emerald-600" />}
-            title="培養リネージュ記録"
-            description="前培養・本培養・継代培養など培養ステップの前後関係（相関）をまとめて表示します。生物系の実験向け。"
-            checked={!!features.culture_lineage}
-            onChange={(v) =>
-              updateFeature.mutate({ key: "culture_lineage", value: v })
-            }
-          />
+          <p className="mb-3 text-xs text-gray-500">
+            専攻・実験分野に合わせて機能を切り替えます（複数選択可）。
+          </p>
+          <div className="space-y-2">
+            <FeatureToggle
+              icon={<Sprout className="h-4 w-4 text-emerald-600" />}
+              iconBg="bg-emerald-50"
+              title="生物実験モード"
+              description="継代培養の記録をします。"
+              checked={!!features.bio_mode}
+              onChange={(v) =>
+                updateFeature.mutate({ key: "bio_mode", value: v })
+              }
+            />
+            <FeatureToggle
+              icon={<FlaskConical className="h-4 w-4 text-blue-600" />}
+              iconBg="bg-blue-50"
+              title="化学実験モード"
+              description="収率・モル計算などの化学ツールを表示します。"
+              checked={!!features.chem_mode}
+              onChange={(v) =>
+                updateFeature.mutate({ key: "chem_mode", value: v })
+              }
+            />
+            <FeatureToggle
+              icon={<Atom className="h-4 w-4 text-amber-600" />}
+              iconBg="bg-amber-50"
+              title="物理実験モード"
+              description="測定データの統計（平均・標準偏差）をまとめます。"
+              checked={!!features.physics_mode}
+              onChange={(v) =>
+                updateFeature.mutate({ key: "physics_mode", value: v })
+              }
+            />
+            <FeatureToggle
+              icon={<Cog className="h-4 w-4 text-slate-600" />}
+              iconBg="bg-slate-100"
+              title="工学実験モード"
+              description="単位変換などの計算ツールを表示します。"
+              checked={!!features.engineering_mode}
+              onChange={(v) =>
+                updateFeature.mutate({ key: "engineering_mode", value: v })
+              }
+            />
+          </div>
         </section>
 
         {/* 使用機器の管理 */}
@@ -356,10 +394,19 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
           </form>
         </section>
 
-        {/* 培養リネージュ（機能ONのとき表示） */}
-        {features.culture_lineage && (
+        {/* 生物実験モード: 培養リネージュ */}
+        {features.bio_mode && (
           <CultureLineage experiments={experiments} tasks={tasks} />
         )}
+
+        {/* 化学実験モード: ツール */}
+        {features.chem_mode && <ChemTools />}
+
+        {/* 物理実験モード: ツール */}
+        {features.physics_mode && <PhysicsTools />}
+
+        {/* 工学実験モード: ツール */}
+        {features.engineering_mode && <EngineeringTools />}
 
         {/* フィルタ */}
         <div className="mb-3 flex items-center justify-between">
@@ -568,14 +615,272 @@ function StatCard({
   );
 }
 
+/** 実験ツール共通のフィールド */
+function ToolField({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block text-[11px] text-gray-500">
+      {label}
+      {children}
+    </label>
+  );
+}
+
+const toolInput =
+  "mt-0.5 w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500";
+
+/** 化学実験モード: 収率計算・モル計算 */
+function ChemTools() {
+  const [theoretical, setTheoretical] = useState("");
+  const [actual, setActual] = useState("");
+  const [mass, setMass] = useState("");
+  const [mw, setMw] = useState("");
+
+  const yieldPct =
+    Number(theoretical) > 0
+      ? ((Number(actual) / Number(theoretical)) * 100).toFixed(1)
+      : null;
+  const mol =
+    Number(mw) > 0 ? (Number(mass) / Number(mw)).toPrecision(4) : null;
+
+  return (
+    <section className="mb-6 rounded-2xl border border-blue-200 bg-blue-50/40 p-4">
+      <div className="mb-3 flex items-center gap-1.5">
+        <FlaskConical className="h-4 w-4 text-blue-600" />
+        <h2 className="text-sm font-semibold text-gray-800">化学ツール</h2>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {/* 収率計算 */}
+        <div className="rounded-xl border border-gray-200 bg-white p-3">
+          <div className="mb-2 text-xs font-semibold text-gray-700">
+            収率計算
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <ToolField label="理論収量 (g/mol)">
+              <input
+                type="number"
+                value={theoretical}
+                onChange={(e) => setTheoretical(e.target.value)}
+                className={toolInput}
+              />
+            </ToolField>
+            <ToolField label="実収量 (g/mol)">
+              <input
+                type="number"
+                value={actual}
+                onChange={(e) => setActual(e.target.value)}
+                className={toolInput}
+              />
+            </ToolField>
+          </div>
+          <div className="mt-2 text-sm">
+            収率:{" "}
+            <span className="font-bold text-blue-700">
+              {yieldPct !== null ? `${yieldPct} %` : "—"}
+            </span>
+          </div>
+        </div>
+
+        {/* モル計算 */}
+        <div className="rounded-xl border border-gray-200 bg-white p-3">
+          <div className="mb-2 text-xs font-semibold text-gray-700">
+            モル計算
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <ToolField label="質量 (g)">
+              <input
+                type="number"
+                value={mass}
+                onChange={(e) => setMass(e.target.value)}
+                className={toolInput}
+              />
+            </ToolField>
+            <ToolField label="分子量 (g/mol)">
+              <input
+                type="number"
+                value={mw}
+                onChange={(e) => setMw(e.target.value)}
+                className={toolInput}
+              />
+            </ToolField>
+          </div>
+          <div className="mt-2 text-sm">
+            物質量:{" "}
+            <span className="font-bold text-blue-700">
+              {mol !== null ? `${mol} mol` : "—"}
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** 物理実験モード: 測定統計 */
+function PhysicsTools() {
+  const [raw, setRaw] = useState("");
+  const nums = raw
+    .split(/[\s,]+/)
+    .map((s) => s.trim())
+    .filter((s) => s !== "")
+    .map(Number)
+    .filter((n) => Number.isFinite(n));
+
+  const n = nums.length;
+  const mean = n > 0 ? nums.reduce((a, b) => a + b, 0) / n : null;
+  const sd =
+    n > 1 && mean !== null
+      ? Math.sqrt(
+          nums.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1),
+        )
+      : null;
+  const sem = sd !== null ? sd / Math.sqrt(n) : null;
+
+  const fmt = (v: number | null) => (v === null ? "—" : v.toPrecision(4));
+
+  return (
+    <section className="mb-6 rounded-2xl border border-amber-200 bg-amber-50/40 p-4">
+      <div className="mb-3 flex items-center gap-1.5">
+        <Atom className="h-4 w-4 text-amber-600" />
+        <h2 className="text-sm font-semibold text-gray-800">測定統計</h2>
+      </div>
+      <div className="rounded-xl border border-gray-200 bg-white p-3">
+        <ToolField label="測定値（カンマ or 空白区切り）">
+          <textarea
+            value={raw}
+            onChange={(e) => setRaw(e.target.value)}
+            rows={2}
+            placeholder="例: 12.3, 12.5, 12.1, 12.4"
+            className={`${toolInput} resize-none`}
+          />
+        </ToolField>
+        <div className="mt-2 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+          <StatMini label="件数" value={String(n)} />
+          <StatMini label="平均" value={fmt(mean)} />
+          <StatMini label="標準偏差" value={fmt(sd)} />
+          <StatMini label="標準誤差" value={fmt(sem)} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StatMini({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-amber-50 px-2 py-1.5">
+      <div className="text-[10px] text-gray-500">{label}</div>
+      <div className="font-bold text-amber-700">{value}</div>
+    </div>
+  );
+}
+
+/** 工学実験モード: 単位変換 */
+const UNIT_GROUPS: Record<string, Record<string, number>> = {
+  長さ: { m: 1, cm: 0.01, mm: 0.001, inch: 0.0254 },
+  質量: { kg: 1, g: 0.001, mg: 0.000001 },
+};
+
+function EngineeringTools() {
+  const [group, setGroup] = useState("長さ");
+  const [from, setFrom] = useState("m");
+  const [to, setTo] = useState("cm");
+  const [value, setValue] = useState("1");
+
+  const units = Object.keys(UNIT_GROUPS[group]);
+  const result =
+    Number.isFinite(Number(value)) &&
+    UNIT_GROUPS[group][from] &&
+    UNIT_GROUPS[group][to]
+      ? (
+          (Number(value) * UNIT_GROUPS[group][from]) /
+          UNIT_GROUPS[group][to]
+        ).toPrecision(6)
+      : "—";
+
+  function changeGroup(g: string) {
+    setGroup(g);
+    const u = Object.keys(UNIT_GROUPS[g]);
+    setFrom(u[0]);
+    setTo(u[1] ?? u[0]);
+  }
+
+  return (
+    <section className="mb-6 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+      <div className="mb-3 flex items-center gap-1.5">
+        <Cog className="h-4 w-4 text-slate-600" />
+        <h2 className="text-sm font-semibold text-gray-800">単位変換</h2>
+      </div>
+      <div className="rounded-xl border border-gray-200 bg-white p-3">
+        <div className="mb-2 flex gap-1.5">
+          {Object.keys(UNIT_GROUPS).map((g) => (
+            <button
+              key={g}
+              onClick={() => changeGroup(g)}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                group === g
+                  ? "bg-slate-700 text-white"
+                  : "bg-gray-100 text-gray-600"
+              }`}
+            >
+              {g}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-end gap-2">
+          <ToolField label="値">
+            <input
+              type="number"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              className={toolInput}
+            />
+          </ToolField>
+          <select
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            className="mb-0.5 rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
+          >
+            {units.map((u) => (
+              <option key={u}>{u}</option>
+            ))}
+          </select>
+          <span className="mb-2 text-gray-400">→</span>
+          <select
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            className="mb-0.5 rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
+          >
+            {units.map((u) => (
+              <option key={u}>{u}</option>
+            ))}
+          </select>
+        </div>
+        <div className="mt-2 text-sm">
+          結果:{" "}
+          <span className="font-bold text-slate-700">
+            {result} {to}
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function FeatureToggle({
   icon,
+  iconBg = "bg-emerald-50",
   title,
   description,
   checked,
   onChange,
 }: {
   icon: React.ReactNode;
+  iconBg?: string;
   title: string;
   description: string;
   checked: boolean;
@@ -583,7 +888,9 @@ function FeatureToggle({
 }) {
   return (
     <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-100 p-3 transition hover:bg-gray-50">
-      <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-50">
+      <span
+        className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg ${iconBg}`}
+      >
         {icon}
       </span>
       <div className="min-w-0 flex-1">
