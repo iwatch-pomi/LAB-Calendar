@@ -19,6 +19,11 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { fmtTime } from "@/lib/calendar";
 import {
+  MODES,
+  featuresByMode,
+  type ExperimentMode,
+} from "@/lib/features";
+import {
   paletteFor,
   PALETTE_KEYS,
   type CultureLink,
@@ -45,6 +50,28 @@ import {
   Atom,
   Cog,
 } from "lucide-react";
+
+const MODE_ICON: Record<
+  ExperimentMode,
+  { icon: React.ReactNode; iconBg: string }
+> = {
+  bio: {
+    icon: <Sprout className="h-4 w-4 text-emerald-600" />,
+    iconBg: "bg-emerald-50",
+  },
+  chem: {
+    icon: <FlaskConical className="h-4 w-4 text-blue-600" />,
+    iconBg: "bg-blue-50",
+  },
+  physics: {
+    icon: <Atom className="h-4 w-4 text-amber-600" />,
+    iconBg: "bg-amber-50",
+  },
+  engineering: {
+    icon: <Cog className="h-4 w-4 text-slate-600" />,
+    iconBg: "bg-slate-100",
+  },
+};
 
 const STATUS_META: Record<
   Experiment["status"],
@@ -280,56 +307,70 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
           )}
         </section>
 
-        {/* 設定: 個別機能の表示/非表示 */}
+        {/* 実験モード: モードごとに個別機能をON/OFF */}
         <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
           <div className="mb-3 flex items-center gap-1.5">
             <Settings className="h-4 w-4 text-gray-400" />
             <h2 className="text-sm font-semibold text-gray-700">実験モード</h2>
           </div>
-          <p className="mb-3 text-xs text-gray-500">
-            専攻・実験分野に合わせて機能を切り替えます（複数選択可）。
+          <p className="mb-4 text-xs text-gray-500">
+            分野ごとに、使いたい機能を個別にオンにできます（分野・機能とも複数選択可）。
           </p>
-          <div className="space-y-2">
-            <FeatureToggle
-              icon={<Sprout className="h-4 w-4 text-emerald-600" />}
-              iconBg="bg-emerald-50"
-              title="生物実験モード"
-              description="継代培養の記録をします。"
-              checked={!!features.bio_mode}
-              onChange={(v) =>
-                updateFeature.mutate({ key: "bio_mode", value: v })
-              }
-            />
-            <FeatureToggle
-              icon={<FlaskConical className="h-4 w-4 text-blue-600" />}
-              iconBg="bg-blue-50"
-              title="化学実験モード"
-              description="収率・モル計算などの化学ツールを表示します。"
-              checked={!!features.chem_mode}
-              onChange={(v) =>
-                updateFeature.mutate({ key: "chem_mode", value: v })
-              }
-            />
-            <FeatureToggle
-              icon={<Atom className="h-4 w-4 text-amber-600" />}
-              iconBg="bg-amber-50"
-              title="物理実験モード"
-              description="測定データの統計（平均・標準偏差）をまとめます。"
-              checked={!!features.physics_mode}
-              onChange={(v) =>
-                updateFeature.mutate({ key: "physics_mode", value: v })
-              }
-            />
-            <FeatureToggle
-              icon={<Cog className="h-4 w-4 text-slate-600" />}
-              iconBg="bg-slate-100"
-              title="工学実験モード"
-              description="単位変換などの計算ツールを表示します。"
-              checked={!!features.engineering_mode}
-              onChange={(v) =>
-                updateFeature.mutate({ key: "engineering_mode", value: v })
-              }
-            />
+
+          <div className="space-y-5">
+            {MODES.map((mode) => {
+              const feats = featuresByMode(mode.key);
+              const onCount = feats.filter((f) => !!features[f.key]).length;
+              const mi = MODE_ICON[mode.key];
+              const allOn = onCount === feats.length && feats.length > 0;
+              return (
+                <div key={mode.key}>
+                  <div className="mb-2 flex items-center gap-2">
+                    <span
+                      className={`grid h-6 w-6 place-items-center rounded-lg ${mi.iconBg}`}
+                    >
+                      {mi.icon}
+                    </span>
+                    <span className="text-sm font-semibold text-gray-800">
+                      {mode.title}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {onCount}/{feats.length}
+                    </span>
+                    {feats.length > 1 && (
+                      <button
+                        onClick={() =>
+                          feats.forEach((f) =>
+                            updateFeature.mutate({
+                              key: f.key,
+                              value: !allOn,
+                            }),
+                          )
+                        }
+                        className="ml-auto text-xs text-brand-600 hover:underline"
+                      >
+                        {allOn ? "すべてOFF" : "すべてON"}
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-2 pl-1">
+                    {feats.map((f) => (
+                      <FeatureToggle
+                        key={f.key}
+                        icon={mi.icon}
+                        iconBg={mi.iconBg}
+                        title={f.title}
+                        description={f.description}
+                        checked={!!features[f.key]}
+                        onChange={(v) =>
+                          updateFeature.mutate({ key: f.key, value: v })
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
 
@@ -394,19 +435,19 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
           </form>
         </section>
 
-        {/* 生物実験モード: 培養リネージュ */}
-        {features.bio_mode && (
+        {/* 生物: 継代培養の記録 */}
+        {features.bio_culture_lineage && (
           <CultureLineage experiments={experiments} tasks={tasks} />
         )}
 
-        {/* 化学実験モード: ツール */}
-        {features.chem_mode && <ChemTools />}
+        {/* 化学: 収率・モル計算 */}
+        {features.chem_calc && <ChemTools />}
 
-        {/* 物理実験モード: ツール */}
-        {features.physics_mode && <PhysicsTools />}
+        {/* 物理: 測定統計 */}
+        {features.physics_stats && <PhysicsTools />}
 
-        {/* 工学実験モード: ツール */}
-        {features.engineering_mode && <EngineeringTools />}
+        {/* 工学: 単位変換 */}
+        {features.engineering_unit && <EngineeringTools />}
 
         {/* フィルタ */}
         <div className="mb-3 flex items-center justify-between">

@@ -21,7 +21,7 @@ const DOMAINS: Domain[] = [
     desc: "培養・形質転換・発現精製など。待機時間を自動でブロック化。",
     icon: <Sprout className="h-5 w-5 text-emerald-600" />,
     iconBg: "bg-emerald-50",
-    flags: { bio_mode: true },
+    flags: { bio_culture_lineage: true },
   },
   {
     key: "chem",
@@ -29,7 +29,7 @@ const DOMAINS: Domain[] = [
     desc: "合成・精製・反応待ち。反応時間と機器予約を連動。",
     icon: <FlaskConical className="h-5 w-5 text-blue-600" />,
     iconBg: "bg-blue-50",
-    flags: { chem_mode: true },
+    flags: { chem_calc: true },
   },
   {
     key: "phys",
@@ -37,7 +37,7 @@ const DOMAINS: Domain[] = [
     desc: "測定・計算・シミュレーション。ジョブ待ち時間を予定化。",
     icon: <Atom className="h-5 w-5 text-amber-600" />,
     iconBg: "bg-amber-50",
-    flags: { physics_mode: true, engineering_mode: true },
+    flags: { physics_stats: true, engineering_unit: true },
   },
 ];
 

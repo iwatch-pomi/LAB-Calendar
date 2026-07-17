@@ -85,18 +85,15 @@ export interface Todo {
   created_at: string;
 }
 
-/** ユーザーごとの実験モードフラグ（プロフィールの設定で切替） */
+/**
+ * ユーザーごとの機能フラグ（プロフィールの設定で切替）。
+ * 個別機能のキーは lib/features.ts の FEATURES で定義（例: bio_culture_lineage）。
+ * 機能追加に強いよう任意の文字列キーを許可する。
+ */
 export interface FeatureFlags {
-  /** 生物実験モード（継代培養の記録） */
-  bio_mode?: boolean;
-  /** 化学実験モード（収率・モル計算） */
-  chem_mode?: boolean;
-  /** 物理実験モード（測定統計） */
-  physics_mode?: boolean;
-  /** 工学実験モード（単位変換など） */
-  engineering_mode?: boolean;
   /** 初回オンボーディング（研究分野の選択）完了フラグ */
   onboarded?: boolean;
+  [key: string]: boolean | undefined;
 }
 
 export interface UserSettings {

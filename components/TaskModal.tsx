@@ -350,8 +350,8 @@ export function TaskModal({
             </div>
           </div>
 
-          {/* 培養リネージュ（継代） — 生物実験モード かつ 待機時間のとき */}
-          {isWait && settings.bio_mode && (
+          {/* 培養リネージュ（継代） — 継代培養の記録ON かつ 待機時間のとき */}
+          {isWait && settings.bio_culture_lineage && (
             <div>
               <div className="mb-1 flex items-center gap-1.5">
                 <GitBranch className="h-3.5 w-3.5 text-emerald-600" />
