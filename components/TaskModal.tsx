@@ -36,7 +36,6 @@ export function TaskModal({
   experiments,
   equipment,
   onClose,
-  onMarkFailed,
 }: {
   task: Task;
   tasks: Task[];
@@ -44,7 +43,6 @@ export function TaskModal({
   experiments: Experiment[];
   equipment: Equipment[];
   onClose: () => void;
-  onMarkFailed: (t: Task) => void;
 }) {
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
@@ -503,13 +501,27 @@ export function TaskModal({
               </button>
             )}
 
-            <button
-              onClick={() => onMarkFailed(task)}
-              className="flex items-center gap-1.5 rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100"
-            >
-              <AlertTriangle className="h-4 w-4" />
-              失敗 → 自動リスケ
-            </button>
+            {liveTask.status === "failed" ? (
+              <button
+                onClick={() =>
+                  updateTask.mutate({ id: task.id, status: "planned" })
+                }
+                className="flex items-center gap-1.5 rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100"
+              >
+                <AlertTriangle className="h-4 w-4" />
+                失敗を取消
+              </button>
+            ) : (
+              <button
+                onClick={() =>
+                  updateTask.mutate({ id: task.id, status: "failed" })
+                }
+                className="flex items-center gap-1.5 rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100"
+              >
+                <AlertTriangle className="h-4 w-4" />
+                失敗にする
+              </button>
+            )}
 
             <button
               onClick={() => {

@@ -14,14 +14,6 @@ import {
 import { useCreateTask } from "@/lib/queries";
 import type { FeatureFlags } from "@/lib/types";
 import { Onboarding } from "./Onboarding";
-import { useCommitReschedule } from "@/lib/mutations";
-import {
-  rescheduleFromFailure,
-  type RTask,
-  type RDep,
-  type Move,
-} from "@/lib/reschedule";
-import { WORKING_HOURS, TZ_OFFSET_MINUTES } from "@/lib/config";
 import { nowMs } from "@/lib/calendar";
 import type { Task } from "@/lib/types";
 import { Sidebar } from "./Sidebar";
@@ -30,16 +22,9 @@ import { WeekView } from "./WeekView";
 import { MonthView } from "./MonthView";
 import { TaskModal } from "./TaskModal";
 import { AddExperimentMenu } from "./AddExperimentMenu";
-import { RescheduleDialog } from "./RescheduleDialog";
 import { TemplateBuilder } from "./TemplateBuilder";
 
 export type ViewMode = "week" | "month";
-
-export interface ReschedulePlan {
-  failedId: string;
-  failedTitle: string;
-  moves: Move[];
-}
 
 export function CalendarApp({ userEmail }: { userEmail: string }) {
   const tasksQ = useTasks();
@@ -48,7 +33,6 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
   const todosQ = useTodos();
   const equipmentQ = useEquipment();
   const templatesQ = useTemplates();
-  const commitReschedule = useCommitReschedule();
   const createTask = useCreateTask();
   const settingsQ = useSettings();
   const updateFeatures = useUpdateFeatures();
@@ -61,8 +45,6 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
   const [openTask, setOpenTask] = useState<Task | null>(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [templateBuilderOpen, setTemplateBuilderOpen] = useState(false);
-  const [plan, setPlan] = useState<ReschedulePlan | null>(null);
-  const [highlightIds, setHighlightIds] = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpenState] = useState(true);
   const [visibleDays, setVisibleDays] = useState(7);
 
@@ -118,33 +100,6 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
     return m;
   }, [equipment]);
 
-  // 失敗 → リスケ計算（プレビュー）
-  function computeReschedule(failed: Task): ReschedulePlan {
-    const rtasks: RTask[] = tasks.map((t) => ({
-      id: t.id,
-      start: new Date(t.start_time).getTime(),
-      end: new Date(t.end_time).getTime(),
-      equipmentId: t.equipment_id,
-      isWait: t.is_wait,
-    }));
-    const rdeps: RDep[] = deps.map((d) => ({
-      predecessorId: d.predecessor_id,
-      successorId: d.successor_id,
-      gapMinutes: d.gap_minutes,
-    }));
-    const moves = rescheduleFromFailure(rtasks, rdeps, failed.id, {
-      now: nowMs(),
-      workingHours: WORKING_HOURS,
-      tzOffsetMinutes: TZ_OFFSET_MINUTES,
-    });
-    return { failedId: failed.id, failedTitle: failed.title, moves };
-  }
-
-  function onMarkFailed(task: Task) {
-    setOpenTask(null);
-    setPlan(computeReschedule(task));
-  }
-
   // 空き枠クリック → 新規予定を作成してモーダルを開く
   async function handleCreateAt(startMs: number) {
     const created = await createTask.mutateAsync({
@@ -154,17 +109,6 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
       experiment_id: selectedExperiment ?? undefined,
     });
     if (created) setOpenTask(created);
-  }
-
-  async function confirmReschedule() {
-    if (!plan) return;
-    await commitReschedule.mutateAsync({
-      failedId: plan.failedId,
-      moves: plan.moves,
-    });
-    setHighlightIds(plan.moves.map((m) => m.id));
-    setPlan(null);
-    setTimeout(() => setHighlightIds([]), 2600);
   }
 
   const loading =
@@ -240,7 +184,6 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
               expColorById={expColorById}
               equipNameById={equipNameById}
               selectedExperiment={selectedExperiment}
-              highlightIds={highlightIds}
               visibleDays={visibleDays}
               onTaskClick={(t) => setOpenTask(t)}
               onCreateAt={handleCreateAt}
@@ -265,18 +208,6 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
           experiments={experiments}
           equipment={equipment}
           onClose={() => setOpenTask(null)}
-          onMarkFailed={onMarkFailed}
-        />
-      )}
-
-      {plan && (
-        <RescheduleDialog
-          plan={plan}
-          tasks={tasks}
-          expColorById={expColorById}
-          onCancel={() => setPlan(null)}
-          onConfirm={confirmReschedule}
-          committing={commitReschedule.isPending}
         />
       )}
 

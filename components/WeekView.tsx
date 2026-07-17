@@ -36,7 +36,6 @@ export function WeekView({
   expColorById,
   equipNameById,
   selectedExperiment,
-  highlightIds,
   visibleDays,
   onTaskClick,
   onCreateAt,
@@ -47,7 +46,6 @@ export function WeekView({
   expColorById: Map<string, string>;
   equipNameById: Map<string, string>;
   selectedExperiment: string | null;
-  highlightIds: string[];
   visibleDays: number;
   onTaskClick: (t: Task) => void;
   onCreateAt: (startMs: number) => void;
@@ -283,7 +281,6 @@ export function WeekView({
                         !!selectedExperiment &&
                         p.task.experiment_id !== selectedExperiment
                       }
-                      highlighted={highlightIds.includes(p.task.id)}
                       onClick={() => onTaskClick(p.task)}
                       onResizeStart={(e) => startResize(p.task, e)}
                     />
@@ -303,7 +300,6 @@ function TaskBlock({
   color,
   equipmentName,
   dimmed,
-  highlighted,
   onClick,
   onResizeStart,
 }: {
@@ -312,7 +308,6 @@ function TaskBlock({
   color: string;
   equipmentName: string | null;
   dimmed: boolean;
-  highlighted: boolean;
   onClick: () => void;
   onResizeStart: (e: React.PointerEvent) => void;
 }) {
@@ -353,9 +348,7 @@ function TaskBlock({
           : `${pal.bg} ${pal.border}`
       } ${dimmed ? "opacity-35" : ""} ${
         failed ? "ring-2 ring-rose-400" : ""
-      } ${highlighted ? "animate-pulse-move ring-2 ring-brand-400" : ""} ${
-        isDragging ? "shadow-lg" : ""
-      }`}
+      } ${isDragging ? "shadow-lg" : ""}`}
     >
       <div
         className={`text-[11px] font-semibold leading-tight sm:text-xs ${
