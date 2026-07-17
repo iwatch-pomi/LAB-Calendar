@@ -6,7 +6,6 @@ import {
   useDeleteTask,
   useAddDependency,
   useRemoveDependency,
-  useSettings,
   useCultureLinks,
   useAddCultureLink,
   useDeleteCultureLink,
@@ -50,7 +49,6 @@ export function TaskModal({
   const deleteTask = useDeleteTask();
   const addDep = useAddDependency();
   const removeDep = useRemoveDependency();
-  const settings = useSettings().data ?? {};
   const cultureLinks = useCultureLinks().data ?? [];
   const addCultureLink = useAddCultureLink();
   const deleteCultureLink = useDeleteCultureLink();
@@ -90,8 +88,8 @@ export function TaskModal({
     (t) => t.id !== task.id && !predIds.has(t.id) && !succIds.has(t.id),
   );
 
-  // 培養リネージュ: このタスクを親/子とする継代リンク
-  const cultureEnabled = !!settings.culture_lineage;
+  // 種別: 待機時間(is_wait) のとき培養リネージュ、実験操作のとき使用機器
+  const isWait = liveTask.is_wait;
   const childLinks = cultureLinks.filter((l) => l.parent_task_id === task.id);
   const parentLinks = cultureLinks.filter((l) => l.child_task_id === task.id);
   const childExisting = new Set(childLinks.map((l) => l.child_task_id));
@@ -181,14 +179,42 @@ export function TaskModal({
           />
 
           {/* 日時（手動編集・日をまたぐ変更も可） */}
+          {/* 種別（実験操作 / 待機時間） */}
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-gray-500">
+              種別
+            </label>
+            <div className="flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-sm">
+              <button
+                onClick={() =>
+                  updateTask.mutate({ id: task.id, is_wait: false })
+                }
+                className={`flex-1 rounded-md px-3 py-1.5 font-medium transition ${
+                  !isWait
+                    ? "bg-white text-gray-800 shadow-sm"
+                    : "text-gray-500"
+                }`}
+              >
+                実験操作
+              </button>
+              <button
+                onClick={() =>
+                  updateTask.mutate({ id: task.id, is_wait: true })
+                }
+                className={`flex-1 rounded-md px-3 py-1.5 font-medium transition ${
+                  isWait
+                    ? "bg-amber-100 text-amber-800 shadow-sm"
+                    : "text-gray-500"
+                }`}
+              >
+                待機時間
+              </button>
+            </div>
+          </div>
+
           <div>
             <div className="mb-1 flex items-center gap-2">
               <label className="text-xs font-semibold text-gray-500">日時</label>
-              {liveTask.is_wait && (
-                <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700">
-                  待機ブロック
-                </span>
-              )}
               {liveTask.status === "done" && (
                 <span className="rounded bg-brand-100 px-1.5 py-0.5 text-xs font-medium text-brand-700">
                   完了済み
@@ -226,30 +252,32 @@ export function TaskModal({
             )}
           </div>
 
-          {/* 装置 */}
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-500">
-              使用装置
-            </label>
-            <select
-              value={liveTask.equipment_id ?? ""}
-              onChange={(e) =>
-                updateTask.mutate({
-                  id: task.id,
-                  equipment_id: e.target.value || null,
-                  needs_reservation: !!e.target.value,
-                })
-              }
-              className="w-full rounded-lg border border-gray-300 px-2.5 py-2 text-sm outline-none focus:border-brand-500"
-            >
-              <option value="">なし</option>
-              {equipment.map((eq) => (
-                <option key={eq.id} value={eq.id}>
-                  {eq.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* 使用機器（実験操作のみ） */}
+          {!isWait && (
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-gray-500">
+                使用機器
+              </label>
+              <select
+                value={liveTask.equipment_id ?? ""}
+                onChange={(e) =>
+                  updateTask.mutate({
+                    id: task.id,
+                    equipment_id: e.target.value || null,
+                    needs_reservation: !!e.target.value,
+                  })
+                }
+                className="w-full rounded-lg border border-gray-300 px-2.5 py-2 text-sm outline-none focus:border-brand-500"
+              >
+                <option value="">なし</option>
+                {equipment.map((eq) => (
+                  <option key={eq.id} value={eq.id}>
+                    {eq.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* 先行タスク（依存関係） */}
           <div>
@@ -320,8 +348,8 @@ export function TaskModal({
             </div>
           </div>
 
-          {/* 培養リネージュ（継代） — 機能ONのとき */}
-          {cultureEnabled && (
+          {/* 培養リネージュ（継代） — 待機時間のとき */}
+          {isWait && (
             <div>
               <div className="mb-1 flex items-center gap-1.5">
                 <GitBranch className="h-3.5 w-3.5 text-emerald-600" />
