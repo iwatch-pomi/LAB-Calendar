@@ -80,7 +80,13 @@ export function Sidebar({
     setAdding(false);
   }
 
-  const doneCount = todos.filter((t) => t.done).length;
+  // 完了から24時間経過したToDoはサイドバーから隠す（マイページの完了履歴で確認可能）
+  const visibleTodos = todos.filter((t) => {
+    if (!t.done || !t.completed_at) return true;
+    const elapsed = Date.now() - new Date(t.completed_at).getTime();
+    return elapsed < 24 * 60 * 60 * 1000;
+  });
+  const doneCount = visibleTodos.filter((t) => t.done).length;
 
   return (
     <aside className="flex h-full w-[264px] shrink-0 flex-col border-r border-gray-200 bg-white">
@@ -167,11 +173,11 @@ export function Sidebar({
         <div className="mb-1 mt-6 flex items-center justify-between">
           <h2 className="text-xs font-semibold text-gray-500">今日のToDo</h2>
           <span className="text-xs text-gray-400">
-            {doneCount}/{todos.length}
+            {doneCount}/{visibleTodos.length}
           </span>
         </div>
         <div className="space-y-1">
-          {todos.map((todo) =>
+          {visibleTodos.map((todo) =>
             editId === todo.id ? (
               <form
                 key={todo.id}

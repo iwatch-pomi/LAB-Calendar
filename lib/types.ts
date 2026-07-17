@@ -79,6 +79,7 @@ export interface Todo {
   title: string;
   due_at: string | null;
   done: boolean;
+  completed_at: string | null;
   task_id: string | null;
   sort_order: number;
   created_at: string;

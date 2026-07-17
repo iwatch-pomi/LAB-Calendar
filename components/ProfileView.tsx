@@ -6,6 +6,7 @@ import {
   useExperiments,
   useTasks,
   useEquipment,
+  useTodos,
   useUpdateExperiment,
   useSettings,
   useUpdateFeature,
@@ -40,6 +41,7 @@ import {
   Download,
   Wrench,
   LogOut,
+  ListChecks,
 } from "lucide-react";
 
 const STATUS_META: Record<
@@ -89,6 +91,7 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
   const experimentsQ = useExperiments();
   const tasksQ = useTasks();
   const equipmentQ = useEquipment();
+  const todosQ = useTodos();
   const settingsQ = useSettings();
   const updateExp = useUpdateExperiment();
   const updateFeature = useUpdateFeature();
@@ -103,6 +106,14 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
   const tasks = tasksQ.data ?? [];
   const equipment = equipmentQ.data ?? [];
   const features = settingsQ.data ?? {};
+
+  const completedTodos = (todosQ.data ?? [])
+    .filter((t) => t.done)
+    .sort((a, b) => {
+      const at = a.completed_at ?? a.created_at;
+      const bt = b.completed_at ?? b.created_at;
+      return new Date(bt).getTime() - new Date(at).getTime();
+    });
 
   const equipNameById = useMemo(
     () => new Map(equipment.map((e) => [e.id, e.name])),
@@ -226,6 +237,45 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
             label="完了タスク"
             value={doneTasks}
           />
+        </section>
+
+        {/* 完了したToDo（サイドバーでは完了から24時間で非表示） */}
+        <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
+          <div className="mb-3 flex items-center gap-1.5">
+            <ListChecks className="h-4 w-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-700">
+              完了したToDo
+            </h2>
+            <span className="text-xs text-gray-400">
+              {completedTodos.length}
+            </span>
+          </div>
+          {completedTodos.length === 0 ? (
+            <p className="text-xs text-gray-400">
+              完了したToDoはまだありません。
+            </p>
+          ) : (
+            <ul className="space-y-1.5">
+              {completedTodos.map((todo) => {
+                const at = todo.completed_at ?? todo.created_at;
+                const ms = new Date(at).getTime();
+                return (
+                  <li
+                    key={todo.id}
+                    className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm"
+                  >
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                    <span className="flex-1 truncate text-gray-500 line-through">
+                      {todo.title}
+                    </span>
+                    <span className="shrink-0 text-xs text-gray-400">
+                      {fmtDate(ms)} {fmtTime(ms)} 完了
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </section>
 
         {/* 設定: 個別機能の表示/非表示 */}

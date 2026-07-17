@@ -278,18 +278,20 @@ export function useToggleTodo() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: { id: string; done: boolean }) => {
+      const completed_at = args.done ? new Date().toISOString() : null;
       const { error } = await supabase
         .from("todos")
-        .update({ done: args.done })
+        .update({ done: args.done, completed_at })
         .eq("id", args.id);
       if (error) throw error;
     },
     onMutate: async (args) => {
       await qc.cancelQueries({ queryKey: qk.todos });
       const prev = qc.getQueryData<Todo[]>(qk.todos);
+      const completed_at = args.done ? new Date().toISOString() : null;
       qc.setQueryData<Todo[]>(qk.todos, (old) =>
         (old ?? []).map((t) =>
-          t.id === args.id ? { ...t, done: args.done } : t,
+          t.id === args.id ? { ...t, done: args.done, completed_at } : t,
         ),
       );
       return { prev };
