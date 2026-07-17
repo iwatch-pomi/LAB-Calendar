@@ -167,7 +167,6 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
           todos={todosQ.data ?? []}
           selectedExperiment={selectedExperiment}
           onSelectExperiment={setSelectedExperiment}
-          onOpenAddMenu={() => setAddMenuOpen(true)}
           onClose={() => setSidebarOpen(false)}
           userEmail={userEmail}
         />

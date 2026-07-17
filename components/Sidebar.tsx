@@ -3,13 +3,19 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Logo } from "./Logo";
-import { paletteFor, type Experiment, type Todo } from "@/lib/types";
+import {
+  paletteFor,
+  PALETTE_KEYS,
+  type Experiment,
+  type Todo,
+} from "@/lib/types";
 import {
   useToggleTodo,
   useAddTodo,
   useDeleteTodo,
   useUpdateTodo,
 } from "@/lib/queries";
+import { useCreateEmptyExperiment } from "@/lib/mutations";
 import { fmtTime, jstInputToISO, isoToJstInput } from "@/lib/calendar";
 import { Plus, Check, X } from "lucide-react";
 
@@ -25,7 +31,6 @@ export function Sidebar({
   todos,
   selectedExperiment,
   onSelectExperiment,
-  onOpenAddMenu,
   onClose,
   userEmail,
 }: {
@@ -33,7 +38,6 @@ export function Sidebar({
   todos: Todo[];
   selectedExperiment: string | null;
   onSelectExperiment: (id: string | null) => void;
-  onOpenAddMenu: () => void;
   onClose: () => void;
   userEmail: string;
 }) {
@@ -41,9 +45,24 @@ export function Sidebar({
   const addTodo = useAddTodo();
   const deleteTodo = useDeleteTodo();
   const updateTodo = useUpdateTodo();
+  const createExperiment = useCreateEmptyExperiment();
   const [newTodo, setNewTodo] = useState("");
   const [newDue, setNewDue] = useState("");
   const [adding, setAdding] = useState(false);
+
+  // 実験のインライン登録
+  const [regOpen, setRegOpen] = useState(false);
+  const [regName, setRegName] = useState("");
+  const [regColor, setRegColor] = useState<string>(PALETTE_KEYS[0]);
+
+  function submitExperiment() {
+    if (regName.trim()) {
+      createExperiment.mutate({ name: regName.trim(), color: regColor });
+    }
+    setRegName("");
+    setRegColor(PALETTE_KEYS[0]);
+    setRegOpen(false);
+  }
 
   // 編集中の ToDo
   const [editId, setEditId] = useState<string | null>(null);
@@ -161,13 +180,66 @@ export function Sidebar({
           })}
         </div>
 
-        <button
-          onClick={onOpenAddMenu}
-          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-gray-300 py-2.5 text-sm text-gray-500 transition hover:border-brand-400 hover:text-brand-600"
-        >
-          <Plus className="h-4 w-4" />
-          実験を登録
-        </button>
+        {regOpen ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitExperiment();
+            }}
+            className="mt-2 space-y-2 rounded-xl border border-gray-200 bg-gray-50/60 p-2.5"
+          >
+            <input
+              autoFocus
+              value={regName}
+              onChange={(e) => setRegName(e.target.value)}
+              placeholder="実験名（例: Western Blot）"
+              className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500"
+            />
+            <div className="flex items-center gap-1.5">
+              {PALETTE_KEYS.map((k) => {
+                const p = paletteFor(k);
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setRegColor(k)}
+                    className={`h-5 w-5 rounded-full ${p.dot} ${
+                      regColor === k
+                        ? "ring-2 ring-gray-400 ring-offset-1"
+                        : ""
+                    }`}
+                  />
+                );
+              })}
+            </div>
+            <div className="flex gap-1.5">
+              <button
+                type="submit"
+                className="flex-1 rounded-lg bg-brand-500 py-1.5 text-xs font-semibold text-white hover:bg-brand-600"
+              >
+                登録
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setRegOpen(false);
+                  setRegName("");
+                }}
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+              >
+                キャンセル
+              </button>
+            </div>
+          </form>
+        ) : (
+          <button
+            onClick={() => setRegOpen(true)}
+            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-gray-300 py-2.5 text-sm text-gray-500 transition hover:border-brand-400 hover:text-brand-600"
+          >
+            <Plus className="h-4 w-4" />
+            実験を登録
+          </button>
+        )}
 
         {/* 今日の ToDo */}
         <div className="mb-1 mt-6 flex items-center justify-between">
