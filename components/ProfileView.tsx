@@ -12,11 +12,14 @@ import {
   useCultureLinks,
   useAddCultureLink,
   useDeleteCultureLink,
+  useAddEquipment,
+  useDeleteEquipment,
 } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/client";
 import { fmtTime } from "@/lib/calendar";
 import {
   paletteFor,
+  PALETTE_KEYS,
   type CultureLink,
   type Experiment,
   type Task,
@@ -35,6 +38,7 @@ import {
   Plus,
   X,
   Download,
+  Wrench,
   LogOut,
 } from "lucide-react";
 
@@ -88,9 +92,12 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
   const settingsQ = useSettings();
   const updateExp = useUpdateExperiment();
   const updateFeature = useUpdateFeature();
+  const addEquipment = useAddEquipment();
+  const deleteEquipment = useDeleteEquipment();
 
   const [filter, setFilter] = useState<Filter>("all");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [newEquip, setNewEquip] = useState("");
 
   const experiments = experimentsQ.data ?? [];
   const tasks = tasksQ.data ?? [];
@@ -150,6 +157,20 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
     const supabase = createClient();
     await supabase.auth.signOut();
     window.location.href = "/login";
+  }
+
+  function submitEquipment() {
+    const name = newEquip.trim();
+    if (!name) return;
+    if (equipment.some((e) => e.name === name)) {
+      setNewEquip("");
+      return;
+    }
+    addEquipment.mutate({
+      name,
+      color: PALETTE_KEYS[equipment.length % PALETTE_KEYS.length],
+    });
+    setNewEquip("");
   }
 
   const initial = (userEmail[0] ?? "?").toUpperCase();
@@ -222,6 +243,67 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
               updateFeature.mutate({ key: "culture_lineage", value: v })
             }
           />
+        </section>
+
+        {/* 使用機器の管理 */}
+        <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
+          <div className="mb-3 flex items-center gap-1.5">
+            <Wrench className="h-4 w-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-700">使用機器</h2>
+            <span className="text-xs text-gray-400">{equipment.length}</span>
+          </div>
+          <p className="mb-3 text-xs text-gray-500">
+            予定に紐づけられる共通機器（遠心機・AKTA など）を登録します。削除しても過去の予定は残ります（機器の紐づけのみ外れます）。
+          </p>
+
+          <div className="mb-3 flex flex-wrap gap-2">
+            {equipment.length === 0 && (
+              <span className="text-xs text-gray-400">
+                まだ機器が登録されていません。
+              </span>
+            )}
+            {equipment.map((eq) => {
+              const pal = paletteFor(eq.color);
+              return (
+                <span
+                  key={eq.id}
+                  className="group inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 py-1 pl-2.5 pr-1.5 text-sm"
+                >
+                  <span className={`h-2 w-2 rounded-full ${pal.dot}`} />
+                  <span className="text-gray-700">{eq.name}</span>
+                  <button
+                    onClick={() => deleteEquipment.mutate(eq.id)}
+                    title="削除"
+                    className="rounded-full p-0.5 text-gray-300 transition hover:bg-gray-200 hover:text-rose-500"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitEquipment();
+            }}
+            className="flex gap-2"
+          >
+            <input
+              value={newEquip}
+              onChange={(e) => setNewEquip(e.target.value)}
+              placeholder="機器名（例: サーマルサイクラー）"
+              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500"
+            />
+            <button
+              type="submit"
+              className="flex items-center gap-1 rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+            >
+              <Plus className="h-4 w-4" />
+              追加
+            </button>
+          </form>
         </section>
 
         {/* 培養リネージュ（機能ONのとき表示） */}

@@ -301,6 +301,50 @@ export function useToggleTodo() {
   });
 }
 
+export function useAddEquipment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { name: string; color?: string }) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("not authenticated");
+      const { error } = await supabase.from("equipment").insert({
+        user_id: user.id,
+        name: args.name,
+        color: args.color ?? "slate",
+      });
+      if (error) throw error;
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.equipment }),
+  });
+}
+
+export function useDeleteEquipment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("equipment").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: qk.equipment });
+      const prev = qc.getQueryData<Equipment[]>(qk.equipment);
+      qc.setQueryData<Equipment[]>(qk.equipment, (old) =>
+        (old ?? []).filter((e) => e.id !== id),
+      );
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(qk.equipment, ctx.prev);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: qk.equipment });
+      qc.invalidateQueries({ queryKey: qk.tasks }); // 参照タスクの装置がnullになるため
+    },
+  });
+}
+
 export function useAddTodo() {
   const qc = useQueryClient();
   return useMutation({
