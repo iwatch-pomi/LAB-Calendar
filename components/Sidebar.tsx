@@ -21,13 +21,6 @@ import { useCreateEmptyExperiment } from "@/lib/mutations";
 import { fmtTime, jstInputToISO, isoToJstInput } from "@/lib/calendar";
 import { Plus, Check, X, Pencil, Trash2, Archive } from "lucide-react";
 
-const STATUS_LABEL: Record<Experiment["status"], string> = {
-  planning: "未着手",
-  in_progress: "進行中",
-  done: "完了",
-  failed: "要リスケ",
-};
-
 export function Sidebar({
   experiments,
   todos,
@@ -174,9 +167,9 @@ export function Sidebar({
       </div>
 
       <div className="thin-scroll flex-1 overflow-y-auto px-4 pb-4">
-        {/* 登録した実験 */}
+        {/* カレンダー一覧 */}
         <div className="mb-1 flex items-center justify-between">
-          <h2 className="text-xs font-semibold text-gray-500">登録した実験</h2>
+          <h2 className="text-xs font-semibold text-gray-500">カレンダー一覧</h2>
           <span className="text-xs text-gray-400">
             {visibleExperiments.length}
           </span>
@@ -185,10 +178,6 @@ export function Sidebar({
           {visibleExperiments.map((exp) => {
             const p = paletteFor(exp.color);
             const active = selectedExperiment === exp.id;
-            const progress =
-              exp.total_steps > 0
-                ? Math.round((exp.current_step / exp.total_steps) * 100)
-                : 0;
 
             if (editExpId === exp.id) {
               return (
@@ -261,23 +250,6 @@ export function Sidebar({
                       {exp.name}
                     </span>
                   </div>
-                  <div className="mt-1 text-xs text-gray-500">
-                    {STATUS_LABEL[exp.status]}
-                    {exp.total_steps > 0 &&
-                      `・${
-                        exp.status === "planning"
-                          ? `全${exp.total_steps}ステップ`
-                          : `ステップ ${exp.current_step} / ${exp.total_steps}`
-                      }`}
-                  </div>
-                  {exp.status === "in_progress" && exp.total_steps > 0 && (
-                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-                      <div
-                        className={`h-full ${p.dot}`}
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                  )}
                 </button>
                 <div className="absolute right-2.5 top-2.5 flex items-center gap-0.5 opacity-0 transition group-hover:opacity-100">
                   <button
@@ -319,7 +291,7 @@ export function Sidebar({
               autoFocus
               value={regName}
               onChange={(e) => setRegName(e.target.value)}
-              placeholder="実験名（例: Western Blot）"
+              placeholder="カレンダー名（例: 大腸菌タンパク質発現）"
               className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500"
             />
             <div className="flex items-center gap-1.5">
@@ -364,7 +336,7 @@ export function Sidebar({
             className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-gray-300 py-2.5 text-sm text-gray-500 transition hover:border-brand-400 hover:text-brand-600"
           >
             <Plus className="h-4 w-4" />
-            実験を登録
+            カレンダーを追加
           </button>
         )}
 
