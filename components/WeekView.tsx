@@ -39,57 +39,37 @@ interface Positioned {
 }
 
 interface LaidOut extends Positioned {
-  lane: number; // 同時間帯で重なるタスクの中での列番号
-  laneCount: number; // その重なりグループの列数
+  cascadeIndex: number; // 重なりグループ内での順番（0=最背面/左端）
+  cascadeCount: number; // その重なりグループのタスク数
 }
 
 /**
- * 同じ日の中で時間帯が重なるタスクを横に並ぶ列(レーン)へ割り振る。
- * 重なるほど列が増えて1つずつ細くなり、重ならないタスクは幅いっぱい(laneCount=1)。
- * 予定を離せば列数が減って再び大きくなる。
+ * 同じ日の中で時間帯が重なるタスクを検出する。横並びで細くはせず、
+ * サイズはほぼ固定のまま少しずつ右へずらして重ねる（各タスクの左上が
+ * 見えるので複数予定を見逃さない）。離せば重なりが解消して元の幅に戻る。
  */
 function layoutDay(items: Positioned[]): LaidOut[] {
   const sorted = [...items].sort(
     (a, b) => a.top - b.top || b.height - a.height,
   );
 
-  // 貪欲法で列(レーン)を割り当て（同じ列内では時間が重ならない）
-  const colOf = new Map<Positioned, number>();
-
   const results: LaidOut[] = [];
   let group: Positioned[] = [];
   let groupMaxEnd = -Infinity;
-  let colEndTimes: number[] = [];
 
   function flushGroup() {
     if (group.length === 0) return;
-    const laneCount = colEndTimes.length;
-    for (const it of group) {
-      results.push({ ...it, lane: colOf.get(it)!, laneCount });
-    }
+    const cascadeCount = group.length;
+    group.forEach((it, i) => {
+      results.push({ ...it, cascadeIndex: i, cascadeCount });
+    });
     group = [];
     groupMaxEnd = -Infinity;
-    colEndTimes = [];
   }
 
   for (const item of sorted) {
     // グループ内の全タスクの最終時刻より後に始まる → 新しい重なりグループ
     if (group.length > 0 && item.top >= groupMaxEnd) flushGroup();
-
-    let placed = false;
-    for (let c = 0; c < colEndTimes.length; c++) {
-      if (colEndTimes[c] <= item.top) {
-        colOf.set(item, c);
-        colEndTimes[c] = item.top + item.height;
-        placed = true;
-        break;
-      }
-    }
-    if (!placed) {
-      colOf.set(item, colEndTimes.length);
-      colEndTimes.push(item.top + item.height);
-    }
-
     group.push(item);
     groupMaxEnd = Math.max(groupMaxEnd, item.top + item.height);
   }
@@ -431,19 +411,22 @@ function TaskBlock({
   const done = p.task.status === "done";
   const failed = p.task.status === "failed";
 
-  // 重なるタスクは横に列(レーン)を分けて並べる（重なるほど細く、離せば太くなる）
-  const laneCount = p.laneCount ?? 1;
-  const lane = p.lane ?? 0;
+  // 重なるタスクはサイズを固定したまま右へずらして重ねる（左上が見える）
+  const cascadeCount = p.cascadeCount ?? 1;
+  const cascadeIndex = p.cascadeIndex ?? 0;
+  const STEP = 16; // 1段ごとのずらし幅(px)
+  const reserve = (cascadeCount - 1) * STEP; // グループ全体で確保するずらし幅
 
   const style: React.CSSProperties = {
     top: p.top,
     height: p.height,
-    left: `calc(${(lane / laneCount) * 100}% + 2px)`,
-    width: `calc(${100 / laneCount}% - 4px)`,
+    left: `calc(${cascadeIndex * STEP}px + 2px)`,
+    width: `calc(100% - ${reserve}px - 4px)`,
     transform: transform
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
       : undefined,
-    zIndex: isDragging ? 50 : undefined,
+    // 後ろの段ほど背面（左端）、手前の段ほど前面に描画
+    zIndex: isDragging ? 50 : cascadeIndex + 1,
     // 待機/培養ブロックはカレンダー色に沿った斜線塗り
     backgroundImage: isWait ? hatchBackground(color) : undefined,
     // 継続する側の角を丸めない（日をまたぐ連続表示）
