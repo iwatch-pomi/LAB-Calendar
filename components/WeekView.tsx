@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -13,10 +13,14 @@ import { buildRange, nowMs, fmtTimeRange, DAY } from "@/lib/calendar";
 import { CAL_START_HOUR, CAL_END_HOUR } from "@/lib/config";
 import { useMoveTask } from "@/lib/queries";
 import { paletteFor, type Task, type TaskDependency } from "@/lib/types";
+import { ZoomIn, ZoomOut } from "lucide-react";
 
-const HOUR_PX = 56;
 const GUTTER = 56;
-const TOTAL_H = (CAL_END_HOUR - CAL_START_HOUR) * HOUR_PX;
+const HOUR_PX_MIN = 28;
+const HOUR_PX_MAX = 112;
+const HOUR_PX_STEP = 14;
+const HOUR_PX_DEFAULT = 56;
+const HOUR_PX_KEY = "labocale.calHourPx";
 
 interface Positioned {
   task: Task;
@@ -57,6 +61,24 @@ export function WeekView({
   const [draftEnd, setDraftEnd] = useState<{ id: string; endMs: number } | null>(
     null,
   );
+
+  // 表示の拡大・縮小（1時間あたりの高さ px）。localStorage に保存して次回も維持する。
+  const [hourPx, setHourPx] = useState(HOUR_PX_DEFAULT);
+  useEffect(() => {
+    const stored = Number(window.localStorage.getItem(HOUR_PX_KEY));
+    if (stored >= HOUR_PX_MIN && stored <= HOUR_PX_MAX) setHourPx(stored);
+  }, []);
+  function zoom(delta: number) {
+    setHourPx((h) => {
+      const next = Math.min(
+        HOUR_PX_MAX,
+        Math.max(HOUR_PX_MIN, h + delta),
+      );
+      window.localStorage.setItem(HOUR_PX_KEY, String(next));
+      return next;
+    });
+  }
+  const TOTAL_H = (CAL_END_HOUR - CAL_START_HOUR) * hourPx;
   const resizing = useRef<{
     id: string;
     startY: number;
@@ -92,8 +114,8 @@ export function WeekView({
 
       const topMin = (segStart - dayStart) / 60000 - CAL_START_HOUR * 60;
       const durMin = (segEnd - segStart) / 60000;
-      let top = (topMin / 60) * HOUR_PX;
-      let height = (durMin / 60) * HOUR_PX;
+      let top = (topMin / 60) * hourPx;
+      let height = (durMin / 60) * hourPx;
       if (top < 0) {
         height += top;
         top = 0;
@@ -124,7 +146,7 @@ export function WeekView({
   function onColumnClick(dayStartMs: number, e: React.MouseEvent) {
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
-    const snapped = Math.floor((y / HOUR_PX) * 60 / 30) * 30; // 分（グリッド先頭から）
+    const snapped = Math.floor((y / hourPx) * 60 / 30) * 30; // 分（グリッド先頭から）
     let startMin = CAL_START_HOUR * 60 + snapped;
     const maxStart = CAL_END_HOUR * 60 - 60; // 1時間の予定が収まるよう制限
     startMin = Math.max(CAL_START_HOUR * 60, Math.min(startMin, maxStart));
@@ -138,7 +160,7 @@ export function WeekView({
     if (!task) return;
     const cw = colWidth();
     const deltaDays = cw > 0 ? Math.round(ev.delta.x / cw) : 0;
-    const deltaMin = Math.round(ev.delta.y / HOUR_PX * 60 / 15) * 15;
+    const deltaMin = Math.round(ev.delta.y / hourPx * 60 / 15) * 15;
     if (deltaDays === 0 && deltaMin === 0) return;
     const s = new Date(task.start_time).getTime();
     const dur = new Date(task.end_time).getTime() - s;
@@ -166,7 +188,7 @@ export function WeekView({
   function onResizeMove(e: PointerEvent) {
     const r = resizing.current;
     if (!r) return;
-    const deltaMin = Math.round((e.clientY - r.startY) / HOUR_PX * 60 / 15) * 15;
+    const deltaMin = Math.round((e.clientY - r.startY) / hourPx * 60 / 15) * 15;
     const newEnd = Math.max(r.startMs + 15 * 60000, r.origEnd + deltaMin * 60000);
     setDraftEnd({ id: r.id, endMs: newEnd });
   }
@@ -192,7 +214,27 @@ export function WeekView({
   for (let h = CAL_START_HOUR; h <= CAL_END_HOUR; h++) hours.push(h);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white">
+    <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white">
+      {/* 拡大・縮小コントロール */}
+      <div className="absolute right-2 top-1.5 z-10 flex items-center gap-0.5 rounded-lg border border-gray-200 bg-white/95 p-0.5 shadow-sm">
+        <button
+          onClick={() => zoom(-HOUR_PX_STEP)}
+          disabled={hourPx <= HOUR_PX_MIN}
+          title="縮小（0時〜24時を見やすく）"
+          className="rounded-md p-1 text-gray-500 transition hover:bg-gray-100 disabled:opacity-30"
+        >
+          <ZoomOut className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={() => zoom(HOUR_PX_STEP)}
+          disabled={hourPx >= HOUR_PX_MAX}
+          title="拡大"
+          className="rounded-md p-1 text-gray-500 transition hover:bg-gray-100 disabled:opacity-30"
+        >
+          <ZoomIn className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
       {/* 曜日ヘッダー */}
       <div
         className="grid border-b border-gray-200"
@@ -234,7 +276,7 @@ export function WeekView({
                 <div
                   key={h}
                   className="absolute right-2 -translate-y-1/2 text-xs text-gray-400"
-                  style={{ top: i * HOUR_PX }}
+                  style={{ top: i * hourPx }}
                 >
                   {i === 0 ? "" : `${h}:00`}
                 </div>
@@ -257,7 +299,7 @@ export function WeekView({
                   <div
                     key={h}
                     className="absolute inset-x-0 border-b border-gray-100"
-                    style={{ top: (i + 1) * HOUR_PX, height: 0 }}
+                    style={{ top: (i + 1) * hourPx, height: 0 }}
                   />
                 ))}
 
