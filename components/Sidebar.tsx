@@ -364,6 +364,18 @@ export function Sidebar({
           </button>
         )}
 
+        {/* 継代培養を管理（生物実験モードON時のみ） */}
+        {features.bio_culture_lineage && (
+          <Link
+            href="/culture"
+            title="継代培養を管理（培地の作成・期限・系統）"
+            className="mt-4 flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-gray-600 transition hover:bg-emerald-50 hover:text-emerald-700"
+          >
+            <Sprout className="h-4 w-4 text-emerald-600" />
+            継代培養を管理
+          </Link>
+        )}
+
         {/* 今日の ToDo */}
         <div className="mb-1 mt-6 flex items-center justify-between">
           <div className="flex items-center gap-1">
@@ -533,20 +545,6 @@ export function Sidebar({
           )}
         </div>
       </div>
-
-      {/* 継代培養を管理（生物実験モードON時のみ） */}
-      {features.bio_culture_lineage && (
-        <div className="border-t border-gray-100 px-3 py-2">
-          <Link
-            href="/culture"
-            title="継代培養を管理（培地の作成・期限・系統）"
-            className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-gray-600 transition hover:bg-emerald-50 hover:text-emerald-700"
-          >
-            <Sprout className="h-4 w-4 text-emerald-600" />
-            継代培養を管理
-          </Link>
-        </div>
-      )}
     </aside>
   );
 }
