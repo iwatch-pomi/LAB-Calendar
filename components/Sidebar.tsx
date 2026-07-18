@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Logo } from "./Logo";
 import {
@@ -120,6 +120,19 @@ export function Sidebar({
     }
     setEditId(null);
   }
+
+  // 編集画面の外側をクリックしたら、保存せずに閉じる
+  const editFormRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (!editId) return;
+    function handleOutside(e: MouseEvent) {
+      if (editFormRef.current && !editFormRef.current.contains(e.target as Node)) {
+        setEditId(null);
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [editId]);
 
   function submitTodo() {
     if (newTodo.trim()) {
