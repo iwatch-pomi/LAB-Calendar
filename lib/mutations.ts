@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { expandTemplate } from "@/lib/expandTemplate";
 import { WORKING_HOURS, TZ_OFFSET_MINUTES } from "@/lib/config";
 import type { Interval } from "@/lib/reschedule";
-import type { Equipment, Task, Template, TemplateStep } from "@/lib/types";
+import type { Equipment, Task, TemplateStep } from "@/lib/types";
 import { qk } from "@/lib/queries";
 
 const supabase = createClient();
@@ -47,7 +47,6 @@ export function useCreateExperimentFromTemplate() {
           supabase.from("tasks").select("*").not("equipment_id", "is", null),
         ]);
       if (!tpl) throw new Error("template not found");
-      const template = tpl as Template;
       const templateSteps = (steps ?? []) as TemplateStep[];
       const equipment = (equip ?? []) as Equipment[];
       const existingTasks = (existing ?? []) as Task[];
@@ -87,26 +86,10 @@ export function useCreateExperimentFromTemplate() {
         equipmentBusy,
       );
 
-      // 実験を作成
-      const { data: exp, error: expErr } = await supabase
-        .from("experiments")
-        .insert({
-          user_id: userId,
-          template_id: template.id,
-          name: template.name,
-          status: "in_progress",
-          current_step: 1,
-          total_steps: template.total_steps,
-          color: template.color,
-        })
-        .select()
-        .single();
-      if (expErr || !exp) throw expErr ?? new Error("experiment insert failed");
-
-      // タスクを作成
+      // タスクを作成（カレンダー=実験レコードは作らない。予定だけを独立して追加する）
       const taskRows = planned.map((p) => ({
         user_id: userId,
-        experiment_id: exp.id,
+        experiment_id: null,
         title: p.title,
         subtitle: p.subtitle,
         start_time: new Date(p.startMs).toISOString(),
@@ -143,12 +126,11 @@ export function useCreateExperimentFromTemplate() {
         if (dErr) throw dErr;
       }
 
-      return exp.id as string;
+      return (insertedTasks[0]?.id ?? null) as string | null;
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.tasks });
       qc.invalidateQueries({ queryKey: qk.deps });
-      qc.invalidateQueries({ queryKey: qk.experiments });
       qc.invalidateQueries({ queryKey: qk.equipment });
     },
   });
@@ -181,7 +163,6 @@ export function usePlaceTemplateAt() {
           supabase.from("equipment").select("*"),
         ]);
       if (!tpl) throw new Error("template not found");
-      const template = tpl as Template;
       const templateSteps = ((steps ?? []) as TemplateStep[]).slice().sort(
         (a, b) => a.step_order - b.step_order,
       );
@@ -205,23 +186,7 @@ export function usePlaceTemplateAt() {
         }
       }
 
-      // 実験を作成
-      const { data: exp, error: expErr } = await supabase
-        .from("experiments")
-        .insert({
-          user_id: userId,
-          template_id: template.id,
-          name: template.name,
-          status: "in_progress",
-          current_step: 1,
-          total_steps: template.total_steps,
-          color: template.color,
-        })
-        .select()
-        .single();
-      if (expErr || !exp) throw expErr ?? new Error("experiment insert failed");
-
-      // ステップを隙間なく連続で並べる
+      // ステップを隙間なく連続で並べる（カレンダー=実験レコードは作らない。予定だけを独立して追加する）
       let cursor = startMs;
       const taskRows = templateSteps.map((s) => {
         const start = cursor;
@@ -229,7 +194,7 @@ export function usePlaceTemplateAt() {
         cursor = end;
         return {
           user_id: userId,
-          experiment_id: exp.id,
+          experiment_id: null,
           title: s.title,
           subtitle: s.subtitle,
           start_time: new Date(start).toISOString(),
@@ -244,14 +209,16 @@ export function usePlaceTemplateAt() {
         };
       });
 
-      const { error: tErr } = await supabase.from("tasks").insert(taskRows);
+      const { data: inserted, error: tErr } = await supabase
+        .from("tasks")
+        .insert(taskRows)
+        .select();
       if (tErr) throw tErr;
 
-      return exp.id as string;
+      return (inserted?.[0]?.id ?? null) as string | null;
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.tasks });
-      qc.invalidateQueries({ queryKey: qk.experiments });
       qc.invalidateQueries({ queryKey: qk.equipment });
     },
   });
