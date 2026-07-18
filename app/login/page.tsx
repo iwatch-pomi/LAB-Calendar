@@ -9,14 +9,10 @@ export default function LoginPage() {
         <Logo size="lg" />
         <div className="space-y-6">
           <h1 className="text-3xl font-bold leading-snug">
-            実験プロセスを、
-            <br />
-            失敗まで見据えて管理する。
+            実験時間も、装置の待ち時間も、完璧に管理
           </h1>
           <p className="max-w-md leading-relaxed text-brand-50/90">
-            培養・合成など複数日にわたる実験ステップをテンプレートからワンクリック登録。
-            共通装置の予約と待ち時間を考慮し、実験失敗時には依存関係に基づいて後続タスクを
-            自動で最適な空き日程へ再配置します。
+            理系学生・大学院生の卒業研究に特化した、実験管理ツール
           </p>
           <ul className="space-y-2 text-sm text-brand-50/90">
             <li>・ 実験テンプレートで一連のステップを一括登録</li>
