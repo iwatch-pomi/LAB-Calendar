@@ -14,10 +14,12 @@ import {
   useAddTodo,
   useDeleteTodo,
   useUpdateTodo,
+  useUpdateExperiment,
+  useDeleteExperiment,
 } from "@/lib/queries";
 import { useCreateEmptyExperiment } from "@/lib/mutations";
 import { fmtTime, jstInputToISO, isoToJstInput } from "@/lib/calendar";
-import { Plus, Check, X } from "lucide-react";
+import { Plus, Check, X, Pencil, Trash2 } from "lucide-react";
 
 const STATUS_LABEL: Record<Experiment["status"], string> = {
   planning: "未着手",
@@ -46,6 +48,8 @@ export function Sidebar({
   const deleteTodo = useDeleteTodo();
   const updateTodo = useUpdateTodo();
   const createExperiment = useCreateEmptyExperiment();
+  const updateExperiment = useUpdateExperiment();
+  const deleteExperiment = useDeleteExperiment();
   const [newTodo, setNewTodo] = useState("");
   const [newDue, setNewDue] = useState("");
   const [adding, setAdding] = useState(false);
@@ -62,6 +66,39 @@ export function Sidebar({
     setRegName("");
     setRegColor(PALETTE_KEYS[0]);
     setRegOpen(false);
+  }
+
+  // 実験のインライン編集
+  const [editExpId, setEditExpId] = useState<string | null>(null);
+  const [editExpName, setEditExpName] = useState("");
+  const [editExpColor, setEditExpColor] = useState<string>(PALETTE_KEYS[0]);
+
+  function startEditExperiment(exp: Experiment) {
+    setEditExpId(exp.id);
+    setEditExpName(exp.name);
+    setEditExpColor(exp.color);
+  }
+
+  function saveEditExperiment() {
+    if (editExpId && editExpName.trim()) {
+      updateExperiment.mutate({
+        id: editExpId,
+        name: editExpName.trim(),
+        color: editExpColor,
+      });
+    }
+    setEditExpId(null);
+  }
+
+  function handleDeleteExperiment(exp: Experiment) {
+    if (
+      confirm(
+        `実験「${exp.name}」を削除しますか？\nこの実験に紐づく予定もすべて削除されます。`,
+      )
+    ) {
+      if (selectedExperiment === exp.id) onSelectExperiment(null);
+      deleteExperiment.mutate(exp.id);
+    }
   }
 
   // 編集中の ToDo
@@ -142,40 +179,113 @@ export function Sidebar({
               exp.total_steps > 0
                 ? Math.round((exp.current_step / exp.total_steps) * 100)
                 : 0;
+
+            if (editExpId === exp.id) {
+              return (
+                <form
+                  key={exp.id}
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    saveEditExperiment();
+                  }}
+                  className="space-y-2 rounded-xl border border-brand-200 bg-brand-50/40 p-2.5"
+                >
+                  <input
+                    autoFocus
+                    value={editExpName}
+                    onChange={(e) => setEditExpName(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500"
+                  />
+                  <div className="flex items-center gap-1.5">
+                    {PALETTE_KEYS.map((k) => {
+                      const kp = paletteFor(k);
+                      return (
+                        <button
+                          key={k}
+                          type="button"
+                          onClick={() => setEditExpColor(k)}
+                          className={`h-5 w-5 rounded-full ${kp.dot} ${
+                            editExpColor === k
+                              ? "ring-2 ring-gray-400 ring-offset-1"
+                              : ""
+                          }`}
+                        />
+                      );
+                    })}
+                  </div>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="submit"
+                      className="flex-1 rounded-lg bg-brand-500 py-1.5 text-xs font-semibold text-white hover:bg-brand-600"
+                    >
+                      保存
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditExpId(null)}
+                      className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+                    >
+                      キャンセル
+                    </button>
+                  </div>
+                </form>
+              );
+            }
+
             return (
-              <button
+              <div
                 key={exp.id}
-                onClick={() => onSelectExperiment(active ? null : exp.id)}
-                className={`w-full rounded-xl border p-3 text-left transition ${
+                className={`group relative w-full rounded-xl border p-3 text-left transition ${
                   active
                     ? `${p.border} ${p.bg} ring-2 ring-offset-1 ${p.border}`
                     : "border-gray-200 bg-white hover:border-gray-300"
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full ${p.dot}`} />
-                  <span className="truncate text-sm font-semibold text-gray-800">
-                    {exp.name}
-                  </span>
-                </div>
-                <div className="mt-1 text-xs text-gray-500">
-                  {STATUS_LABEL[exp.status]}
-                  {exp.total_steps > 0 &&
-                    `・${
-                      exp.status === "planning"
-                        ? `全${exp.total_steps}ステップ`
-                        : `ステップ ${exp.current_step} / ${exp.total_steps}`
-                    }`}
-                </div>
-                {exp.status === "in_progress" && exp.total_steps > 0 && (
-                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-                    <div
-                      className={`h-full ${p.dot}`}
-                      style={{ width: `${progress}%` }}
-                    />
+                <button
+                  onClick={() => onSelectExperiment(active ? null : exp.id)}
+                  className="block w-full pr-12 text-left"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`h-2 w-2 shrink-0 rounded-full ${p.dot}`} />
+                    <span className="truncate text-sm font-semibold text-gray-800">
+                      {exp.name}
+                    </span>
                   </div>
-                )}
-              </button>
+                  <div className="mt-1 text-xs text-gray-500">
+                    {STATUS_LABEL[exp.status]}
+                    {exp.total_steps > 0 &&
+                      `・${
+                        exp.status === "planning"
+                          ? `全${exp.total_steps}ステップ`
+                          : `ステップ ${exp.current_step} / ${exp.total_steps}`
+                      }`}
+                  </div>
+                  {exp.status === "in_progress" && exp.total_steps > 0 && (
+                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                      <div
+                        className={`h-full ${p.dot}`}
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  )}
+                </button>
+                <div className="absolute right-2.5 top-2.5 flex items-center gap-0.5 opacity-0 transition group-hover:opacity-100">
+                  <button
+                    onClick={() => startEditExperiment(exp)}
+                    title="編集"
+                    className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-brand-600"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteExperiment(exp)}
+                    title="削除"
+                    className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-rose-500"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
             );
           })}
         </div>

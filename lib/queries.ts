@@ -423,6 +423,36 @@ export function useUpdateExperiment() {
   });
 }
 
+export function useDeleteExperiment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("experiments")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: qk.experiments });
+      const prev = qc.getQueryData<Experiment[]>(qk.experiments);
+      qc.setQueryData<Experiment[]>(qk.experiments, (old) =>
+        (old ?? []).filter((e) => e.id !== id),
+      );
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(qk.experiments, ctx.prev);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: qk.experiments });
+      qc.invalidateQueries({ queryKey: qk.tasks });
+      qc.invalidateQueries({ queryKey: qk.deps });
+      qc.invalidateQueries({ queryKey: qk.cultureLinks });
+    },
+  });
+}
+
 export function useUpdateTodo() {
   const qc = useQueryClient();
   return useMutation({
