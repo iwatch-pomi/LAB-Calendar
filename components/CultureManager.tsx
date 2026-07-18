@@ -20,6 +20,7 @@ import {
   CULTURE_STATUS_META,
   fmtMd,
   todayJst,
+  daysBetween,
   type CultureStatus,
 } from "@/lib/culture";
 import type { CultureMedium } from "@/lib/types";
@@ -409,6 +410,48 @@ function CalendarTab({
 
   const selected = mediaOn(selectedDate);
 
+  // 1週間(7日)ぶんの帯を「行(レーン)」に振り分け、途切れず1本の帯として描画できるようにする
+  const MAX_LANES = 4;
+  const BAR_H = 12; // 帯の高さ(px)
+  const BAR_GAP = 3; // 帯どうしの縦の隙間(px)
+  const DATE_H = 26; // 日付数字ぶんの上部スペース(px)
+
+  function computeWeekBars(weekDates: string[]) {
+    const overlapping = media.filter(
+      (m) => m.created_date <= weekDates[6] && endDate(m) >= weekDates[0],
+    );
+    const sorted = [...overlapping].sort((a, b) => {
+      if (a.created_date !== b.created_date)
+        return a.created_date < b.created_date ? -1 : 1;
+      const ea = endDate(a);
+      const eb = endDate(b);
+      return ea === eb ? 0 : ea > eb ? -1 : 1; // 長い帯を優先して上のレーンへ
+    });
+    const laneEnds: number[] = [];
+    const items = sorted.map((m) => {
+      const startRaw = daysBetween(weekDates[0], m.created_date);
+      const endRaw = daysBetween(weekDates[0], endDate(m));
+      const startIdx = Math.max(0, Math.min(6, startRaw));
+      const endIdx = Math.max(0, Math.min(6, endRaw));
+      let lane = laneEnds.findIndex((end) => end < startIdx);
+      if (lane === -1) {
+        lane = laneEnds.length;
+        laneEnds.push(endIdx);
+      } else {
+        laneEnds[lane] = endIdx;
+      }
+      return {
+        m,
+        startIdx,
+        endIdx,
+        isTrueStart: startRaw >= 0,
+        isTrueEnd: endRaw <= 6,
+        lane,
+      };
+    });
+    return { items, laneCount: laneEnds.length };
+  }
+
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
       {/* カレンダー */}
@@ -451,68 +494,98 @@ function CalendarTab({
 
         {/* グリッド */}
         <div>
-          {weeks.map((week, wi) => (
-            <div key={wi} className="grid grid-cols-7">
-              {week.map((cell) => {
-                const date = cellDate(cell.startMs);
-                const isOther = cell.month !== curMonth;
-                const dayMedia = mediaOn(date);
-                const isSel = date === selectedDate;
-                return (
-                  <button
-                    key={cell.startMs}
-                    onClick={() => onSelectDate(date)}
-                    className={`min-h-[64px] border-b border-l border-gray-100 p-1 text-left align-top transition hover:bg-brand-50/40 ${
-                      cell.isWeekend ? "bg-gray-50/40" : ""
-                    } ${isSel ? "ring-2 ring-inset ring-brand-400" : ""}`}
-                  >
-                    <div
-                      className={`mb-0.5 inline-grid h-5 w-5 place-items-center rounded-full text-xs font-semibold ${
-                        cell.isToday
-                          ? "bg-brand-500 text-white"
-                          : isOther
-                            ? "text-gray-300"
-                            : "text-gray-600"
-                      }`}
+          {weeks.map((week, wi) => {
+            const weekDates = week.map((c) => cellDate(c.startMs));
+            const { items, laneCount } = computeWeekBars(weekDates);
+            const visibleLanes = Math.min(laneCount, MAX_LANES);
+            const overflowCount = items.filter(
+              (it) => it.lane >= MAX_LANES,
+            ).length;
+            const rowMinHeight = Math.max(
+              64,
+              DATE_H + visibleLanes * (BAR_H + BAR_GAP) + 8,
+            );
+            return (
+              <div
+                key={wi}
+                className="relative grid grid-cols-7"
+                style={{ minHeight: rowMinHeight }}
+              >
+                {week.map((cell) => {
+                  const date = cellDate(cell.startMs);
+                  const isOther = cell.month !== curMonth;
+                  const isSel = date === selectedDate;
+                  return (
+                    <button
+                      key={cell.startMs}
+                      onClick={() => onSelectDate(date)}
+                      className={`border-b border-l border-gray-100 p-1 text-left align-top transition hover:bg-brand-50/40 ${
+                        cell.isWeekend ? "bg-gray-50/40" : ""
+                      } ${isSel ? "ring-2 ring-inset ring-brand-400" : ""}`}
                     >
-                      {cell.dateNum}
-                    </div>
-                    <div className="space-y-0.5">
-                      {dayMedia.slice(0, 3).map((m) => {
-                        const st = CULTURE_STATUS_META[statusOf.get(m.id) ?? "culturing"];
-                        const isStart = m.created_date === date;
-                        const isEnd = endDate(m) === date;
-                        const isHi = highlightedId === m.id;
-                        const dimmed = highlightedId !== null && !isHi;
-                        return (
-                          <div
-                            key={m.id}
-                            title={m.name}
-                            className={`relative h-3 ${st.bar} ${
-                              isStart ? "rounded-l-full ml-0.5" : ""
-                            } ${isEnd ? "rounded-r-full mr-0.5" : ""} ${
-                              isHi ? "z-10 shadow ring-2 ring-gray-800" : ""
-                            } ${dimmed ? "opacity-30" : ""}`}
-                          >
-                            {isStart && (
-                              <span className="block truncate px-1 text-[9px] font-medium leading-3 text-white">
-                                {m.name}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
-                      {dayMedia.length > 3 && (
-                        <div className="px-1 text-[9px] text-gray-400">
-                          +{dayMedia.length - 3}
+                      <div
+                        className={`inline-grid h-5 w-5 place-items-center rounded-full text-xs font-semibold ${
+                          cell.isToday
+                            ? "bg-brand-500 text-white"
+                            : isOther
+                              ? "text-gray-300"
+                              : "text-gray-600"
+                        }`}
+                      >
+                        {cell.dateNum}
+                      </div>
+                    </button>
+                  );
+                })}
+
+                {/* 帯オーバーレイ: 週内は複数日にまたがっても1本の帯として途切れず描画 */}
+                <div
+                  className="pointer-events-none absolute inset-x-0 grid grid-cols-7"
+                  style={{
+                    top: DATE_H,
+                    gridAutoRows: BAR_H,
+                    rowGap: BAR_GAP,
+                  }}
+                >
+                  {items
+                    .filter((it) => it.lane < MAX_LANES)
+                    .map((it) => {
+                      const st =
+                        CULTURE_STATUS_META[
+                          statusOf.get(it.m.id) ?? "culturing"
+                        ];
+                      const isHi = highlightedId === it.m.id;
+                      const dimmed = highlightedId !== null && !isHi;
+                      return (
+                        <div
+                          key={it.m.id}
+                          onClick={() => onHighlight(isHi ? null : it.m.id)}
+                          title={it.m.name}
+                          className={`pointer-events-auto relative cursor-pointer ${st.bar} ${
+                            it.isTrueStart ? "rounded-l-full ml-0.5" : "ml-0"
+                          } ${it.isTrueEnd ? "rounded-r-full mr-0.5" : "mr-0"} ${
+                            isHi ? "z-10 shadow ring-2 ring-gray-800" : ""
+                          } ${dimmed ? "opacity-30" : ""}`}
+                          style={{
+                            gridColumn: `${it.startIdx + 1} / ${it.endIdx + 2}`,
+                            gridRow: it.lane + 1,
+                          }}
+                        >
+                          <span className="block truncate px-1 text-[9px] font-medium leading-3 text-white">
+                            {it.m.name}
+                          </span>
                         </div>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          ))}
+                      );
+                    })}
+                </div>
+                {overflowCount > 0 && (
+                  <div className="pointer-events-none absolute bottom-0.5 right-1 text-[9px] text-gray-400">
+                    +{overflowCount}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* 凡例 */}
