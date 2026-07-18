@@ -519,7 +519,7 @@ function CalendarTab({
                     <button
                       key={cell.startMs}
                       onClick={() => onSelectDate(date)}
-                      className={`flex items-start justify-start border-b border-l border-gray-100 p-1 text-left transition hover:bg-brand-50/40 ${
+                      className={`flex items-start justify-start border-b border-l border-gray-200 p-1 text-left transition hover:bg-brand-50/40 ${
                         cell.isWeekend ? "bg-gray-50/40" : ""
                       } ${isSel ? "ring-2 ring-inset ring-brand-400" : ""}`}
                     >

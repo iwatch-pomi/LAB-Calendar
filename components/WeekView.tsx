@@ -358,7 +358,7 @@ export function WeekView({
                   key={c.index}
                   onClick={(e) => onColumnClick(c.startMs, e)}
                   title="クリックで予定を追加"
-                  className={`relative cursor-pointer border-l border-gray-100 ${
+                  className={`relative cursor-pointer border-l border-gray-200 ${
                     c.isWeekend ? "bg-gray-50/40" : ""
                   }`}
                   style={{ height: TOTAL_H }}
@@ -367,7 +367,7 @@ export function WeekView({
                   {hours.slice(0, -1).map((h, i) => (
                     <div
                       key={h}
-                      className="absolute inset-x-0 border-b border-gray-100"
+                      className="absolute inset-x-0 border-b border-gray-200"
                       style={{ top: (i + 1) * hourPx, height: 0 }}
                     />
                   ))}

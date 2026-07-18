@@ -73,7 +73,7 @@ export function MonthView({
                     key={cell.startMs}
                     onClick={() => onCreateAt(cell.startMs + 9 * 60 * 60 * 1000)}
                     title="クリックで予定を追加"
-                    className={`min-h-0 cursor-pointer overflow-hidden border-b border-l border-gray-100 p-1.5 hover:bg-brand-50/40 ${
+                    className={`min-h-0 cursor-pointer overflow-hidden border-b border-l border-gray-200 p-1.5 hover:bg-brand-50/40 ${
                       cell.isWeekend ? "bg-gray-50/40" : ""
                     }`}
                   >
