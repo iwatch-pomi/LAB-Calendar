@@ -593,16 +593,28 @@ function ListTab({
 }) {
   const [editId, setEditId] = useState<string | null>(null);
   const [eName, setEName] = useState("");
+  const [eCreated, setECreated] = useState("");
   const [eExpiry, setEExpiry] = useState("");
+  const [eParent, setEParent] = useState("");
+  const [eNote, setENote] = useState("");
 
   function startEdit(m: CultureMedium) {
     setEditId(m.id);
     setEName(m.name);
+    setECreated(m.created_date);
     setEExpiry(m.expiry_date ?? "");
+    setEParent(m.parent_id ?? "");
+    setENote(m.note ?? "");
   }
   function saveEdit() {
     if (editId && eName.trim()) {
-      onUpdate(editId, { name: eName.trim(), expiry_date: eExpiry || null });
+      onUpdate(editId, {
+        name: eName.trim(),
+        created_date: eCreated || todayJst(),
+        expiry_date: eExpiry || null,
+        parent_id: eParent || null,
+        note: eNote.trim() || null,
+      });
     }
     setEditId(null);
   }
@@ -627,36 +639,76 @@ function ListTab({
                 e.preventDefault();
                 saveEdit();
               }}
-              className="flex flex-wrap items-center gap-2 rounded-2xl border border-brand-200 bg-brand-50/40 p-3"
+              className="space-y-2 rounded-2xl border border-brand-200 bg-brand-50/40 p-3"
             >
               <input
                 autoFocus
                 value={eName}
                 onChange={(e) => setEName(e.target.value)}
-                className="min-w-[10rem] flex-1 rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500"
+                placeholder="培地名"
+                className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500"
               />
-              <label className="text-[11px] text-gray-500">
-                期限
+              <div className="grid gap-2 sm:grid-cols-3">
+                <label className="text-[11px] text-gray-500">
+                  作成日
+                  <input
+                    type="date"
+                    value={eCreated}
+                    onChange={(e) => setECreated(e.target.value)}
+                    className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
+                  />
+                </label>
+                <label className="text-[11px] text-gray-500">
+                  期限
+                  <input
+                    type="date"
+                    value={eExpiry}
+                    onChange={(e) => setEExpiry(e.target.value)}
+                    className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
+                  />
+                </label>
+                <label className="text-[11px] text-gray-500">
+                  継代元
+                  <select
+                    value={eParent}
+                    onChange={(e) => setEParent(e.target.value)}
+                    className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
+                  >
+                    <option value="">なし</option>
+                    {media
+                      .filter((cand) => cand.id !== m.id)
+                      .map((cand) => (
+                        <option key={cand.id} value={cand.id}>
+                          {cand.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              </div>
+              <label className="block text-[11px] text-gray-500">
+                メモ
                 <input
-                  type="date"
-                  value={eExpiry}
-                  onChange={(e) => setEExpiry(e.target.value)}
-                  className="ml-1 rounded-lg border border-gray-300 px-2 py-1 text-sm outline-none focus:border-brand-500"
+                  value={eNote}
+                  onChange={(e) => setENote(e.target.value)}
+                  placeholder="継代比 1:10 など"
+                  className="mt-0.5 w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500"
                 />
               </label>
-              <button
-                type="submit"
-                className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600"
-              >
-                保存
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditId(null)}
-                className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
-              >
-                キャンセル
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600"
+                >
+                  保存
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditId(null)}
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+                >
+                  キャンセル
+                </button>
+              </div>
             </form>
           );
         }
