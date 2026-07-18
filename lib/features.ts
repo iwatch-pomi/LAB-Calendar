@@ -31,7 +31,7 @@ export const FEATURES: FeatureDef[] = [
     mode: "bio",
     title: "継代培養の記録",
     description:
-      "前培養・本培養・継代の親子関係を記録し、系統ツリーで表示します。",
+      "予定に「培養時間」を追加でき、培地の作成日・期限・継代系統を専用ページで管理します。",
   },
   {
     key: "chem_calc",

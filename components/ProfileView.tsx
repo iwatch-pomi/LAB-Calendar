@@ -12,9 +12,6 @@ import {
   useToggleTodo,
   useSettings,
   useUpdateFeature,
-  useCultureLinks,
-  useAddCultureLink,
-  useDeleteCultureLink,
   useAddEquipment,
   useDeleteEquipment,
 } from "@/lib/queries";
@@ -28,9 +25,7 @@ import {
 import {
   paletteFor,
   PALETTE_KEYS,
-  type CultureLink,
   type Experiment,
-  type Task,
 } from "@/lib/types";
 import {
   ChevronLeft,
@@ -39,11 +34,9 @@ import {
   Beaker,
   CalendarDays,
   Settings,
-  GitBranch,
   Sprout,
   Plus,
   X,
-  Download,
   Wrench,
   LogOut,
   ListChecks,
@@ -79,25 +72,6 @@ const MODE_ICON: Record<
 function fmtDate(ms: number): string {
   const s = new Date(ms + 540 * 60000);
   return `${s.getUTCMonth() + 1}/${s.getUTCDate()}`;
-}
-
-/** CSV セルのエスケープ */
-function csvCell(v: string): string {
-  return /[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
-}
-
-/** 行配列を CSV としてダウンロード（Excel 向けに UTF-8 BOM 付き） */
-function downloadCsv(filename: string, rows: string[][]) {
-  const csv = rows.map((r) => r.map(csvCell).join(",")).join("\r\n");
-  const blob = new Blob(["﻿" + csv], {
-    type: "text/csv;charset=utf-8",
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 export function ProfileView({ userEmail }: { userEmail: string }) {
@@ -438,10 +412,7 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
           </form>
         </section>
 
-        {/* 生物: 継代培養の記録 */}
-        {features.bio_culture_lineage && (
-          <CultureLineage experiments={experiments} tasks={tasks} />
-        )}
+        {/* 継代培養（培地）はサイドバー「継代培養を管理」→ /culture ページに集約 */}
 
         {/* 一旦: 化学/物理/工学モードのツールは非表示 */}
 
@@ -817,337 +788,5 @@ function FeatureToggle({
         />
       </button>
     </label>
-  );
-}
-
-/** 培養リネージュ: 継代の親子を手動登録し、系統ツリーで表示 */
-function CultureLineage({
-  experiments,
-  tasks,
-}: {
-  experiments: Experiment[];
-  tasks: Task[];
-}) {
-  const linksQ = useCultureLinks();
-  const addLink = useAddCultureLink();
-  const delLink = useDeleteCultureLink();
-  const links = linksQ.data ?? [];
-
-  const expName = new Map(experiments.map((e) => [e.id, e.name]));
-  const expColor = new Map(experiments.map((e) => [e.id, e.color]));
-  const taskById = new Map(tasks.map((t) => [t.id, t]));
-  const options = [...tasks].sort(
-    (a, b) =>
-      new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
-  );
-  const label = (t: Task) => {
-    const en = t.experiment_id ? expName.get(t.experiment_id) : null;
-    return `${t.title}（${en ? en + "・" : ""}${fmtDate(
-      new Date(t.start_time).getTime(),
-    )}）`;
-  };
-
-  const [showForm, setShowForm] = useState(false);
-  const [parentId, setParentId] = useState("");
-  const [childId, setChildId] = useState("");
-  const [passage, setPassage] = useState("");
-  const [note, setNote] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    if (!parentId || !childId) {
-      setError("親（継代元）と子（継代先）の両方を選択してください。");
-      return;
-    }
-    if (parentId === childId) {
-      setError("親と子は別のタスクにしてください。");
-      return;
-    }
-    if (
-      links.some(
-        (l) => l.parent_task_id === parentId && l.child_task_id === childId,
-      )
-    ) {
-      setError("この親子関係は既に登録済みです。");
-      return;
-    }
-    addLink.mutate({
-      parent_task_id: parentId,
-      child_task_id: childId,
-      passage_no: passage ? Number(passage) : null,
-      note: note.trim() || null,
-    });
-    setParentId("");
-    setChildId("");
-    setPassage("");
-    setNote("");
-    setShowForm(false);
-  }
-
-  function taskDateTime(id: string): string {
-    const t = taskById.get(id);
-    if (!t) return "";
-    const ms = new Date(t.start_time).getTime();
-    return `${fmtDate(ms)} ${fmtTime(ms)}`;
-  }
-
-  function exportCsv() {
-    const header = [
-      "親（継代元）",
-      "親_実験",
-      "親_開始",
-      "子（継代先）",
-      "子_実験",
-      "子_開始",
-      "継代数P",
-      "メモ",
-    ];
-    const rows = links.map((l) => {
-      const p = taskById.get(l.parent_task_id);
-      const c = taskById.get(l.child_task_id);
-      return [
-        p?.title ?? "（削除済み）",
-        (p?.experiment_id ? expName.get(p.experiment_id) : "") ?? "",
-        taskDateTime(l.parent_task_id),
-        c?.title ?? "（削除済み）",
-        (c?.experiment_id ? expName.get(c.experiment_id) : "") ?? "",
-        taskDateTime(l.child_task_id),
-        l.passage_no != null ? String(l.passage_no) : "",
-        l.note ?? "",
-      ];
-    });
-    downloadCsv("culture_lineage.csv", [header, ...rows]);
-  }
-
-  // ツリー構築
-  const childrenByParent = new Map<string, CultureLink[]>();
-  for (const l of links) {
-    if (!childrenByParent.has(l.parent_task_id))
-      childrenByParent.set(l.parent_task_id, []);
-    childrenByParent.get(l.parent_task_id)!.push(l);
-  }
-  const childIds = new Set(links.map((l) => l.child_task_id));
-  const rootIds = Array.from(
-    new Set(links.map((l) => l.parent_task_id)),
-  ).filter((id) => !childIds.has(id));
-
-  function renderNode(
-    taskId: string,
-    linkToHere: CultureLink | null,
-    visited: Set<string>,
-  ): React.ReactNode {
-    const t = taskById.get(taskId);
-    const cyclic = visited.has(taskId);
-    const nextVisited = new Set(visited);
-    nextVisited.add(taskId);
-    const children = cyclic ? [] : childrenByParent.get(taskId) ?? [];
-    const pal = paletteFor(
-      t?.experiment_id ? expColor.get(t.experiment_id) : "teal",
-    );
-    const en = t?.experiment_id ? expName.get(t.experiment_id) : null;
-
-    return (
-      <div key={(linkToHere?.id ?? "root") + taskId}>
-        {/* ノードカード */}
-        <div className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-1.5 shadow-sm ring-1 ring-emerald-200">
-          <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${pal.dot}`} />
-          <div className="min-w-0">
-            <div className="truncate text-xs font-semibold text-gray-800">
-              {t ? t.title : "（削除済み）"}
-            </div>
-            {t && (
-              <div className="truncate text-[10px] text-gray-400">
-                {en ? `${en} · ` : ""}
-                {fmtDate(new Date(t.start_time).getTime())}{" "}
-                {fmtTime(new Date(t.start_time).getTime())}
-              </div>
-            )}
-          </div>
-          {linkToHere?.passage_no != null && (
-            <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
-              P{linkToHere.passage_no}
-            </span>
-          )}
-          {linkToHere?.note && (
-            <span className="shrink-0 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-700">
-              {linkToHere.note}
-            </span>
-          )}
-          {linkToHere && (
-            <button
-              onClick={() => delLink.mutate(linkToHere.id)}
-              title="この継代リンクを削除"
-              className="shrink-0 rounded p-0.5 text-gray-300 hover:bg-gray-100 hover:text-rose-500"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-
-        {/* 子ノード（接続線つき） */}
-        {children.length > 0 && (
-          <div className="relative ml-3.5 mt-1.5 space-y-1.5 border-l-2 border-emerald-200 pl-4">
-            {children.map((cl) => (
-              <div key={cl.id} className="relative">
-                {/* 親から子への横枝（エルボー） */}
-                <span className="absolute -left-4 top-4 h-0.5 w-4 rounded-full bg-emerald-200" />
-                {renderNode(cl.child_task_id, cl, nextVisited)}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <section className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4">
-      <div className="mb-1 flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <GitBranch className="h-4 w-4 text-emerald-600" />
-          <h2 className="text-sm font-semibold text-gray-800">
-            培養リネージュ（継代の親子登録）
-          </h2>
-        </div>
-        <div className="flex items-center gap-1.5">
-          {links.length > 0 && (
-            <button
-              onClick={exportCsv}
-              title="継代系統をCSVで書き出し"
-              className="flex items-center gap-1 rounded-lg border border-emerald-300 bg-white px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
-            >
-              <Download className="h-3.5 w-3.5" />
-              CSV
-            </button>
-          )}
-          <button
-            onClick={() => {
-              setShowForm((v) => !v);
-              setError(null);
-            }}
-            className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-600"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            継代を登録
-          </button>
-        </div>
-      </div>
-      <p className="mb-3 text-xs text-gray-500">
-        継代元（親）と継代先（子）を選んで系統を記録します。前培養→本培養、継代 1→2→3 などを親子でつなげます。
-      </p>
-
-      {/* 登録フォーム */}
-      {showForm && (
-        <form
-          onSubmit={submit}
-          className="mb-3 space-y-2 rounded-xl border border-emerald-200 bg-white p-3"
-        >
-          <div className="grid gap-2 sm:grid-cols-2">
-            <label className="text-[11px] text-gray-500">
-              親（継代元）
-              <select
-                value={parentId}
-                onChange={(e) => setParentId(e.target.value)}
-                className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-emerald-500"
-              >
-                <option value="">選択…</option>
-                {options.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {label(t)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-[11px] text-gray-500">
-              子（継代先）
-              <select
-                value={childId}
-                onChange={(e) => setChildId(e.target.value)}
-                className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-emerald-500"
-              >
-                <option value="">選択…</option>
-                {options.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {label(t)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <label className="text-[11px] text-gray-500">
-              継代数 P（任意）
-              <input
-                type="number"
-                min={0}
-                value={passage}
-                onChange={(e) => setPassage(e.target.value)}
-                placeholder="例: 3"
-                className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-emerald-500"
-              />
-            </label>
-            <label className="text-[11px] text-gray-500">
-              メモ（任意）
-              <input
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="分割比 1:10 など"
-                className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-emerald-500"
-              />
-            </label>
-          </div>
-          {error && <p className="text-xs text-rose-500">{error}</p>}
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600"
-            >
-              登録
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowForm(false);
-                setError(null);
-              }}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
-            >
-              キャンセル
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* 系統ツリー */}
-      {links.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-emerald-200 bg-white/60 py-6 text-center text-xs text-gray-400">
-          まだ継代の親子関係が登録されていません。「継代を登録」から追加してください。
-          <br />
-          カレンダーに前培養・本培養・継代培養の予定を作っておくと選択できます。
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {rootIds.map((id) => (
-            <div
-              key={id}
-              className="overflow-x-auto rounded-xl border border-gray-200 bg-white p-3 thin-scroll"
-            >
-              {renderNode(id, null, new Set())}
-            </div>
-          ))}
-          <div className="flex items-center gap-3 px-1 text-[10px] text-gray-400">
-            <span className="flex items-center gap-1">
-              <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 font-bold text-emerald-700">
-                P◯
-              </span>
-              継代数
-            </span>
-            <span>親（継代元）→ 下にぶら下がるほど後の継代</span>
-          </div>
-        </div>
-      )}
-    </section>
   );
 }

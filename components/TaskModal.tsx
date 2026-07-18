@@ -1,29 +1,31 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import {
   useUpdateTask,
   useDeleteTask,
   useSettings,
-  useCultureLinks,
-  useAddCultureLink,
-  useDeleteCultureLink,
+  useCultureMedia,
+  useAddCultureMedium,
 } from "@/lib/queries";
 import { isoToJstInput, jstInputToISO } from "@/lib/calendar";
+import { cultureStatus, CULTURE_STATUS_META, fmtMd } from "@/lib/culture";
 import {
   paletteFor,
   type Equipment,
   type Experiment,
   type Task,
   type TaskDependency,
+  type TaskKind,
 } from "@/lib/types";
 import {
   X,
   Trash2,
-  Plus,
   AlertTriangle,
   Check,
-  GitBranch,
+  Sprout,
+  ArrowUpRight,
 } from "lucide-react";
 
 export function TaskModal({
@@ -44,9 +46,8 @@ export function TaskModal({
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const settings = useSettings().data ?? {};
-  const cultureLinks = useCultureLinks().data ?? [];
-  const addCultureLink = useAddCultureLink();
-  const deleteCultureLink = useDeleteCultureLink();
+  const cultureMedia = useCultureMedia().data ?? [];
+  const addCultureMedium = useAddCultureMedium();
 
   const [title, setTitle] = useState(task.title);
   const [startInput, setStartInput] = useState(() =>
@@ -55,49 +56,52 @@ export function TaskModal({
   const [endInput, setEndInput] = useState(() => isoToJstInput(task.end_time));
   const [timeError, setTimeError] = useState<string | null>(null);
 
-  // 培養リネージュ（継代）フォーム
-  const [addingChild, setAddingChild] = useState(false);
-  const [childId, setChildId] = useState("");
-  const [passage, setPassage] = useState("");
-  const [note, setNote] = useState("");
-  const [cultureError, setCultureError] = useState<string | null>(null);
+  // 培地作成フォーム
+  const [creatingMedium, setCreatingMedium] = useState(false);
+  const [mediumName, setMediumName] = useState("");
+  const [mediumExpiry, setMediumExpiry] = useState("");
+  const [mediumParent, setMediumParent] = useState("");
+  const [mediumError, setMediumError] = useState<string | null>(null);
 
   // 常に最新のタスク状態を参照（完了/装置変更などを即時反映）
   const liveTask = tasks.find((t) => t.id === task.id) ?? task;
 
   const exp = experiments.find((e) => e.id === task.experiment_id);
   const pal = paletteFor(exp?.color ?? "teal");
-  const taskById = useMemo(
-    () => new Map(tasks.map((t) => [t.id, t])),
-    [tasks],
-  );
 
-  // 種別: 待機時間(is_wait) のとき培養リネージュ、実験操作のとき使用機器
-  const isWait = liveTask.is_wait;
-  const childLinks = cultureLinks.filter((l) => l.parent_task_id === task.id);
-  const parentLinks = cultureLinks.filter((l) => l.child_task_id === task.id);
-  const childExisting = new Set(childLinks.map((l) => l.child_task_id));
-  const childCandidates = tasks.filter(
-    (t) => t.id !== task.id && !childExisting.has(t.id),
-  );
+  // 種別: task_kind（培養時間のとき培地、実験操作のとき使用機器）
+  const cultureEnabled = !!settings.bio_culture_lineage;
+  const kind: TaskKind = liveTask.task_kind ?? (liveTask.is_wait ? "wait" : "operation");
+  const linkedMedium = cultureMedia.find((m) => m.source_task_id === task.id);
 
-  function submitChild(e: React.FormEvent) {
+  function setKind(next: TaskKind) {
+    updateTask.mutate({
+      id: task.id,
+      task_kind: next,
+      is_wait: next !== "operation",
+    });
+  }
+
+  function submitMedium(e: React.FormEvent) {
     e.preventDefault();
-    setCultureError(null);
-    if (!childId) {
-      setCultureError("継代先を選択してください。");
+    setMediumError(null);
+    if (!mediumName.trim()) {
+      setMediumError("培地名を入力してください。");
       return;
     }
-    addCultureLink.mutate({
-      parent_task_id: task.id,
-      child_task_id: childId,
-      passage_no: passage ? Number(passage) : null,
-      note: note.trim() || null,
+    // タスク開始日(JST)を作成日の既定にする
+    const createdDate = isoToJstInput(task.start_time).slice(0, 10);
+    addCultureMedium.mutate({
+      name: mediumName.trim(),
+      created_date: createdDate,
+      expiry_date: mediumExpiry || null,
+      parent_id: mediumParent || null,
+      source_task_id: task.id,
     });
-    setChildId("");
-    setPassage("");
-    setNote("");
-    setAddingChild(false);
+    setMediumName("");
+    setMediumExpiry("");
+    setMediumParent("");
+    setCreatingMedium(false);
   }
 
   function saveTitle() {
@@ -163,18 +167,16 @@ export function TaskModal({
           />
 
           {/* 日時（手動編集・日をまたぐ変更も可） */}
-          {/* 種別（実験操作 / 待機時間） */}
+          {/* 種別（実験操作 / 待機時間 / 培養時間） */}
           <div>
             <label className="mb-1 block text-xs font-semibold text-gray-500">
               種別
             </label>
             <div className="flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-sm">
               <button
-                onClick={() =>
-                  updateTask.mutate({ id: task.id, is_wait: false })
-                }
-                className={`flex-1 rounded-md px-3 py-1.5 font-medium transition ${
-                  !isWait
+                onClick={() => setKind("operation")}
+                className={`flex-1 rounded-md px-2 py-1.5 font-medium transition ${
+                  kind === "operation"
                     ? "bg-white text-gray-800 shadow-sm"
                     : "text-gray-500"
                 }`}
@@ -182,17 +184,27 @@ export function TaskModal({
                 実験操作
               </button>
               <button
-                onClick={() =>
-                  updateTask.mutate({ id: task.id, is_wait: true })
-                }
-                className={`flex-1 rounded-md px-3 py-1.5 font-medium transition ${
-                  isWait
+                onClick={() => setKind("wait")}
+                className={`flex-1 rounded-md px-2 py-1.5 font-medium transition ${
+                  kind === "wait"
                     ? "bg-amber-100 text-amber-800 shadow-sm"
                     : "text-gray-500"
                 }`}
               >
                 待機時間
               </button>
+              {cultureEnabled && (
+                <button
+                  onClick={() => setKind("culture")}
+                  className={`flex-1 rounded-md px-2 py-1.5 font-medium transition ${
+                    kind === "culture"
+                      ? "bg-emerald-100 text-emerald-800 shadow-sm"
+                      : "text-gray-500"
+                  }`}
+                >
+                  培養時間
+                </button>
+              )}
             </div>
           </div>
 
@@ -237,7 +249,7 @@ export function TaskModal({
           </div>
 
           {/* 使用機器（実験操作のみ） */}
-          {!isWait && (
+          {kind === "operation" && (
             <div>
               <label className="mb-1 block text-xs font-semibold text-gray-500">
                 使用機器
@@ -263,116 +275,97 @@ export function TaskModal({
             </div>
           )}
 
-          {/* 培養リネージュ（継代） — 継代培養の記録ON かつ 待機時間のとき */}
-          {isWait && settings.bio_culture_lineage && (
+          {/* 培地（培養時間のとき・継代培養の記録ON） */}
+          {kind === "culture" && cultureEnabled && (
             <div>
               <div className="mb-1 flex items-center gap-1.5">
-                <GitBranch className="h-3.5 w-3.5 text-emerald-600" />
+                <Sprout className="h-3.5 w-3.5 text-emerald-600" />
                 <span className="text-xs font-semibold text-gray-500">
-                  培養リネージュ（継代）
+                  培地
                 </span>
               </div>
 
-              {/* 継代元（親）表示 */}
-              {parentLinks.map((l) => {
-                const p = taskById.get(l.parent_task_id);
-                return (
-                  <div
-                    key={l.id}
-                    className="mb-1 flex items-center gap-2 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-sm"
+              {linkedMedium ? (
+                <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-2.5 py-2 text-sm ring-1 ring-emerald-100">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium text-gray-800">
+                      {linkedMedium.name}
+                    </span>
+                    <span className="text-[11px] text-gray-500">
+                      {linkedMedium.expiry_date
+                        ? `期限 ${fmtMd(linkedMedium.expiry_date)}`
+                        : "期限なし"}
+                    </span>
+                  </span>
+                  {(() => {
+                    const st = CULTURE_STATUS_META[cultureStatus(linkedMedium)];
+                    return (
+                      <span
+                        className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${st.bg} ${st.text}`}
+                      >
+                        {st.label}
+                      </span>
+                    );
+                  })()}
+                  <Link
+                    href="/culture"
+                    title="培地管理ページで開く"
+                    className="shrink-0 rounded-lg p-1 text-emerald-600 hover:bg-emerald-100"
                   >
-                    <span className="text-[10px] font-semibold text-emerald-600">
-                      継代元
-                    </span>
-                    <span className="flex-1 truncate text-gray-700">
-                      {p?.title ?? "（削除済み）"}
-                      {l.passage_no != null && ` ・P${l.passage_no}`}
-                    </span>
-                    <button
-                      onClick={() => deleteCultureLink.mutate(l.id)}
-                      className="text-gray-400 hover:text-rose-500"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                );
-              })}
-
-              {/* 継代先（子）表示 */}
-              {childLinks.map((l) => {
-                const c = taskById.get(l.child_task_id);
-                return (
-                  <div
-                    key={l.id}
-                    className="mb-1 flex items-center gap-2 rounded-lg bg-white px-2.5 py-1.5 text-sm ring-1 ring-emerald-100"
-                  >
-                    <span className="text-[10px] font-semibold text-emerald-600">
-                      継代先
-                    </span>
-                    <span className="flex-1 truncate text-gray-700">
-                      {c?.title ?? "（削除済み）"}
-                      {l.passage_no != null && ` ・P${l.passage_no}`}
-                      {l.note ? ` ・${l.note}` : ""}
-                    </span>
-                    <button
-                      onClick={() => deleteCultureLink.mutate(l.id)}
-                      className="text-gray-400 hover:text-rose-500"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                );
-              })}
-
-              {addingChild ? (
+                    <ArrowUpRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              ) : creatingMedium ? (
                 <form
-                  onSubmit={submitChild}
-                  className="mt-1 space-y-2 rounded-lg border border-emerald-200 bg-emerald-50/40 p-2"
+                  onSubmit={submitMedium}
+                  className="space-y-2 rounded-lg border border-emerald-200 bg-emerald-50/40 p-2"
                 >
-                  <select
+                  <input
                     autoFocus
-                    value={childId}
-                    onChange={(e) => setChildId(e.target.value)}
+                    value={mediumName}
+                    onChange={(e) => setMediumName(e.target.value)}
+                    placeholder="培地名（例: 大腸菌 前培養 LB）"
                     className="w-full rounded-lg border border-gray-300 px-2.5 py-2 text-sm outline-none focus:border-emerald-500"
-                  >
-                    <option value="">継代先（子）を選択…</option>
-                    {childCandidates.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.title}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="grid grid-cols-2 gap-2">
+                  />
+                  <label className="block text-[11px] text-gray-500">
+                    期限日（任意）
                     <input
-                      type="number"
-                      min={0}
-                      value={passage}
-                      onChange={(e) => setPassage(e.target.value)}
-                      placeholder="継代数 P（任意）"
-                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-emerald-500"
+                      type="date"
+                      value={mediumExpiry}
+                      onChange={(e) => setMediumExpiry(e.target.value)}
+                      className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-emerald-500"
                     />
-                    <input
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                      placeholder="メモ（分割比 等）"
-                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-emerald-500"
-                    />
-                  </div>
-                  {cultureError && (
-                    <p className="text-xs text-rose-500">{cultureError}</p>
+                  </label>
+                  <label className="block text-[11px] text-gray-500">
+                    継代元（任意）
+                    <select
+                      value={mediumParent}
+                      onChange={(e) => setMediumParent(e.target.value)}
+                      className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-emerald-500"
+                    >
+                      <option value="">なし</option>
+                      {cultureMedia.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {mediumError && (
+                    <p className="text-xs text-rose-500">{mediumError}</p>
                   )}
                   <div className="flex gap-2">
                     <button
                       type="submit"
                       className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600"
                     >
-                      継代先を登録
+                      培地を作成
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        setAddingChild(false);
-                        setCultureError(null);
+                        setCreatingMedium(false);
+                        setMediumError(null);
                       }}
                       className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
                     >
@@ -382,11 +375,14 @@ export function TaskModal({
                 </form>
               ) : (
                 <button
-                  onClick={() => setAddingChild(true)}
+                  onClick={() => {
+                    setMediumName(title.trim());
+                    setCreatingMedium(true);
+                  }}
                   className="flex items-center gap-1 text-xs text-emerald-600 hover:underline"
                 >
-                  <Plus className="h-3 w-3" />
-                  これを継代元にして継代先を追加
+                  <Sprout className="h-3 w-3" />
+                  この培養時間から培地を作成
                 </button>
               )}
             </div>

@@ -2,6 +2,8 @@
 
 export type ExperimentStatus = "planning" | "in_progress" | "done" | "failed";
 export type TaskStatus = "planned" | "done" | "failed";
+/** 予定の種別: 実験操作 / 待機時間 / 培養時間 */
+export type TaskKind = "operation" | "wait" | "culture";
 
 export interface Equipment {
   id: string;
@@ -60,6 +62,7 @@ export interface Task {
   equipment_id: string | null;
   needs_reservation: boolean;
   is_wait: boolean;
+  task_kind: TaskKind;
   template_step_id: string | null;
   notes: string | null;
   created_at: string;
@@ -105,13 +108,16 @@ export interface UserSettings {
   updated_at: string;
 }
 
-/** 継代培養の親子リンク（前培養→本培養、継代元→継代先 などの系統） */
-export interface CultureLink {
+/** 培地（継代培養を管理ページで扱う独立エンティティ） */
+export interface CultureMedium {
   id: string;
   user_id: string;
-  parent_task_id: string;
-  child_task_id: string;
-  passage_no: number | null;
+  name: string;
+  created_date: string; // "YYYY-MM-DD"（作成日）
+  expiry_date: string | null; // 期限日
+  disposed_date: string | null; // 廃棄日
+  parent_id: string | null; // 継代元（親培地）
+  source_task_id: string | null; // 紐づく「培養時間」タスク
   note: string | null;
   created_at: string;
 }

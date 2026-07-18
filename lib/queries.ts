@@ -7,7 +7,7 @@ import {
 } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import type {
-  CultureLink,
+  CultureMedium,
   Equipment,
   Experiment,
   FeatureFlags,
@@ -29,7 +29,7 @@ export const qk = {
   deps: ["deps"] as const,
   todos: ["todos"] as const,
   settings: ["settings"] as const,
-  cultureLinks: ["culture_links"] as const,
+  cultureMedia: ["culture_media"] as const,
 };
 
 // ---------------- Queries ----------------
@@ -171,14 +171,15 @@ export function useSettings() {
   });
 }
 
-export function useCultureLinks() {
+export function useCultureMedia() {
   return useQuery({
-    queryKey: qk.cultureLinks,
-    queryFn: async (): Promise<CultureLink[]> => {
+    queryKey: qk.cultureMedia,
+    queryFn: async (): Promise<CultureMedium[]> => {
       const { data, error } = await supabase
-        .from("culture_links")
+        .from("culture_media")
         .select("*")
-        .order("created_at");
+        .order("created_date", { ascending: false })
+        .order("created_at", { ascending: false });
       if (error) return []; // テーブル未作成でも空で返す
       return data ?? [];
     },
@@ -448,7 +449,7 @@ export function useDeleteExperiment() {
       qc.invalidateQueries({ queryKey: qk.experiments });
       qc.invalidateQueries({ queryKey: qk.tasks });
       qc.invalidateQueries({ queryKey: qk.deps });
-      qc.invalidateQueries({ queryKey: qk.cultureLinks });
+      qc.invalidateQueries({ queryKey: qk.cultureMedia });
     },
   });
 }
@@ -576,54 +577,90 @@ export function useUpdateFeatures() {
   });
 }
 
-export function useAddCultureLink() {
+export function useAddCultureMedium() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: {
-      parent_task_id: string;
-      child_task_id: string;
-      passage_no?: number | null;
+      name: string;
+      created_date: string;
+      expiry_date?: string | null;
+      parent_id?: string | null;
+      source_task_id?: string | null;
       note?: string | null;
-    }) => {
+    }): Promise<CultureMedium | null> => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) throw new Error("not authenticated");
-      const { error } = await supabase.from("culture_links").insert({
-        user_id: user.id,
-        parent_task_id: args.parent_task_id,
-        child_task_id: args.child_task_id,
-        passage_no: args.passage_no ?? null,
-        note: args.note ?? null,
-      });
+      const { data, error } = await supabase
+        .from("culture_media")
+        .insert({
+          user_id: user.id,
+          name: args.name,
+          created_date: args.created_date,
+          expiry_date: args.expiry_date ?? null,
+          parent_id: args.parent_id ?? null,
+          source_task_id: args.source_task_id ?? null,
+          note: args.note ?? null,
+        })
+        .select()
+        .single();
       if (error) throw error;
+      return (data as CultureMedium) ?? null;
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: qk.cultureLinks }),
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.cultureMedia }),
   });
 }
 
-export function useDeleteCultureLink() {
+export function useUpdateCultureMedium() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { id: string } & Partial<CultureMedium>) => {
+      const { id, ...patch } = args;
+      const { error } = await supabase
+        .from("culture_media")
+        .update(patch)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onMutate: async (args) => {
+      await qc.cancelQueries({ queryKey: qk.cultureMedia });
+      const prev = qc.getQueryData<CultureMedium[]>(qk.cultureMedia);
+      const { id, ...patch } = args;
+      qc.setQueryData<CultureMedium[]>(qk.cultureMedia, (old) =>
+        (old ?? []).map((m) => (m.id === id ? { ...m, ...patch } : m)),
+      );
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(qk.cultureMedia, ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.cultureMedia }),
+  });
+}
+
+export function useDeleteCultureMedium() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("culture_links")
+        .from("culture_media")
         .delete()
         .eq("id", id);
       if (error) throw error;
     },
     onMutate: async (id) => {
-      await qc.cancelQueries({ queryKey: qk.cultureLinks });
-      const prev = qc.getQueryData<CultureLink[]>(qk.cultureLinks);
-      qc.setQueryData<CultureLink[]>(qk.cultureLinks, (old) =>
-        (old ?? []).filter((l) => l.id !== id),
+      await qc.cancelQueries({ queryKey: qk.cultureMedia });
+      const prev = qc.getQueryData<CultureMedium[]>(qk.cultureMedia);
+      qc.setQueryData<CultureMedium[]>(qk.cultureMedia, (old) =>
+        (old ?? []).filter((m) => m.id !== id),
       );
       return { prev };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(qk.cultureLinks, ctx.prev);
+      if (ctx?.prev) qc.setQueryData(qk.cultureMedia, ctx.prev);
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: qk.cultureLinks }),
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.cultureMedia }),
   });
 }
 
