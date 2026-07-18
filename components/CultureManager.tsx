@@ -868,13 +868,23 @@ function GraphTab({
           </span>
         </div>
         {children.length > 0 && (
-          <div className="relative ml-3.5 mt-1.5 space-y-1.5 border-l-2 border-emerald-200 pl-4">
-            {children.map((c) => (
-              <div key={c.id} className="relative">
-                <span className="absolute -left-4 top-4 h-0.5 w-4 rounded-full bg-emerald-200" />
-                {renderNode(c, next)}
-              </div>
-            ))}
+          <div className="relative ml-3.5 mt-1.5 pl-4">
+            {children.map((c, i) => {
+              const isLast = i === children.length - 1;
+              return (
+                <div key={c.id} className={`relative ${isLast ? "" : "pb-1.5"}`}>
+                  {/* 縦線: 最後の子は接続点(elbow)で止め、そうでなければ次の兄弟まで伸ばす */}
+                  <span
+                    className={`absolute -left-4 w-0.5 bg-emerald-300 ${
+                      isLast ? "top-0 h-4" : "top-0 bottom-0"
+                    }`}
+                  />
+                  {/* 横線（接続点） */}
+                  <span className="absolute -left-4 top-4 h-0.5 w-4 rounded-full bg-emerald-300" />
+                  {renderNode(c, next)}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
