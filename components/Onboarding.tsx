@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Logo } from "./Logo";
 import type { FeatureFlags } from "@/lib/types";
-import { Sprout, FlaskConical, Atom, Check } from "lucide-react";
+import { Sprout, Check } from "lucide-react";
 
 interface Domain {
   key: string;
@@ -14,6 +14,7 @@ interface Domain {
   flags: FeatureFlags;
 }
 
+// 一旦: 化学系/物理・工学系は非表示（生物系のみ選択可）
 const DOMAINS: Domain[] = [
   {
     key: "bio",
@@ -22,22 +23,6 @@ const DOMAINS: Domain[] = [
     icon: <Sprout className="h-5 w-5 text-emerald-600" />,
     iconBg: "bg-emerald-50",
     flags: { bio_culture_lineage: true },
-  },
-  {
-    key: "chem",
-    title: "化学系",
-    desc: "合成・精製・反応待ち。反応時間と機器予約を連動。",
-    icon: <FlaskConical className="h-5 w-5 text-blue-600" />,
-    iconBg: "bg-blue-50",
-    flags: { chem_calc: true },
-  },
-  {
-    key: "phys",
-    title: "物理・工学系",
-    desc: "測定・計算・シミュレーション。ジョブ待ち時間を予定化。",
-    icon: <Atom className="h-5 w-5 text-amber-600" />,
-    iconBg: "bg-amber-50",
-    flags: { physics_stats: true, engineering_unit: true },
   },
 ];
 

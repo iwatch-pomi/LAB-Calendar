@@ -320,7 +320,8 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
           </p>
 
           <div className="space-y-5">
-            {MODES.map((mode) => {
+            {/* 一旦: 化学/物理/工学モードは非表示（生物のみ表示） */}
+            {MODES.filter((mode) => mode.key === "bio").map((mode) => {
               const feats = featuresByMode(mode.key);
               const onCount = feats.filter((f) => !!features[f.key]).length;
               const mi = MODE_ICON[mode.key];
@@ -442,14 +443,7 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
           <CultureLineage experiments={experiments} tasks={tasks} />
         )}
 
-        {/* 化学: 収率・モル計算 */}
-        {features.chem_calc && <ChemTools />}
-
-        {/* 物理: 測定統計 */}
-        {features.physics_stats && <PhysicsTools />}
-
-        {/* 工学: 単位変換 */}
-        {features.engineering_unit && <EngineeringTools />}
+        {/* 一旦: 化学/物理/工学モードのツールは非表示 */}
 
         {/* アーカイブした実験 */}
         {archivedExperiments.length > 0 && (
