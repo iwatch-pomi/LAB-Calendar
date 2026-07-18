@@ -599,7 +599,10 @@ function CalendarTab({
       </div>
 
       {/* 選択日パネル */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-4">
+      <div
+        onClick={() => onHighlight(null)}
+        className="rounded-2xl border border-gray-200 bg-white p-4"
+      >
         <h2 className="text-sm font-semibold text-gray-800">
           {fmtMd(selectedDate)} の培地
         </h2>
@@ -678,7 +681,10 @@ function MediumRow({
 
   return (
     <li
-      onClick={() => onHighlight(highlighted ? null : m.id)}
+      onClick={(e) => {
+        e.stopPropagation();
+        onHighlight(highlighted ? null : m.id);
+      }}
       title="クリックでカレンダー上をハイライト"
       className={`group cursor-pointer rounded-xl border p-2.5 transition ${
         highlighted
