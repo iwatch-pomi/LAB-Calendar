@@ -44,6 +44,7 @@ export interface Experiment {
   current_step: number;
   total_steps: number;
   color: string;
+  archived: boolean;
   created_at: string;
 }
 

@@ -8,6 +8,7 @@ import {
   useEquipment,
   useTodos,
   useUpdateExperiment,
+  useDeleteExperiment,
   useSettings,
   useUpdateFeature,
   useCultureLinks,
@@ -49,6 +50,9 @@ import {
   ListChecks,
   Atom,
   Cog,
+  Archive,
+  ArchiveRestore,
+  Trash2,
 } from "lucide-react";
 
 const MODE_ICON: Record<
@@ -123,6 +127,7 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
   const todosQ = useTodos();
   const settingsQ = useSettings();
   const updateExp = useUpdateExperiment();
+  const deleteExp = useDeleteExperiment();
   const updateFeature = useUpdateFeature();
   const addEquipment = useAddEquipment();
   const deleteEquipment = useDeleteEquipment();
@@ -164,10 +169,13 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
     return m;
   }, [tasks]);
 
-  const doneCount = experiments.filter((e) => e.status === "done").length;
+  const activeExperiments = experiments.filter((e) => !e.archived);
+  const archivedExperiments = experiments.filter((e) => e.archived);
+
+  const doneCount = activeExperiments.filter((e) => e.status === "done").length;
   const doneTasks = tasks.filter((t) => t.status === "done").length;
 
-  const filtered = experiments
+  const filtered = activeExperiments
     .filter((e) =>
       filter === "all"
         ? true
@@ -213,6 +221,20 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
     setNewEquip("");
   }
 
+  function restoreExperiment(exp: Experiment) {
+    updateExp.mutate({ id: exp.id, archived: false });
+  }
+
+  function permanentlyDeleteExperiment(exp: Experiment) {
+    if (
+      confirm(
+        `実験「${exp.name}」を完全に削除しますか？\nこの実験に紐づく予定もすべて削除され、元に戻せません。`,
+      )
+    ) {
+      deleteExp.mutate(exp.id);
+    }
+  }
+
   const initial = (userEmail[0] ?? "?").toUpperCase();
 
   return (
@@ -254,7 +276,7 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
           <StatCard
             icon={<FlaskConical className="h-4 w-4" />}
             label="登録した実験"
-            value={experiments.length}
+            value={activeExperiments.length}
           />
           <StatCard
             icon={<CheckCircle2 className="h-4 w-4" />}
@@ -448,6 +470,54 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
 
         {/* 工学: 単位変換 */}
         {features.engineering_unit && <EngineeringTools />}
+
+        {/* アーカイブした実験 */}
+        {archivedExperiments.length > 0 && (
+          <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
+            <div className="mb-3 flex items-center gap-1.5">
+              <Archive className="h-4 w-4 text-gray-400" />
+              <h2 className="text-sm font-semibold text-gray-700">
+                アーカイブした実験
+              </h2>
+              <span className="text-xs text-gray-400">
+                {archivedExperiments.length}
+              </span>
+            </div>
+            <p className="mb-3 text-xs text-gray-500">
+              サイドバーの一覧には表示されません。復元するとまた表示されます。
+            </p>
+            <div className="space-y-2">
+              {archivedExperiments.map((exp) => {
+                const pal = paletteFor(exp.color);
+                return (
+                  <div
+                    key={exp.id}
+                    className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3"
+                  >
+                    <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${pal.dot}`} />
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-600">
+                      {exp.name}
+                    </span>
+                    <button
+                      onClick={() => restoreExperiment(exp)}
+                      className="flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-600 ring-1 ring-gray-200 hover:bg-gray-100"
+                    >
+                      <ArchiveRestore className="h-3.5 w-3.5" />
+                      復元
+                    </button>
+                    <button
+                      onClick={() => permanentlyDeleteExperiment(exp)}
+                      title="完全に削除"
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-rose-500"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* フィルタ */}
         <div className="mb-3 flex items-center justify-between">

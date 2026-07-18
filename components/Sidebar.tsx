@@ -19,7 +19,7 @@ import {
 } from "@/lib/queries";
 import { useCreateEmptyExperiment } from "@/lib/mutations";
 import { fmtTime, jstInputToISO, isoToJstInput } from "@/lib/calendar";
-import { Plus, Check, X, Pencil, Trash2 } from "lucide-react";
+import { Plus, Check, X, Pencil, Trash2, Archive } from "lucide-react";
 
 const STATUS_LABEL: Record<Experiment["status"], string> = {
   planning: "未着手",
@@ -90,10 +90,15 @@ export function Sidebar({
     setEditExpId(null);
   }
 
+  function handleArchiveExperiment(exp: Experiment) {
+    if (selectedExperiment === exp.id) onSelectExperiment(null);
+    updateExperiment.mutate({ id: exp.id, archived: true });
+  }
+
   function handleDeleteExperiment(exp: Experiment) {
     if (
       confirm(
-        `実験「${exp.name}」を削除しますか？\nこの実験に紐づく予定もすべて削除されます。`,
+        `実験「${exp.name}」を完全に削除しますか？\nこの実験に紐づく予定もすべて削除され、元に戻せません。\n（削除せずアーカイブする場合は、隣のアーカイブボタンをお使いください）`,
       )
     ) {
       if (selectedExperiment === exp.id) onSelectExperiment(null);
@@ -136,6 +141,9 @@ export function Sidebar({
     setAdding(false);
   }
 
+  // アーカイブした実験はサイドバーから隠す（マイページで確認・復元できる）
+  const visibleExperiments = experiments.filter((e) => !e.archived);
+
   // 完了から24時間経過したToDoはサイドバーから隠す（マイページの完了履歴で確認可能）
   const visibleTodos = todos.filter((t) => {
     if (!t.done || !t.completed_at) return true;
@@ -169,10 +177,12 @@ export function Sidebar({
         {/* 登録した実験 */}
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-xs font-semibold text-gray-500">登録した実験</h2>
-          <span className="text-xs text-gray-400">{experiments.length}</span>
+          <span className="text-xs text-gray-400">
+            {visibleExperiments.length}
+          </span>
         </div>
         <div className="space-y-2">
-          {experiments.map((exp) => {
+          {visibleExperiments.map((exp) => {
             const p = paletteFor(exp.color);
             const active = selectedExperiment === exp.id;
             const progress =
@@ -278,8 +288,15 @@ export function Sidebar({
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
                   <button
+                    onClick={() => handleArchiveExperiment(exp)}
+                    title="アーカイブ（マイページで確認・復元できます）"
+                    className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-amber-600"
+                  >
+                    <Archive className="h-3.5 w-3.5" />
+                  </button>
+                  <button
                     onClick={() => handleDeleteExperiment(exp)}
-                    title="削除"
+                    title="完全に削除"
                     className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-rose-500"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
