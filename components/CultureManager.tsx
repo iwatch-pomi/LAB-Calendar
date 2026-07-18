@@ -69,6 +69,7 @@ export function CultureManager({ userEmail }: { userEmail: string }) {
   const [tab, setTab] = useState<Tab>("calendar");
   const [refMs, setRefMs] = useState<number>(() => nowMs());
   const [selectedDate, setSelectedDate] = useState<string>(today);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
   // 登録フォーム
   const [registering, setRegistering] = useState(false);
@@ -289,8 +290,13 @@ export function CultureManager({ userEmail }: { userEmail: string }) {
             onRefChange={setRefMs}
             weekStartsOn={weekStartsOn}
             selectedDate={selectedDate}
-            onSelectDate={setSelectedDate}
+            onSelectDate={(d) => {
+              setSelectedDate(d);
+              setHighlightedId(null);
+            }}
             nameById={nameById}
+            highlightedId={highlightedId}
+            onHighlight={setHighlightedId}
             onUpdate={(id, patch) => updateMedium.mutate({ id, ...patch })}
           />
         ) : tab === "list" ? (
@@ -374,6 +380,8 @@ function CalendarTab({
   selectedDate,
   onSelectDate,
   nameById,
+  highlightedId,
+  onHighlight,
   onUpdate,
 }: {
   media: CultureMedium[];
@@ -384,6 +392,8 @@ function CalendarTab({
   selectedDate: string;
   onSelectDate: (d: string) => void;
   nameById: Map<string, string>;
+  highlightedId: string | null;
+  onHighlight: (id: string | null) => void;
   onUpdate: (id: string, patch: Partial<CultureMedium>) => void;
 }) {
   const weeks = buildMonthGrid(refMs, nowMs(), weekStartsOn);
@@ -472,13 +482,17 @@ function CalendarTab({
                         const st = CULTURE_STATUS_META[statusOf.get(m.id) ?? "culturing"];
                         const isStart = m.created_date === date;
                         const isEnd = endDate(m) === date;
+                        const isHi = highlightedId === m.id;
+                        const dimmed = highlightedId !== null && !isHi;
                         return (
                           <div
                             key={m.id}
                             title={m.name}
-                            className={`h-3 ${st.bar} ${
+                            className={`relative h-3 ${st.bar} ${
                               isStart ? "rounded-l-full ml-0.5" : ""
-                            } ${isEnd ? "rounded-r-full mr-0.5" : ""}`}
+                            } ${isEnd ? "rounded-r-full mr-0.5" : ""} ${
+                              isHi ? "z-10 shadow ring-2 ring-gray-800" : ""
+                            } ${dimmed ? "opacity-30" : ""}`}
                           >
                             {isStart && (
                               <span className="block truncate px-1 text-[9px] font-medium leading-3 text-white">
@@ -532,6 +546,8 @@ function CalendarTab({
                 status={statusOf.get(m.id) ?? "culturing"}
                 parentName={m.parent_id ? nameById.get(m.parent_id) : null}
                 media={media}
+                highlighted={highlightedId === m.id}
+                onHighlight={onHighlight}
                 onUpdate={onUpdate}
               />
             ))}
@@ -556,12 +572,16 @@ function MediumRow({
   status,
   parentName,
   media,
+  highlighted,
+  onHighlight,
   onUpdate,
 }: {
   m: CultureMedium;
   status: CultureStatus;
   parentName?: string | null;
   media: CultureMedium[];
+  highlighted: boolean;
+  onHighlight: (id: string | null) => void;
   onUpdate: (id: string, patch: Partial<CultureMedium>) => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -585,9 +605,13 @@ function MediumRow({
 
   return (
     <li
-      onClick={() => setEditing(true)}
-      title="クリックで編集"
-      className="group cursor-pointer rounded-xl border border-gray-100 bg-gray-50/60 p-2.5 transition hover:border-brand-200 hover:bg-brand-50/40"
+      onClick={() => onHighlight(highlighted ? null : m.id)}
+      title="クリックでカレンダー上をハイライト"
+      className={`group cursor-pointer rounded-xl border p-2.5 transition ${
+        highlighted
+          ? "border-brand-300 bg-brand-50 ring-2 ring-brand-300"
+          : "border-gray-100 bg-gray-50/60 hover:border-brand-200 hover:bg-brand-50/40"
+      }`}
     >
       <div className="flex items-center gap-2">
         <span className={`h-2 w-2 shrink-0 rounded-full ${st.dot}`} />
@@ -597,7 +621,16 @@ function MediumRow({
         <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${st.bg} ${st.text}`}>
           {st.label}
         </span>
-        <Pencil className="h-3 w-3 shrink-0 text-gray-300 opacity-0 transition group-hover:opacity-100" />
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setEditing(true);
+          }}
+          title="編集"
+          className="shrink-0 rounded p-1 text-gray-400 transition hover:bg-gray-200 hover:text-gray-600"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
       </div>
       <div className="mt-1 flex flex-wrap gap-x-3 text-[11px] text-gray-500">
         <span>作成 {fmtMd(m.created_date)}</span>
