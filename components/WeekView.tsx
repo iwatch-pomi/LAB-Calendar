@@ -41,19 +41,34 @@ interface Positioned {
 interface LaidOut extends Positioned {
   cascadeIndex: number; // 重なりグループ内での順番（0=最背面/左端）
   cascadeCount: number; // その重なりグループのタスク数
+  isBackground: boolean; // 待機/培養（is_wait）は幅を細めず最背面に固定
 }
 
 /**
- * 同じ日の中で時間帯が重なるタスクを検出する。横並びで細くはせず、
- * サイズはほぼ固定のまま少しずつ右へずらして重ねる（各タスクの左上が
- * 見えるので複数予定を見逃さない）。離せば重なりが解消して元の幅に戻る。
+ * 同じ日の中で時間帯が重なるタスクを検出する。実験操作の予定は横並びで
+ * 細くはせず、サイズはほぼ固定のまま少しずつ右へずらして重ねる（左上が
+ * 見えるので見逃さない）。待機/培養(is_wait)は幅を細めず必ず最背面に置く。
  */
 function layoutDay(items: Positioned[]): LaidOut[] {
-  const sorted = [...items].sort(
-    (a, b) => a.top - b.top || b.height - a.height,
-  );
-
   const results: LaidOut[] = [];
+
+  // 待機/培養は重なり計算に含めず、幅いっぱい・最背面のまま
+  for (const it of items) {
+    if (it.task.is_wait) {
+      results.push({
+        ...it,
+        cascadeIndex: 0,
+        cascadeCount: 1,
+        isBackground: true,
+      });
+    }
+  }
+
+  // 実験操作のみカスケード（ずらし重ね）の対象
+  const foreground = items
+    .filter((it) => !it.task.is_wait)
+    .sort((a, b) => a.top - b.top || b.height - a.height);
+
   let group: Positioned[] = [];
   let groupMaxEnd = -Infinity;
 
@@ -61,14 +76,18 @@ function layoutDay(items: Positioned[]): LaidOut[] {
     if (group.length === 0) return;
     const cascadeCount = group.length;
     group.forEach((it, i) => {
-      results.push({ ...it, cascadeIndex: i, cascadeCount });
+      results.push({
+        ...it,
+        cascadeIndex: i,
+        cascadeCount,
+        isBackground: false,
+      });
     });
     group = [];
     groupMaxEnd = -Infinity;
   }
 
-  for (const item of sorted) {
-    // グループ内の全タスクの最終時刻より後に始まる → 新しい重なりグループ
+  for (const item of foreground) {
     if (group.length > 0 && item.top >= groupMaxEnd) flushGroup();
     group.push(item);
     groupMaxEnd = Math.max(groupMaxEnd, item.top + item.height);
@@ -411,9 +430,10 @@ function TaskBlock({
   const done = p.task.status === "done";
   const failed = p.task.status === "failed";
 
-  // 重なるタスクはサイズを固定したまま右へずらして重ねる（左上が見える）
-  const cascadeCount = p.cascadeCount ?? 1;
-  const cascadeIndex = p.cascadeIndex ?? 0;
+  // 待機/培養は幅いっぱい・最背面。実験操作は固定幅のまま右へずらして重ねる
+  const isBackground = p.isBackground ?? false;
+  const cascadeCount = isBackground ? 1 : p.cascadeCount ?? 1;
+  const cascadeIndex = isBackground ? 0 : p.cascadeIndex ?? 0;
   const STEP = 16; // 1段ごとのずらし幅(px)
   const reserve = (cascadeCount - 1) * STEP; // グループ全体で確保するずらし幅
 
@@ -425,8 +445,8 @@ function TaskBlock({
     transform: transform
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
       : undefined,
-    // 後ろの段ほど背面（左端）、手前の段ほど前面に描画
-    zIndex: isDragging ? 50 : cascadeIndex + 1,
+    // 待機/培養は最背面(0)、実験操作は前面(後段ほど手前)
+    zIndex: isDragging ? 50 : isBackground ? 0 : cascadeIndex + 1,
     // 待機/培養ブロックはカレンダー色に沿った斜線塗り
     backgroundImage: isWait ? hatchBackground(color) : undefined,
     // 継続する側の角を丸めない（日をまたぐ連続表示）
