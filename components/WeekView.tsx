@@ -39,36 +39,57 @@ interface Positioned {
 }
 
 interface LaidOut extends Positioned {
-  overlapIndex: number; // 重なりグループ内での順番（0=最背面）
-  overlapCount: number; // その重なりグループのタスク数
+  lane: number; // 同時間帯で重なるタスクの中での列番号
+  laneCount: number; // その重なりグループの列数
 }
 
 /**
- * 同じ日の中で時間帯が重なるタスクを検出し、少しずつずらして重ねて表示する
- * ための情報を付与する。横並びにはせず従来の「重なり表示」を保ちつつ、
- * 各タスクの端が少し見えるようにして複数予定を見逃さないようにする。
+ * 同じ日の中で時間帯が重なるタスクを横に並ぶ列(レーン)へ割り振る。
+ * 重なるほど列が増えて1つずつ細くなり、重ならないタスクは幅いっぱい(laneCount=1)。
+ * 予定を離せば列数が減って再び大きくなる。
  */
 function layoutDay(items: Positioned[]): LaidOut[] {
   const sorted = [...items].sort(
-    (a, b) => a.top - b.top || a.height - b.height,
+    (a, b) => a.top - b.top || b.height - a.height,
   );
+
+  // 貪欲法で列(レーン)を割り当て（同じ列内では時間が重ならない）
+  const colOf = new Map<Positioned, number>();
 
   const results: LaidOut[] = [];
   let group: Positioned[] = [];
   let groupMaxEnd = -Infinity;
+  let colEndTimes: number[] = [];
 
   function flushGroup() {
     if (group.length === 0) return;
-    const overlapCount = group.length;
-    group.forEach((it, i) => {
-      results.push({ ...it, overlapIndex: i, overlapCount });
-    });
+    const laneCount = colEndTimes.length;
+    for (const it of group) {
+      results.push({ ...it, lane: colOf.get(it)!, laneCount });
+    }
     group = [];
     groupMaxEnd = -Infinity;
+    colEndTimes = [];
   }
 
   for (const item of sorted) {
+    // グループ内の全タスクの最終時刻より後に始まる → 新しい重なりグループ
     if (group.length > 0 && item.top >= groupMaxEnd) flushGroup();
+
+    let placed = false;
+    for (let c = 0; c < colEndTimes.length; c++) {
+      if (colEndTimes[c] <= item.top) {
+        colOf.set(item, c);
+        colEndTimes[c] = item.top + item.height;
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) {
+      colOf.set(item, colEndTimes.length);
+      colEndTimes.push(item.top + item.height);
+    }
+
     group.push(item);
     groupMaxEnd = Math.max(groupMaxEnd, item.top + item.height);
   }
@@ -410,22 +431,19 @@ function TaskBlock({
   const done = p.task.status === "done";
   const failed = p.task.status === "failed";
 
-  // 重なるタスクは少しずつ右へずらして重ねる（端が見えるので複数あるのが分かる）
-  const overlapCount = p.overlapCount ?? 1;
-  const overlapIndex = p.overlapIndex ?? 0;
-  const OFFSET = 14; // 1段ごとのずらし幅(px)
-  const indent = overlapCount > 1 ? overlapIndex * OFFSET : 0;
+  // 重なるタスクは横に列(レーン)を分けて並べる（重なるほど細く、離せば太くなる）
+  const laneCount = p.laneCount ?? 1;
+  const lane = p.lane ?? 0;
 
   const style: React.CSSProperties = {
     top: p.top,
     height: p.height,
-    left: `calc(${indent}px + 2px)`,
-    width: `calc(100% - ${indent}px - 4px)`,
+    left: `calc(${(lane / laneCount) * 100}% + 2px)`,
+    width: `calc(${100 / laneCount}% - 4px)`,
     transform: transform
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
       : undefined,
-    // 後ろの段ほど手前に描画（端が見えるように）
-    zIndex: isDragging ? 50 : overlapIndex + 1,
+    zIndex: isDragging ? 50 : undefined,
     // 待機/培養ブロックはカレンダー色に沿った斜線塗り
     backgroundImage: isWait ? hatchBackground(color) : undefined,
     // 継続する側の角を丸めない（日をまたぐ連続表示）

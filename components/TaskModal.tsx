@@ -26,6 +26,7 @@ import {
   Check,
   Sprout,
   ArrowUpRight,
+  Pencil,
 } from "lucide-react";
 
 export function TaskModal({
@@ -169,13 +170,23 @@ export function TaskModal({
         </div>
 
         <div className="space-y-4 p-4">
-          {/* タイトル */}
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onBlur={saveTitle}
-            className="w-full border-b border-transparent pb-1 text-lg font-bold text-gray-800 outline-none focus:border-gray-300"
-          />
+          {/* 予定名（クリックで編集できることが分かるように枠と鉛筆を表示） */}
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-gray-500">
+              予定名
+            </label>
+            <div className="flex items-center gap-2 rounded-lg border border-gray-300 px-2.5 py-2 focus-within:border-brand-500">
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                onBlur={saveTitle}
+                placeholder="予定名を入力"
+                className="w-full bg-transparent text-lg font-bold text-gray-800 outline-none"
+              />
+              <Pencil className="h-4 w-4 shrink-0 text-gray-400" />
+            </div>
+          </div>
 
           {/* 日時（手動編集・日をまたぐ変更も可） */}
           {/* 種別（実験操作 / 待機時間 / 培養時間） */}
