@@ -291,6 +291,7 @@ export function CultureManager({ userEmail }: { userEmail: string }) {
             selectedDate={selectedDate}
             onSelectDate={setSelectedDate}
             nameById={nameById}
+            onUpdate={(id, patch) => updateMedium.mutate({ id, ...patch })}
           />
         ) : tab === "list" ? (
           <ListTab
@@ -373,6 +374,7 @@ function CalendarTab({
   selectedDate,
   onSelectDate,
   nameById,
+  onUpdate,
 }: {
   media: CultureMedium[];
   statusOf: Map<string, CultureStatus>;
@@ -382,6 +384,7 @@ function CalendarTab({
   selectedDate: string;
   onSelectDate: (d: string) => void;
   nameById: Map<string, string>;
+  onUpdate: (id: string, patch: Partial<CultureMedium>) => void;
 }) {
   const weeks = buildMonthGrid(refMs, nowMs(), weekStartsOn);
   const curMonth = new Date(refMs + TZ).getUTCMonth() + 1;
@@ -528,6 +531,8 @@ function CalendarTab({
                 m={m}
                 status={statusOf.get(m.id) ?? "culturing"}
                 parentName={m.parent_id ? nameById.get(m.parent_id) : null}
+                media={media}
+                onUpdate={onUpdate}
               />
             ))}
           </ul>
@@ -550,14 +555,40 @@ function MediumRow({
   m,
   status,
   parentName,
+  media,
+  onUpdate,
 }: {
   m: CultureMedium;
   status: CultureStatus;
   parentName?: string | null;
+  media: CultureMedium[];
+  onUpdate: (id: string, patch: Partial<CultureMedium>) => void;
 }) {
+  const [editing, setEditing] = useState(false);
   const st = CULTURE_STATUS_META[status];
+
+  if (editing) {
+    return (
+      <li>
+        <MediumEditForm
+          m={m}
+          media={media}
+          onSave={(patch) => {
+            onUpdate(m.id, patch);
+            setEditing(false);
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      </li>
+    );
+  }
+
   return (
-    <li className="rounded-xl border border-gray-100 bg-gray-50/60 p-2.5">
+    <li
+      onClick={() => setEditing(true)}
+      title="クリックで編集"
+      className="group cursor-pointer rounded-xl border border-gray-100 bg-gray-50/60 p-2.5 transition hover:border-brand-200 hover:bg-brand-50/40"
+    >
       <div className="flex items-center gap-2">
         <span className={`h-2 w-2 shrink-0 rounded-full ${st.dot}`} />
         <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-800">
@@ -566,6 +597,7 @@ function MediumRow({
         <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${st.bg} ${st.text}`}>
           {st.label}
         </span>
+        <Pencil className="h-3 w-3 shrink-0 text-gray-300 opacity-0 transition group-hover:opacity-100" />
       </div>
       <div className="mt-1 flex flex-wrap gap-x-3 text-[11px] text-gray-500">
         <span>作成 {fmtMd(m.created_date)}</span>
@@ -574,6 +606,114 @@ function MediumRow({
         {parentName && <span>継代元: {parentName}</span>}
       </div>
     </li>
+  );
+}
+
+/** 培地の編集フォーム（登録時と同じ項目: 名前・作成日・期限・継代元・メモ） */
+function MediumEditForm({
+  m,
+  media,
+  onSave,
+  onCancel,
+}: {
+  m: CultureMedium;
+  media: CultureMedium[];
+  onSave: (patch: Partial<CultureMedium>) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(m.name);
+  const [created, setCreated] = useState(m.created_date);
+  const [expiry, setExpiry] = useState(m.expiry_date ?? "");
+  const [parent, setParent] = useState(m.parent_id ?? "");
+  const [note, setNote] = useState(m.note ?? "");
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    onSave({
+      name: name.trim(),
+      created_date: created || todayJst(),
+      expiry_date: expiry || null,
+      parent_id: parent || null,
+      note: note.trim() || null,
+    });
+  }
+
+  return (
+    <form
+      onClick={(e) => e.stopPropagation()}
+      onSubmit={submit}
+      className="space-y-2 rounded-2xl border border-brand-200 bg-brand-50/40 p-3"
+    >
+      <input
+        autoFocus
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="培地名"
+        className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500"
+      />
+      <div className="grid gap-2 sm:grid-cols-3">
+        <label className="text-[11px] text-gray-500">
+          作成日
+          <input
+            type="date"
+            value={created}
+            onChange={(e) => setCreated(e.target.value)}
+            className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
+          />
+        </label>
+        <label className="text-[11px] text-gray-500">
+          期限
+          <input
+            type="date"
+            value={expiry}
+            onChange={(e) => setExpiry(e.target.value)}
+            className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
+          />
+        </label>
+        <label className="text-[11px] text-gray-500">
+          継代元
+          <select
+            value={parent}
+            onChange={(e) => setParent(e.target.value)}
+            className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
+          >
+            <option value="">なし</option>
+            {media
+              .filter((cand) => cand.id !== m.id)
+              .map((cand) => (
+                <option key={cand.id} value={cand.id}>
+                  {cand.name}
+                </option>
+              ))}
+          </select>
+        </label>
+      </div>
+      <label className="block text-[11px] text-gray-500">
+        メモ
+        <input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="継代比 1:10 など"
+          className="mt-0.5 w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500"
+        />
+      </label>
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600"
+        >
+          保存
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+        >
+          キャンセル
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -592,32 +732,6 @@ function ListTab({
   onDelete: (m: CultureMedium) => void;
 }) {
   const [editId, setEditId] = useState<string | null>(null);
-  const [eName, setEName] = useState("");
-  const [eCreated, setECreated] = useState("");
-  const [eExpiry, setEExpiry] = useState("");
-  const [eParent, setEParent] = useState("");
-  const [eNote, setENote] = useState("");
-
-  function startEdit(m: CultureMedium) {
-    setEditId(m.id);
-    setEName(m.name);
-    setECreated(m.created_date);
-    setEExpiry(m.expiry_date ?? "");
-    setEParent(m.parent_id ?? "");
-    setENote(m.note ?? "");
-  }
-  function saveEdit() {
-    if (editId && eName.trim()) {
-      onUpdate(editId, {
-        name: eName.trim(),
-        created_date: eCreated || todayJst(),
-        expiry_date: eExpiry || null,
-        parent_id: eParent || null,
-        note: eNote.trim() || null,
-      });
-    }
-    setEditId(null);
-  }
 
   if (media.length === 0) {
     return (
@@ -633,83 +747,16 @@ function ListTab({
         const st = CULTURE_STATUS_META[statusOf.get(m.id) ?? "culturing"];
         if (editId === m.id) {
           return (
-            <form
+            <MediumEditForm
               key={m.id}
-              onSubmit={(e) => {
-                e.preventDefault();
-                saveEdit();
+              m={m}
+              media={media}
+              onSave={(patch) => {
+                onUpdate(m.id, patch);
+                setEditId(null);
               }}
-              className="space-y-2 rounded-2xl border border-brand-200 bg-brand-50/40 p-3"
-            >
-              <input
-                autoFocus
-                value={eName}
-                onChange={(e) => setEName(e.target.value)}
-                placeholder="培地名"
-                className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500"
-              />
-              <div className="grid gap-2 sm:grid-cols-3">
-                <label className="text-[11px] text-gray-500">
-                  作成日
-                  <input
-                    type="date"
-                    value={eCreated}
-                    onChange={(e) => setECreated(e.target.value)}
-                    className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
-                  />
-                </label>
-                <label className="text-[11px] text-gray-500">
-                  期限
-                  <input
-                    type="date"
-                    value={eExpiry}
-                    onChange={(e) => setEExpiry(e.target.value)}
-                    className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
-                  />
-                </label>
-                <label className="text-[11px] text-gray-500">
-                  継代元
-                  <select
-                    value={eParent}
-                    onChange={(e) => setEParent(e.target.value)}
-                    className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
-                  >
-                    <option value="">なし</option>
-                    {media
-                      .filter((cand) => cand.id !== m.id)
-                      .map((cand) => (
-                        <option key={cand.id} value={cand.id}>
-                          {cand.name}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-              </div>
-              <label className="block text-[11px] text-gray-500">
-                メモ
-                <input
-                  value={eNote}
-                  onChange={(e) => setENote(e.target.value)}
-                  placeholder="継代比 1:10 など"
-                  className="mt-0.5 w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500"
-                />
-              </label>
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600"
-                >
-                  保存
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditId(null)}
-                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
-                >
-                  キャンセル
-                </button>
-              </div>
-            </form>
+              onCancel={() => setEditId(null)}
+            />
           );
         }
         const parentName = m.parent_id ? nameById.get(m.parent_id) : null;
@@ -755,7 +802,7 @@ function ListTab({
               </button>
             )}
             <button
-              onClick={() => startEdit(m)}
+              onClick={() => setEditId(m.id)}
               title="編集"
               className="rounded-lg p-1.5 text-gray-400 opacity-0 transition hover:bg-gray-100 hover:text-gray-600 group-hover:opacity-100"
             >
