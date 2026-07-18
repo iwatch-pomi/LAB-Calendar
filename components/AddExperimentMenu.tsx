@@ -9,6 +9,7 @@ import { FileText, CalendarPlus, Wand2, Pencil, Trash2 } from "lucide-react";
 export function AddExperimentMenu({
   templates,
   refMs,
+  weekStartsOn,
   onClose,
   onCreateTemplate,
   onEditTemplate,
@@ -16,6 +17,7 @@ export function AddExperimentMenu({
 }: {
   templates: Template[];
   refMs: number;
+  weekStartsOn: 0 | 1;
   onClose: () => void;
   onCreateTemplate: () => void;
   onEditTemplate: (t: Template) => void;
@@ -44,8 +46,8 @@ export function AddExperimentMenu({
   async function createEmpty() {
     setBusy("empty");
     try {
-      // 表示中の週の月曜10:00に1時間の空き予定
-      const start = weekStartMs(refMs) + 10 * 3600000;
+      // 表示中の週の開始日10:00に1時間の空き予定
+      const start = weekStartMs(refMs, weekStartsOn) + 10 * 3600000;
       await createTask.mutateAsync({
         title: "新しい予定",
         start_time: new Date(start).toISOString(),

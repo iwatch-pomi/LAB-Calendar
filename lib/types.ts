@@ -94,7 +94,9 @@ export interface Todo {
 export interface FeatureFlags {
   /** 初回オンボーディング（研究分野の選択）完了フラグ */
   onboarded?: boolean;
-  [key: string]: boolean | undefined;
+  /** カレンダーの週の開始曜日（0=日曜, 1=月曜）。既定は月曜。 */
+  week_start_day?: 0 | 1;
+  [key: string]: boolean | number | undefined;
 }
 
 export interface UserSettings {

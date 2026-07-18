@@ -509,7 +509,10 @@ export function useDeleteTodo() {
 export function useUpdateFeature() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (args: { key: keyof FeatureFlags; value: boolean }) => {
+    mutationFn: async (args: {
+      key: keyof FeatureFlags;
+      value: boolean | number;
+    }) => {
       const {
         data: { user },
       } = await supabase.auth.getUser();

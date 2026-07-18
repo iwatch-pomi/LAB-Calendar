@@ -140,6 +140,8 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
   const loading =
     tasksQ.isLoading || experimentsQ.isLoading || depsQ.isLoading;
 
+  const weekStartsOn: 0 | 1 = settingsQ.data?.week_start_day === 0 ? 0 : 1;
+
   // 初回起動: 設定が読み込めて未オンボーディングなら分野選択を表示
   const showOnboarding =
     settingsQ.isSuccess && !settingsQ.data?.onboarded;
@@ -181,12 +183,14 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
           onToggleSidebar={() => setSidebarOpen((v) => !v)}
           sidebarOpen={sidebarOpen}
           visibleDays={visibleDays}
+          weekStartsOn={weekStartsOn}
           onAddClick={() => setAddMenuOpen((v) => !v)}
           addMenuOpen={addMenuOpen}
           addMenu={
             <AddExperimentMenu
               templates={templatesQ.data ?? []}
               refMs={refMs}
+              weekStartsOn={weekStartsOn}
               onClose={() => setAddMenuOpen(false)}
               onCreateTemplate={() => {
                 setAddMenuOpen(false);
@@ -229,6 +233,7 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
               equipNameById={equipNameById}
               selectedExperiment={selectedExperiment}
               visibleDays={visibleDays}
+              weekStartsOn={weekStartsOn}
               onTaskClick={(t) => setOpenTask(t)}
               onCreateAt={handleCreateAt}
             />
@@ -237,6 +242,7 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
               refMs={refMs}
               tasks={tasks}
               expColorById={expColorById}
+              weekStartsOn={weekStartsOn}
               onTaskClick={(t) => setOpenTask(t)}
               onCreateAt={handleCreateAt}
             />

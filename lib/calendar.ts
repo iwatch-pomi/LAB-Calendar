@@ -22,11 +22,17 @@ export function tokyoDow(ms: number): number {
   return shift(ms).getUTCDay(); // 0=日..6=土
 }
 
-export function weekStartMs(refMs: number): number {
+/** weekStartsOn: 0=日曜始まり, 1=月曜始まり（既定） */
+export function weekStartMs(refMs: number, weekStartsOn: 0 | 1 = 1): number {
   const mid = tokyoMidnightMs(refMs);
   const dow = tokyoDow(refMs);
-  const mondayOffset = (dow + 6) % 7; // 月曜始まり
-  return mid - mondayOffset * DAY;
+  const offset = (dow - weekStartsOn + 7) % 7;
+  return mid - offset * DAY;
+}
+
+/** weekStartsOn を先頭にした曜日ラベル配列（月表示のヘッダー用） */
+export function orderedWeekdayJp(weekStartsOn: 0 | 1 = 1): string[] {
+  return [...WEEKDAY_JP.slice(weekStartsOn), ...WEEKDAY_JP.slice(0, weekStartsOn)];
 }
 
 export interface DayCell {
@@ -39,21 +45,27 @@ export interface DayCell {
   isWeekend: boolean;
 }
 
-export function buildWeek(refMs: number, nowMs: number): DayCell[] {
-  return buildRange(refMs, nowMs, 7);
+export function buildWeek(
+  refMs: number,
+  nowMs: number,
+  weekStartsOn: 0 | 1 = 1,
+): DayCell[] {
+  return buildRange(refMs, nowMs, 7, weekStartsOn);
 }
 
 /**
  * 表示日数分の DayCell を返す。
- * 7日以上は週（月曜始まり）を基準、それ未満は refMs の当日を起点とする
+ * 7日以上は週（weekStartsOn 始まり）を基準、それ未満は refMs の当日を起点とする
  * スライディングウィンドウ（スマホの3日表示など）。
  */
 export function buildRange(
   refMs: number,
   nowMs: number,
   count: number,
+  weekStartsOn: 0 | 1 = 1,
 ): DayCell[] {
-  const start = count >= 7 ? weekStartMs(refMs) : tokyoMidnightMs(refMs);
+  const start =
+    count >= 7 ? weekStartMs(refMs, weekStartsOn) : tokyoMidnightMs(refMs);
   const todayMid = tokyoMidnightMs(nowMs);
   const cells: DayCell[] = [];
   for (let i = 0; i < count; i++) {
@@ -105,11 +117,15 @@ export function fmtMonthTitle(refMs: number): string {
   return `${s.getUTCFullYear()}年${s.getUTCMonth() + 1}月`;
 }
 
-/** 月表示用: その月を含む週(月曜始まり)で埋めた 6週 x 7日 のグリッド */
-export function buildMonthGrid(refMs: number, nowMs: number): DayCell[][] {
+/** 月表示用: その月を含む週(weekStartsOn 始まり)で埋めた 6週 x 7日 のグリッド */
+export function buildMonthGrid(
+  refMs: number,
+  nowMs: number,
+  weekStartsOn: 0 | 1 = 1,
+): DayCell[][] {
   const s = shift(refMs);
   const firstOfMonth = Date.UTC(s.getUTCFullYear(), s.getUTCMonth(), 1) - TZ;
-  const gridStart = weekStartMs(firstOfMonth);
+  const gridStart = weekStartMs(firstOfMonth, weekStartsOn);
   const todayMid = tokyoMidnightMs(nowMs);
   const curMonth = s.getUTCMonth() + 1;
   const weeks: DayCell[][] = [];

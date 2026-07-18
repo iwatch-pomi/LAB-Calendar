@@ -37,6 +37,7 @@ export function WeekView({
   equipNameById,
   selectedExperiment,
   visibleDays,
+  weekStartsOn,
   onTaskClick,
   onCreateAt,
 }: {
@@ -47,6 +48,7 @@ export function WeekView({
   equipNameById: Map<string, string>;
   selectedExperiment: string | null;
   visibleDays: number;
+  weekStartsOn: 0 | 1;
   onTaskClick: (t: Task) => void;
   onCreateAt: (startMs: number) => void;
 }) {
@@ -62,7 +64,7 @@ export function WeekView({
     startMs: number;
   } | null>(null);
 
-  const cells = buildRange(refMs, nowMs(), visibleDays);
+  const cells = buildRange(refMs, nowMs(), visibleDays, weekStartsOn);
   const dayCount = cells.length;
   const weekStart = cells[0].startMs;
   const weekEnd = cells[dayCount - 1].startMs + DAY;

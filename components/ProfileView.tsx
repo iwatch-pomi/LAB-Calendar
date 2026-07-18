@@ -37,6 +37,7 @@ import {
   CheckCircle2,
   FlaskConical,
   Beaker,
+  CalendarDays,
   Settings,
   GitBranch,
   Sprout,
@@ -118,6 +119,7 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
   const tasks = tasksQ.data ?? [];
   const equipment = equipmentQ.data ?? [];
   const features = settingsQ.data ?? {};
+  const weekStartDay: 0 | 1 = features.week_start_day === 0 ? 0 : 1;
 
   const completedTodos = (todosQ.data ?? [])
     .filter((t) => t.done)
@@ -221,6 +223,43 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
             label="完了タスク"
             value={doneTasks}
           />
+        </section>
+
+        {/* カレンダー設定 */}
+        <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
+          <div className="mb-3 flex items-center gap-1.5">
+            <CalendarDays className="h-4 w-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-700">
+              カレンダー設定
+            </h2>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-gray-500">
+              週表示・月表示の週の開始曜日を選べます（既定: 月曜）。
+            </p>
+            <div className="flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-xs">
+              {(
+                [
+                  [1, "月曜"],
+                  [0, "日曜"],
+                ] as [0 | 1, string][]
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  onClick={() =>
+                    updateFeature.mutate({ key: "week_start_day", value })
+                  }
+                  className={`rounded-md px-3 py-1 font-medium transition ${
+                    weekStartDay === value
+                      ? "bg-white text-gray-800 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
         </section>
 
         {/* 完了したToDo（サイドバーでは完了から24時間で非表示） */}

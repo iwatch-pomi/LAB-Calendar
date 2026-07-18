@@ -19,6 +19,7 @@ export function CalendarHeader({
   onToggleSidebar,
   sidebarOpen,
   visibleDays,
+  weekStartsOn,
   onAddClick,
   addMenuOpen,
   addMenu,
@@ -30,11 +31,12 @@ export function CalendarHeader({
   onToggleSidebar: () => void;
   sidebarOpen: boolean;
   visibleDays: number;
+  weekStartsOn: 0 | 1;
   onAddClick: () => void;
   addMenuOpen: boolean;
   addMenu: ReactNode;
 }) {
-  const cells = buildRange(refMs, nowMs(), visibleDays);
+  const cells = buildRange(refMs, nowMs(), visibleDays, weekStartsOn);
   const title =
     view === "week" ? fmtWeekRange(cells) : fmtMonthTitle(refMs);
   const step = view === "week" ? visibleDays * DAY : 30 * DAY;

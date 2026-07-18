@@ -5,7 +5,7 @@ import {
   nowMs,
   tokyoMidnightMs,
   fmtTime,
-  WEEKDAY_JP,
+  orderedWeekdayJp,
 } from "@/lib/calendar";
 import { paletteFor, type Task } from "@/lib/types";
 
@@ -13,17 +13,20 @@ export function MonthView({
   refMs,
   tasks,
   expColorById,
+  weekStartsOn,
   onTaskClick,
   onCreateAt,
 }: {
   refMs: number;
   tasks: Task[];
   expColorById: Map<string, string>;
+  weekStartsOn: 0 | 1;
   onTaskClick: (t: Task) => void;
   onCreateAt: (startMs: number) => void;
 }) {
-  const weeks = buildMonthGrid(refMs, nowMs());
+  const weeks = buildMonthGrid(refMs, nowMs(), weekStartsOn);
   const curMonth = new Date(refMs + 540 * 60000).getUTCMonth() + 1;
+  const weekdayHeader = orderedWeekdayJp(weekStartsOn);
 
   // 日付キー → タスク
   const byDay = new Map<number, Task[]>();
@@ -41,11 +44,11 @@ export function MonthView({
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white">
       <div className="grid grid-cols-7 border-b border-gray-200">
-        {WEEKDAY_JP.map((w, i) => (
+        {weekdayHeader.map((w) => (
           <div
             key={w}
             className={`py-2 text-center text-xs font-medium ${
-              i === 0 ? "text-rose-400" : i === 6 ? "text-sky-400" : "text-gray-400"
+              w === "日" ? "text-rose-400" : w === "土" ? "text-sky-400" : "text-gray-400"
             }`}
           >
             {w}
