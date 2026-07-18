@@ -38,6 +38,64 @@ interface Positioned {
   continuesToNext: boolean; // 翌日へ続く
 }
 
+interface LaidOut extends Positioned {
+  lane: number; // 同時間帯で重なるタスクの中での列番号
+  laneCount: number; // その重なりグループの列数
+}
+
+/**
+ * 同じ日の中で時間帯が重なるタスクを検出し、横に並ぶ列(レーン)へ割り振る。
+ * 重ならないタスクは幅いっぱい(laneCount=1)のまま。
+ */
+function layoutDay(items: Positioned[]): LaidOut[] {
+  const sorted = [...items].sort(
+    (a, b) => a.top - b.top || b.top + b.height - (a.top + a.height),
+  );
+
+  // 貪欲法で列(レーン)を割り当て（同じ列内では時間が重ならない）
+  const colOf = new Map<Positioned, number>();
+  const colEndTimes: number[] = [];
+  for (const item of sorted) {
+    let placed = false;
+    for (let c = 0; c < colEndTimes.length; c++) {
+      if (colEndTimes[c] <= item.top) {
+        colOf.set(item, c);
+        colEndTimes[c] = item.top + item.height;
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) {
+      colOf.set(item, colEndTimes.length);
+      colEndTimes.push(item.top + item.height);
+    }
+  }
+
+  // 連続して重なるタスクを1つの「グループ」にまとめ、グループ内の最大列数を幅の基準にする
+  const results: LaidOut[] = [];
+  let group: Positioned[] = [];
+  let groupMaxEnd = -Infinity;
+
+  function flushGroup() {
+    if (group.length === 0) return;
+    const laneCount = Math.max(...group.map((it) => colOf.get(it)! + 1));
+    for (const it of group) {
+      results.push({ ...it, lane: colOf.get(it)!, laneCount });
+    }
+    group = [];
+    groupMaxEnd = -Infinity;
+  }
+
+  for (const item of sorted) {
+    if (group.length > 0 && item.top >= groupMaxEnd) flushGroup();
+    group.push(item);
+    groupMaxEnd = Math.max(groupMaxEnd, item.top + item.height);
+  }
+  flushGroup();
+
+  return results;
+}
+
 export function WeekView({
   refMs,
   tasks,
@@ -289,29 +347,32 @@ export function WeekView({
             </div>
 
             {/* 各曜日カラム */}
-            {cells.map((c) => (
-              <div
-                key={c.index}
-                onClick={(e) => onColumnClick(c.startMs, e)}
-                title="クリックで予定を追加"
-                className={`relative cursor-pointer border-l border-gray-100 ${
-                  c.isWeekend ? "bg-gray-50/40" : ""
-                }`}
-                style={{ height: TOTAL_H }}
-              >
-                {/* 時間グリッド線 */}
-                {hours.slice(0, -1).map((h, i) => (
-                  <div
-                    key={h}
-                    className="absolute inset-x-0 border-b border-gray-100"
-                    style={{ top: (i + 1) * hourPx, height: 0 }}
-                  />
-                ))}
+            {cells.map((c) => {
+              const dayItems = positioned.filter(
+                (p) => p.dayIndex === c.index,
+              );
+              const laidOut = layoutDay(dayItems);
+              return (
+                <div
+                  key={c.index}
+                  onClick={(e) => onColumnClick(c.startMs, e)}
+                  title="クリックで予定を追加"
+                  className={`relative cursor-pointer border-l border-gray-100 ${
+                    c.isWeekend ? "bg-gray-50/40" : ""
+                  }`}
+                  style={{ height: TOTAL_H }}
+                >
+                  {/* 時間グリッド線 */}
+                  {hours.slice(0, -1).map((h, i) => (
+                    <div
+                      key={h}
+                      className="absolute inset-x-0 border-b border-gray-100"
+                      style={{ top: (i + 1) * hourPx, height: 0 }}
+                    />
+                  ))}
 
-                {/* タスク（日ごとのセグメント） */}
-                {positioned
-                  .filter((p) => p.dayIndex === c.index)
-                  .map((p) => (
+                  {/* タスク（日ごとのセグメント。時間が重なるものは横に並べる） */}
+                  {laidOut.map((p) => (
                     <TaskBlock
                       key={`${p.task.id}__${p.dayIndex}`}
                       dndId={`${p.task.id}__${p.dayIndex}`}
@@ -334,8 +395,9 @@ export function WeekView({
                       onResizeStart={(e) => startResize(p.task, e)}
                     />
                   ))}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </DndContext>
       </div>
@@ -353,7 +415,7 @@ function TaskBlock({
   onResizeStart,
 }: {
   dndId: string;
-  p: Positioned;
+  p: LaidOut;
   color: string;
   equipmentName: string | null;
   dimmed: boolean;
@@ -367,9 +429,15 @@ function TaskBlock({
   const done = p.task.status === "done";
   const failed = p.task.status === "failed";
 
+  // 同じ時間帯に重なるタスクは横に列(レーン)を分けて並べる（重ならなければ幅いっぱい）
+  const laneCount = p.laneCount ?? 1;
+  const lane = p.lane ?? 0;
+
   const style: React.CSSProperties = {
     top: p.top,
     height: p.height,
+    left: `calc(${(lane / laneCount) * 100}% + 2px)`,
+    width: `calc(${100 / laneCount}% - 4px)`,
     transform: transform
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
       : undefined,
@@ -393,7 +461,7 @@ function TaskBlock({
         e.stopPropagation();
         onClick();
       }}
-      className={`group absolute inset-x-0.5 cursor-grab overflow-hidden rounded-lg border px-1.5 py-1 text-left shadow-sm transition active:cursor-grabbing ${
+      className={`group absolute cursor-grab overflow-hidden rounded-lg border px-1.5 py-1 text-left shadow-sm transition active:cursor-grabbing ${
         isWait ? `bg-white ${pal.border}` : `${pal.bg} ${pal.border}`
       } ${dimmed ? "opacity-35" : ""} ${
         failed ? "ring-2 ring-rose-400" : ""
