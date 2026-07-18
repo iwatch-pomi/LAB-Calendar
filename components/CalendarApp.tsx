@@ -16,6 +16,10 @@ import { usePlaceTemplateAt } from "@/lib/mutations";
 import type { FeatureFlags } from "@/lib/types";
 import { Onboarding } from "./Onboarding";
 import { nowMs } from "@/lib/calendar";
+import {
+  DEFAULT_WORK_START_HOUR,
+  DEFAULT_WORK_END_HOUR,
+} from "@/lib/config";
 import type { Task, Template } from "@/lib/types";
 import { Sidebar } from "./Sidebar";
 import { CalendarHeader } from "./CalendarHeader";
@@ -167,6 +171,14 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
     tasksQ.isLoading || experimentsQ.isLoading || depsQ.isLoading;
 
   const weekStartsOn: 0 | 1 = settingsQ.data?.week_start_day === 0 ? 0 : 1;
+  const workStartHour =
+    typeof settingsQ.data?.work_start_hour === "number"
+      ? settingsQ.data.work_start_hour
+      : DEFAULT_WORK_START_HOUR;
+  const workEndHour =
+    typeof settingsQ.data?.work_end_hour === "number"
+      ? settingsQ.data.work_end_hour
+      : DEFAULT_WORK_END_HOUR;
 
   // 初回起動: 設定が読み込めて未オンボーディングなら分野選択を表示
   const showOnboarding =
@@ -260,6 +272,8 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
               selectedExperiment={selectedExperiment}
               visibleDays={visibleDays}
               weekStartsOn={weekStartsOn}
+              workStartHour={workStartHour}
+              workEndHour={workEndHour}
               onTaskClick={(t) => openExistingTask(t)}
               onCreateAt={handleCreateAt}
             />

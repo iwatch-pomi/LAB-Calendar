@@ -99,6 +99,9 @@ export interface FeatureFlags {
   onboarded?: boolean;
   /** カレンダーの週の開始曜日（0=日曜, 1=月曜）。既定は月曜。 */
   week_start_day?: 0 | 1;
+  /** 通常の活動時間の開始/終了（時, 0〜24）。既定は 8〜20。 */
+  work_start_hour?: number;
+  work_end_hour?: number;
   [key: string]: boolean | number | undefined;
 }
 

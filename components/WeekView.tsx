@@ -106,6 +106,8 @@ export function WeekView({
   selectedExperiment,
   visibleDays,
   weekStartsOn,
+  workStartHour,
+  workEndHour,
   onTaskClick,
   onCreateAt,
 }: {
@@ -117,6 +119,8 @@ export function WeekView({
   selectedExperiment: string | null;
   visibleDays: number;
   weekStartsOn: 0 | 1;
+  workStartHour: number;
+  workEndHour: number;
   onTaskClick: (t: Task) => void;
   onCreateAt: (startMs: number) => void;
 }) {
@@ -334,17 +338,24 @@ export function WeekView({
               gridTemplateColumns: `${GUTTER}px repeat(${dayCount}, minmax(0,1fr))`,
             }}
           >
-            {/* 時間ラベル列 */}
+            {/* 時間ラベル列（活動時間の開始/終了は強調） */}
             <div className="relative" style={{ height: TOTAL_H }}>
-              {hours.map((h, i) => (
-                <div
-                  key={h}
-                  className="absolute right-2 -translate-y-1/2 text-xs text-gray-400"
-                  style={{ top: i * hourPx }}
-                >
-                  {i === 0 ? "" : `${h}:00`}
-                </div>
-              ))}
+              {hours.map((h, i) => {
+                const isWorkEdge = h === workStartHour || h === workEndHour;
+                return (
+                  <div
+                    key={h}
+                    className={`absolute right-2 -translate-y-1/2 text-xs ${
+                      isWorkEdge
+                        ? "font-bold text-brand-600"
+                        : "text-gray-400"
+                    }`}
+                    style={{ top: i * hourPx }}
+                  >
+                    {i === 0 ? "" : `${h}:00`}
+                  </div>
+                );
+              })}
             </div>
 
             {/* 各曜日カラム */}
@@ -369,6 +380,15 @@ export function WeekView({
                       key={h}
                       className="absolute inset-x-0 border-b border-gray-200"
                       style={{ top: (i + 1) * hourPx, height: 0 }}
+                    />
+                  ))}
+
+                  {/* 通常の活動時間の境界（太い横線） */}
+                  {[workStartHour, workEndHour].map((wh) => (
+                    <div
+                      key={`work-${wh}`}
+                      className="pointer-events-none absolute inset-x-0 border-t-2 border-brand-400"
+                      style={{ top: (wh - CAL_START_HOUR) * hourPx }}
                     />
                   ))}
 

@@ -18,6 +18,10 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { fmtTime } from "@/lib/calendar";
 import {
+  DEFAULT_WORK_START_HOUR,
+  DEFAULT_WORK_END_HOUR,
+} from "@/lib/config";
+import {
   MODES,
   featuresByMode,
   type ExperimentMode,
@@ -94,6 +98,14 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
   const equipment = equipmentQ.data ?? [];
   const features = settingsQ.data ?? {};
   const weekStartDay: 0 | 1 = features.week_start_day === 0 ? 0 : 1;
+  const workStart =
+    typeof features.work_start_hour === "number"
+      ? features.work_start_hour
+      : DEFAULT_WORK_START_HOUR;
+  const workEnd =
+    typeof features.work_end_hour === "number"
+      ? features.work_end_hour
+      : DEFAULT_WORK_END_HOUR;
 
   const completedTodos = (todosQ.data ?? [])
     .filter((t) => t.done)
@@ -232,6 +244,48 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
                   {label}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* 通常の活動時間 */}
+          <div className="mt-4 flex items-start justify-between gap-3 border-t border-gray-100 pt-4">
+            <p className="text-xs text-gray-500">
+              通常の活動時間（研究をする時間帯）を設定できます。週表示カレンダーの開始・終了時刻に太い横線を引いて、活動時間帯が一目で分かるようにします（既定: 8:00〜20:00）。
+            </p>
+            <div className="flex shrink-0 items-center gap-1.5 text-sm">
+              <select
+                value={workStart}
+                onChange={(e) =>
+                  updateFeature.mutate({
+                    key: "work_start_hour",
+                    value: Number(e.target.value),
+                  })
+                }
+                className="rounded-lg border border-gray-300 px-2 py-1.5 outline-none focus:border-brand-500"
+              >
+                {Array.from({ length: 24 }, (_, h) => h).map((h) => (
+                  <option key={h} value={h} disabled={h >= workEnd}>
+                    {h}:00
+                  </option>
+                ))}
+              </select>
+              <span className="text-gray-400">〜</span>
+              <select
+                value={workEnd}
+                onChange={(e) =>
+                  updateFeature.mutate({
+                    key: "work_end_hour",
+                    value: Number(e.target.value),
+                  })
+                }
+                className="rounded-lg border border-gray-300 px-2 py-1.5 outline-none focus:border-brand-500"
+              >
+                {Array.from({ length: 24 }, (_, h) => h + 1).map((h) => (
+                  <option key={h} value={h} disabled={h <= workStart}>
+                    {h}:00
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </section>
