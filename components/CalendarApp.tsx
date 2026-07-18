@@ -11,7 +11,7 @@ import {
   useSettings,
   useUpdateFeatures,
 } from "@/lib/queries";
-import { useCreateTask } from "@/lib/queries";
+import { useCreateTask, useDeleteTask } from "@/lib/queries";
 import { usePlaceTemplateAt } from "@/lib/mutations";
 import type { FeatureFlags } from "@/lib/types";
 import { Onboarding } from "./Onboarding";
@@ -35,6 +35,7 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
   const equipmentQ = useEquipment();
   const templatesQ = useTemplates();
   const createTask = useCreateTask();
+  const deleteTask = useDeleteTask();
   const placeTemplate = usePlaceTemplateAt();
   const settingsQ = useSettings();
   const updateFeatures = useUpdateFeatures();
@@ -45,6 +46,8 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
     null,
   );
   const [openTask, setOpenTask] = useState<Task | null>(null);
+  // 空き枠クリックで作った未確定の予定（保存せず閉じたら削除する）
+  const [draftTaskId, setDraftTaskId] = useState<string | null>(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [templateEdit, setTemplateEdit] = useState<Template | "new" | null>(
     null,
@@ -124,7 +127,30 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
       end_time: new Date(startMs + 60 * 60 * 1000).toISOString(),
       experiment_id: selectedExperiment ?? undefined,
     });
-    if (created) setOpenTask(created);
+    if (created) {
+      // 空き枠から作った予定は「下書き」。保存せず閉じたら破棄する。
+      setDraftTaskId(created.id);
+      setOpenTask(created);
+    }
+  }
+
+  // 既存予定を開く（下書きではない）
+  function openExistingTask(t: Task) {
+    setDraftTaskId(null);
+    setOpenTask(t);
+  }
+
+  // モーダルを閉じる（保存＝下書きを確定して残す）
+  function closeTaskModal() {
+    setDraftTaskId(null);
+    setOpenTask(null);
+  }
+
+  // 下書きを破棄して閉じる（保存ボタンを押さずに閉じた場合）
+  function discardTaskModal() {
+    if (draftTaskId) deleteTask.mutate(draftTaskId);
+    setDraftTaskId(null);
+    setOpenTask(null);
   }
 
   // 配置モード中に Escape でキャンセル
@@ -234,7 +260,7 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
               selectedExperiment={selectedExperiment}
               visibleDays={visibleDays}
               weekStartsOn={weekStartsOn}
-              onTaskClick={(t) => setOpenTask(t)}
+              onTaskClick={(t) => openExistingTask(t)}
               onCreateAt={handleCreateAt}
             />
           ) : (
@@ -243,7 +269,7 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
               tasks={tasks}
               expColorById={expColorById}
               weekStartsOn={weekStartsOn}
-              onTaskClick={(t) => setOpenTask(t)}
+              onTaskClick={(t) => openExistingTask(t)}
               onCreateAt={handleCreateAt}
             />
           )}
@@ -257,7 +283,9 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
           deps={deps}
           experiments={experiments}
           equipment={equipment}
-          onClose={() => setOpenTask(null)}
+          isDraft={openTask.id === draftTaskId}
+          onClose={closeTaskModal}
+          onDiscard={discardTaskModal}
         />
       )}
 

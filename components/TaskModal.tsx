@@ -34,14 +34,18 @@ export function TaskModal({
   deps,
   experiments,
   equipment,
+  isDraft = false,
   onClose,
+  onDiscard,
 }: {
   task: Task;
   tasks: Task[];
   deps: TaskDependency[];
   experiments: Experiment[];
   equipment: Equipment[];
+  isDraft?: boolean;
   onClose: () => void;
+  onDiscard?: () => void;
 }) {
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
@@ -110,6 +114,12 @@ export function TaskModal({
     }
   }
 
+  // 閉じる: 下書き（空き枠から作った未保存の予定）を保存せず閉じたら破棄する
+  function dismiss() {
+    if (isDraft && onDiscard) onDiscard();
+    else onClose();
+  }
+
   function commitTime(nextStart: string, nextEnd: string) {
     const startISO = jstInputToISO(nextStart);
     const endISO = jstInputToISO(nextEnd);
@@ -137,7 +147,7 @@ export function TaskModal({
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4"
-      onClick={onClose}
+      onClick={dismiss}
     >
       <div
         className="w-full max-w-md rounded-2xl bg-white shadow-2xl"
@@ -147,10 +157,11 @@ export function TaskModal({
         <div className={`flex items-center gap-2 rounded-t-2xl px-4 py-3 ${pal.bg}`}>
           <span className={`h-2.5 w-2.5 rounded-full ${pal.dot}`} />
           <span className="text-xs font-medium text-gray-600">
-            {exp?.name ?? "単発の予定"}
+            {isDraft ? "新しい予定（未保存）" : exp?.name ?? "単発の予定"}
           </span>
           <button
-            onClick={onClose}
+            onClick={dismiss}
+            title={isDraft ? "保存せずに閉じる" : "閉じる"}
             className="ml-auto rounded-lg p-1 text-gray-500 hover:bg-white/60"
           >
             <X className="h-4 w-4" />
@@ -390,7 +401,25 @@ export function TaskModal({
 
           {/* アクション */}
           <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
-            {liveTask.status === "done" ? (
+            {isDraft ? (
+              <>
+                <button
+                  onClick={onClose}
+                  className="flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+                >
+                  <Check className="h-4 w-4" />
+                  保存する
+                </button>
+                <button
+                  onClick={() => onDiscard?.()}
+                  className="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-rose-500"
+                  title="保存せずに破棄"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  破棄
+                </button>
+              </>
+            ) : liveTask.status === "done" ? (
               <button
                 onClick={() =>
                   updateTask.mutate({ id: task.id, status: "planned" })
