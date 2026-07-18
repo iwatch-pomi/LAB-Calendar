@@ -16,8 +16,8 @@ export default function LoginPage() {
           </p>
           <ul className="space-y-2 text-sm text-brand-50/90">
             <li>・ 実験テンプレートで一連のステップを一括登録</li>
-            <li>・ 遠心機 / AKTA など共通装置の予約管理</li>
-            <li>・ 失敗時の依存関係に基づく自動リスケ</li>
+            <li>・ 実験Todoも管理</li>
+            <li>・ あとから見返しやすい記録</li>
           </ul>
         </div>
         <p className="text-xs text-brand-50/60">
