@@ -29,6 +29,7 @@ import {
   Archive,
   Info,
   Sprout,
+  LayoutGrid,
 } from "lucide-react";
 
 export function Sidebar({
@@ -198,6 +199,20 @@ export function Sidebar({
             {visibleExperiments.length}
           </span>
         </div>
+        <button
+          onClick={() => onSelectExperiment(null)}
+          className={`mb-2 flex w-full items-center gap-2 rounded-xl border p-2.5 text-left transition ${
+            selectedExperiment === null
+              ? "border-brand-300 bg-brand-50 ring-2 ring-brand-300 ring-offset-1"
+              : "border-gray-200 bg-white hover:border-gray-300"
+          }`}
+        >
+          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-gray-100">
+            <LayoutGrid className="h-3 w-3 text-gray-500" />
+          </span>
+          <span className="text-sm font-medium text-gray-700">すべて表示</span>
+        </button>
+
         <div className="space-y-2">
           {visibleExperiments.map((exp) => {
             const p = paletteFor(exp.color);
