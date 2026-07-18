@@ -122,10 +122,17 @@ export interface CultureMedium {
   created_at: string;
 }
 
-/** 実験カラーのプリセット（淡いパステル） */
+/** 実験カラーのプリセット（淡いパステル）。hatch は待機/培養ブロックの斜線用 RGB。 */
 export const EXPERIMENT_PALETTE: Record<
   string,
-  { bg: string; border: string; text: string; dot: string; soft: string }
+  {
+    bg: string;
+    border: string;
+    text: string;
+    dot: string;
+    soft: string;
+    hatch: string; // "R, G, B"（Tailwind の各色 500 相当）
+  }
 > = {
   teal: {
     bg: "bg-teal-50",
@@ -133,6 +140,7 @@ export const EXPERIMENT_PALETTE: Record<
     text: "text-teal-800",
     dot: "bg-teal-500",
     soft: "bg-teal-100",
+    hatch: "13, 148, 136",
   },
   violet: {
     bg: "bg-violet-50",
@@ -140,6 +148,7 @@ export const EXPERIMENT_PALETTE: Record<
     text: "text-violet-800",
     dot: "bg-violet-500",
     soft: "bg-violet-100",
+    hatch: "124, 58, 237",
   },
   amber: {
     bg: "bg-amber-50",
@@ -147,6 +156,7 @@ export const EXPERIMENT_PALETTE: Record<
     text: "text-amber-800",
     dot: "bg-amber-500",
     soft: "bg-amber-100",
+    hatch: "217, 119, 6",
   },
   sky: {
     bg: "bg-sky-50",
@@ -154,6 +164,7 @@ export const EXPERIMENT_PALETTE: Record<
     text: "text-sky-800",
     dot: "bg-sky-500",
     soft: "bg-sky-100",
+    hatch: "2, 132, 199",
   },
   rose: {
     bg: "bg-rose-50",
@@ -161,8 +172,15 @@ export const EXPERIMENT_PALETTE: Record<
     text: "text-rose-800",
     dot: "bg-rose-500",
     soft: "bg-rose-100",
+    hatch: "225, 29, 72",
   },
 };
+
+/** 待機/培養ブロックの斜線背景（カレンダー色に準拠） */
+export function hatchBackground(color: string | null | undefined): string {
+  const rgb = paletteFor(color).hatch;
+  return `repeating-linear-gradient(45deg, rgba(${rgb}, 0.14), rgba(${rgb}, 0.14) 8px, rgba(${rgb}, 0.04) 8px, rgba(${rgb}, 0.04) 16px)`;
+}
 
 export const PALETTE_KEYS = Object.keys(EXPERIMENT_PALETTE);
 

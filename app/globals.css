@@ -18,16 +18,8 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* 待機ブロックのハッチ塗り（培養待機 37℃/6h など） */
-.wait-hatch {
-  background-image: repeating-linear-gradient(
-    45deg,
-    rgba(217, 119, 6, 0.12),
-    rgba(217, 119, 6, 0.12) 8px,
-    rgba(217, 119, 6, 0.04) 8px,
-    rgba(217, 119, 6, 0.04) 16px
-  );
-}
+/* 待機/培養ブロックの斜線塗りは lib/types.ts の hatchBackground() で
+   カレンダー色に応じて動的生成する（インラインスタイル）。 */
 
 /* スクロールバーを控えめに */
 .thin-scroll::-webkit-scrollbar {

@@ -12,7 +12,12 @@ import {
 import { buildRange, nowMs, fmtTimeRange, DAY } from "@/lib/calendar";
 import { CAL_START_HOUR, CAL_END_HOUR } from "@/lib/config";
 import { useMoveTask } from "@/lib/queries";
-import { paletteFor, type Task, type TaskDependency } from "@/lib/types";
+import {
+  paletteFor,
+  hatchBackground,
+  type Task,
+  type TaskDependency,
+} from "@/lib/types";
 import { ZoomIn, ZoomOut } from "lucide-react";
 
 const GUTTER = 56;
@@ -369,6 +374,8 @@ function TaskBlock({
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
       : undefined,
     zIndex: isDragging ? 40 : undefined,
+    // 待機/培養ブロックはカレンダー色に沿った斜線塗り
+    backgroundImage: isWait ? hatchBackground(color) : undefined,
     // 継続する側の角を丸めない（日をまたぐ連続表示）
     borderTopLeftRadius: p.continuesFromPrev ? 0 : undefined,
     borderTopRightRadius: p.continuesFromPrev ? 0 : undefined,
@@ -387,17 +394,13 @@ function TaskBlock({
         onClick();
       }}
       className={`group absolute inset-x-0.5 cursor-grab overflow-hidden rounded-lg border px-1.5 py-1 text-left shadow-sm transition active:cursor-grabbing ${
-        isWait
-          ? "wait-hatch border-amber-300"
-          : `${pal.bg} ${pal.border}`
+        isWait ? `bg-white ${pal.border}` : `${pal.bg} ${pal.border}`
       } ${dimmed ? "opacity-35" : ""} ${
         failed ? "ring-2 ring-rose-400" : ""
       } ${isDragging ? "shadow-lg" : ""}`}
     >
       <div
-        className={`text-[11px] font-semibold leading-tight sm:text-xs ${
-          isWait ? "text-amber-800" : pal.text
-        } ${done ? "line-through opacity-60" : ""}`}
+        className={`text-[11px] font-semibold leading-tight sm:text-xs ${pal.text} ${done ? "line-through opacity-60" : ""}`}
         style={{
           display: "-webkit-box",
           WebkitLineClamp: p.height > 46 ? 2 : 1,
