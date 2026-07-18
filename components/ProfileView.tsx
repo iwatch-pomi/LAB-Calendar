@@ -9,6 +9,7 @@ import {
   useTodos,
   useUpdateExperiment,
   useDeleteExperiment,
+  useToggleTodo,
   useSettings,
   useUpdateFeature,
   useCultureLinks,
@@ -106,6 +107,7 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
   const settingsQ = useSettings();
   const updateExp = useUpdateExperiment();
   const deleteExp = useDeleteExperiment();
+  const toggleTodo = useToggleTodo();
   const updateFeature = useUpdateFeature();
   const addEquipment = useAddEquipment();
   const deleteEquipment = useDeleteEquipment();
@@ -246,7 +248,15 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
                     key={todo.id}
                     className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm"
                   >
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                    <button
+                      onClick={() =>
+                        toggleTodo.mutate({ id: todo.id, done: false })
+                      }
+                      title="未完了に戻す（サイドバーの今日のToDoに再表示されます）"
+                      className="shrink-0 rounded-full text-emerald-500 transition hover:text-gray-400"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                    </button>
                     <span className="flex-1 truncate text-gray-500 line-through">
                       {todo.title}
                     </span>
