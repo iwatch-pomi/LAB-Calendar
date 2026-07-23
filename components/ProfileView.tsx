@@ -772,19 +772,14 @@ function FeedbackSection({ userEmail }: { userEmail: string }) {
             />
           </div>
           {error && <p className="text-xs text-rose-500">{error}</p>}
-          <div className="flex items-center gap-2">
-            <button
-              type="submit"
-              disabled={!body.trim() || addFeedback.isPending}
-              className="flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-50"
-            >
-              <Send className="h-4 w-4" />
-              {addFeedback.isPending ? "送信中…" : "送信する"}
-            </button>
-            <span className="text-[11px] text-gray-400">
-              返信先: {userEmail}
-            </span>
-          </div>
+          <button
+            type="submit"
+            disabled={!body.trim() || addFeedback.isPending}
+            className="flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-50"
+          >
+            <Send className="h-4 w-4" />
+            {addFeedback.isPending ? "送信中…" : "送信する"}
+          </button>
         </form>
       )}
     </section>
