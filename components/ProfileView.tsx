@@ -661,7 +661,7 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
         )}
 
         {/* お問い合わせ・ご要望（常に最後に配置） */}
-        <FeedbackSection userEmail={userEmail} />
+        <FeedbackSection />
       </main>
     </div>
   );
@@ -686,7 +686,7 @@ function StatCard({
 }
 
 /** お問い合わせ・ご要望の送信フォーム（開発者への連絡） */
-function FeedbackSection({ userEmail }: { userEmail: string }) {
+function FeedbackSection() {
   const addFeedback = useAddFeedback();
   const [category, setCategory] = useState<FeedbackCategory>("improvement");
   const [body, setBody] = useState("");
@@ -785,7 +785,7 @@ function FeedbackSection({ userEmail }: { userEmail: string }) {
               type="email"
               value={replyEmail}
               onChange={(e) => setReplyEmail(e.target.value)}
-              placeholder={userEmail}
+              placeholder="example@email.com"
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500"
             />
             <p className="mt-1 text-[11px] text-gray-400">
