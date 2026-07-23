@@ -690,6 +690,7 @@ function FeedbackSection({ userEmail }: { userEmail: string }) {
   const addFeedback = useAddFeedback();
   const [category, setCategory] = useState<FeedbackCategory>("improvement");
   const [body, setBody] = useState("");
+  const [replyEmail, setReplyEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -698,10 +699,15 @@ function FeedbackSection({ userEmail }: { userEmail: string }) {
     setError(null);
     if (!body.trim()) return;
     addFeedback.mutate(
-      { category, body: body.trim(), email: userEmail },
+      {
+        category,
+        body: body.trim(),
+        email: replyEmail.trim() || undefined,
+      },
       {
         onSuccess: () => {
           setBody("");
+          setReplyEmail("");
           setCategory("improvement");
           setSent(true);
         },
@@ -770,6 +776,21 @@ function FeedbackSection({ userEmail }: { userEmail: string }) {
               placeholder="例: 予定を色分けして印刷できるようにしてほしい"
               className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500"
             />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-gray-500">
+              返信先メールアドレス（任意）
+            </label>
+            <input
+              type="email"
+              value={replyEmail}
+              onChange={(e) => setReplyEmail(e.target.value)}
+              placeholder={userEmail}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500"
+            />
+            <p className="mt-1 text-[11px] text-gray-400">
+              返信が欲しい場合はご入力ください。返信は iwase.workslab@gmail.com からいたします。
+            </p>
           </div>
           {error && <p className="text-xs text-rose-500">{error}</p>}
           <button
