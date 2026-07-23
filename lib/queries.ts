@@ -11,6 +11,7 @@ import type {
   Equipment,
   Experiment,
   FeatureFlags,
+  FeedbackCategory,
   Task,
   TaskDependency,
   Template,
@@ -32,6 +33,7 @@ export const qk = {
   settings: ["settings"] as const,
   cultureMedia: ["culture_media"] as const,
   profile: ["profile"] as const,
+  feedback: ["feedback"] as const,
 };
 
 // ---------------- Queries ----------------
@@ -415,6 +417,29 @@ export function useAddTodo() {
       if (error) throw error;
     },
     onSettled: () => qc.invalidateQueries({ queryKey: qk.todos }),
+  });
+}
+
+/** お問い合わせ / フィードバックを送信（開発者への連絡）。 */
+export function useAddFeedback() {
+  return useMutation({
+    mutationFn: async (args: {
+      category: FeedbackCategory;
+      body: string;
+      email?: string | null;
+    }) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("not authenticated");
+      const { error } = await supabase.from("feedback").insert({
+        user_id: user.id,
+        email: args.email ?? user.email ?? null,
+        category: args.category,
+        body: args.body,
+      });
+      if (error) throw error;
+    },
   });
 }
 

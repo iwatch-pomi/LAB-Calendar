@@ -130,6 +130,27 @@ export const AVATAR_EMOJIS = [
   "🛠️",
 ] as const;
 
+/** お問い合わせ / フィードバックの種別 */
+export type FeedbackCategory = "improvement" | "bug" | "feature" | "other";
+
+/** お問い合わせ / フィードバック（開発者への連絡） */
+export interface Feedback {
+  id: string;
+  user_id: string;
+  email: string | null;
+  category: FeedbackCategory;
+  body: string;
+  created_at: string;
+}
+
+/** 種別の表示ラベル（プロフィールの送信フォーム用） */
+export const FEEDBACK_CATEGORIES: { key: FeedbackCategory; label: string }[] = [
+  { key: "improvement", label: "改善要望" },
+  { key: "bug", label: "不具合報告" },
+  { key: "feature", label: "新機能リクエスト" },
+  { key: "other", label: "その他" },
+];
+
 /** 培地（継代培養を管理ページで扱う独立エンティティ） */
 export interface CultureMedium {
   id: string;

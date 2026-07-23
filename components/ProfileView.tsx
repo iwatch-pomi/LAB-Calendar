@@ -16,6 +16,7 @@ import {
   useUpdateProfile,
   useAddEquipment,
   useDeleteEquipment,
+  useAddFeedback,
 } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/client";
 import { fmtTime } from "@/lib/calendar";
@@ -32,7 +33,9 @@ import {
   paletteFor,
   PALETTE_KEYS,
   AVATAR_EMOJIS,
+  FEEDBACK_CATEGORIES,
   type Experiment,
+  type FeedbackCategory,
 } from "@/lib/types";
 import {
   ChevronLeft,
@@ -53,6 +56,8 @@ import {
   ArchiveRestore,
   Trash2,
   Pencil,
+  MessageSquare,
+  Send,
 } from "lucide-react";
 
 const MODE_ICON: Record<
@@ -603,6 +608,9 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
           </form>
         </section>
 
+        {/* お問い合わせ・ご要望 */}
+        <FeedbackSection userEmail={userEmail} />
+
         {/* 継代培養（培地）はサイドバー「継代培養を管理」→ /culture ページに集約 */}
 
         {/* 一旦: 化学/物理/工学モードのツールは非表示 */}
@@ -675,6 +683,112 @@ function StatCard({
       <div className="mt-1 text-2xl font-bold text-gray-800">{value}</div>
       <div className="text-xs text-gray-500">{label}</div>
     </div>
+  );
+}
+
+/** お問い合わせ・ご要望の送信フォーム（開発者への連絡） */
+function FeedbackSection({ userEmail }: { userEmail: string }) {
+  const addFeedback = useAddFeedback();
+  const [category, setCategory] = useState<FeedbackCategory>("improvement");
+  const [body, setBody] = useState("");
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!body.trim()) return;
+    addFeedback.mutate(
+      { category, body: body.trim(), email: userEmail },
+      {
+        onSuccess: () => {
+          setBody("");
+          setCategory("improvement");
+          setSent(true);
+        },
+        onError: () =>
+          setError("送信に失敗しました。時間をおいて再度お試しください。"),
+      },
+    );
+  }
+
+  return (
+    <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
+      <div className="mb-3 flex items-center gap-1.5">
+        <MessageSquare className="h-4 w-4 text-gray-400" />
+        <h2 className="text-sm font-semibold text-gray-700">
+          お問い合わせ・ご要望
+        </h2>
+      </div>
+      <p className="mb-3 text-xs text-gray-500">
+        改善してほしい点・欲しい機能・不具合などを開発者へ送れます。いただいた内容は今後の改善の参考にさせていただきます。
+      </p>
+
+      {sent ? (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 text-center">
+          <CheckCircle2 className="mx-auto mb-1 h-6 w-6 text-emerald-500" />
+          <p className="text-sm font-medium text-emerald-800">
+            送信しました。ありがとうございます！
+          </p>
+          <button
+            onClick={() => setSent(false)}
+            className="mt-2 text-xs text-emerald-700 hover:underline"
+          >
+            続けて送信する
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={submit} className="space-y-3">
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-gray-500">
+              種別
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {FEEDBACK_CATEGORIES.map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  onClick={() => setCategory(c.key)}
+                  className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+                    category === c.key
+                      ? "border-brand-400 bg-brand-50 text-brand-700"
+                      : "border-gray-200 text-gray-600 hover:border-gray-300"
+                  }`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-gray-500">
+              内容
+            </label>
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              rows={4}
+              placeholder="例: 予定を色分けして印刷できるようにしてほしい"
+              className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500"
+            />
+          </div>
+          {error && <p className="text-xs text-rose-500">{error}</p>}
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              disabled={!body.trim() || addFeedback.isPending}
+              className="flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-50"
+            >
+              <Send className="h-4 w-4" />
+              {addFeedback.isPending ? "送信中…" : "送信する"}
+            </button>
+            <span className="text-[11px] text-gray-400">
+              返信先: {userEmail}
+            </span>
+          </div>
+        </form>
+      )}
+    </section>
   );
 }
 
