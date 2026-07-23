@@ -8,6 +8,7 @@ import {
   useUpdateCultureMedium,
   useDeleteCultureMedium,
   useSettings,
+  useProfile,
 } from "@/lib/queries";
 import {
   buildMonthGrid,
@@ -23,7 +24,7 @@ import {
   daysBetween,
   type CultureStatus,
 } from "@/lib/culture";
-import type { CultureMedium } from "@/lib/types";
+import { paletteFor, type CultureMedium } from "@/lib/types";
 import {
   ChevronLeft,
   ChevronRight,
@@ -63,6 +64,7 @@ export function CultureManager({ userEmail }: { userEmail: string }) {
   const deleteMedium = useDeleteCultureMedium();
   const settings = useSettings().data ?? {};
   const weekStartsOn: 0 | 1 = settings.week_start_day === 0 ? 0 : 1;
+  const profile = useProfile().data;
 
   const media = mediaQ.data ?? [];
   const today = todayJst();
@@ -127,7 +129,9 @@ export function CultureManager({ userEmail }: { userEmail: string }) {
     resetForm();
   }
 
-  const initial = (userEmail[0] ?? "?").toUpperCase();
+  const displayName = profile?.display_name?.trim() || userEmail;
+  const initial = (displayName[0] ?? "?").toUpperCase();
+  const avatarPal = paletteFor(profile?.avatar_color ?? "teal");
 
   return (
     <div className="min-h-screen bg-[#f6f8fa]">
@@ -141,8 +145,12 @@ export function CultureManager({ userEmail }: { userEmail: string }) {
             <ChevronLeft className="h-4 w-4" />
             カレンダーへ戻る
           </Link>
-          <div className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500 text-sm font-bold text-white">
-            {initial}
+          <div
+            className={`grid h-8 w-8 place-items-center rounded-lg text-sm font-bold text-white ${
+              profile?.avatar_emoji ? avatarPal.soft : avatarPal.dot
+            }`}
+          >
+            {profile?.avatar_emoji ?? initial}
           </div>
         </div>
       </header>

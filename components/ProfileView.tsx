@@ -12,6 +12,8 @@ import {
   useToggleTodo,
   useSettings,
   useUpdateFeature,
+  useProfile,
+  useUpdateProfile,
   useAddEquipment,
   useDeleteEquipment,
 } from "@/lib/queries";
@@ -29,6 +31,7 @@ import {
 import {
   paletteFor,
   PALETTE_KEYS,
+  AVATAR_EMOJIS,
   type Experiment,
 } from "@/lib/types";
 import {
@@ -49,6 +52,7 @@ import {
   Archive,
   ArchiveRestore,
   Trash2,
+  Pencil,
 } from "lucide-react";
 
 const MODE_ICON: Record<
@@ -84,14 +88,39 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
   const equipmentQ = useEquipment();
   const todosQ = useTodos();
   const settingsQ = useSettings();
+  const profileQ = useProfile();
   const updateExp = useUpdateExperiment();
   const deleteExp = useDeleteExperiment();
   const toggleTodo = useToggleTodo();
   const updateFeature = useUpdateFeature();
+  const updateProfile = useUpdateProfile();
   const addEquipment = useAddEquipment();
   const deleteEquipment = useDeleteEquipment();
 
   const [newEquip, setNewEquip] = useState("");
+
+  // プロフィール（表示名・アイコン）の編集
+  const profile = profileQ.data;
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+  const [emojiInput, setEmojiInput] = useState<string | null>(null);
+  const [colorInput, setColorInput] = useState<string>(PALETTE_KEYS[0]);
+
+  function startEditProfile() {
+    setNameInput(profile?.display_name ?? "");
+    setEmojiInput(profile?.avatar_emoji ?? null);
+    setColorInput(profile?.avatar_color ?? PALETTE_KEYS[0]);
+    setEditingProfile(true);
+  }
+
+  function saveProfile() {
+    updateProfile.mutate({
+      display_name: nameInput.trim() || null,
+      avatar_emoji: emojiInput,
+      avatar_color: colorInput,
+    });
+    setEditingProfile(false);
+  }
 
   const experiments = experimentsQ.data ?? [];
   const tasks = tasksQ.data ?? [];
@@ -156,7 +185,9 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
     }
   }
 
-  const initial = (userEmail[0] ?? "?").toUpperCase();
+  const displayName = profile?.display_name?.trim() || userEmail;
+  const initial = (displayName[0] ?? "?").toUpperCase();
+  const avatarPal = paletteFor(profile?.avatar_color ?? PALETTE_KEYS[0]);
 
   return (
     <div className="min-h-screen bg-[#f6f8fa]">
@@ -182,14 +213,120 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
 
       <main className="mx-auto max-w-3xl px-5 py-6">
         {/* プロフィール */}
-        <section className="mb-6 flex items-center gap-4">
-          <div className="grid h-16 w-16 place-items-center rounded-2xl bg-brand-500 text-2xl font-bold text-white shadow-sm">
-            {initial}
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-800">マイプロフィール</h1>
-            <p className="text-sm text-gray-500">{userEmail}</p>
-          </div>
+        <section className="mb-6">
+          {editingProfile ? (
+            <div className="space-y-3 rounded-2xl border border-brand-200 bg-brand-50/40 p-4">
+              <label className="block text-xs font-semibold text-gray-600">
+                表示名
+                <input
+                  autoFocus
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  placeholder={userEmail}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-2.5 py-2 text-sm outline-none focus:border-brand-500"
+                />
+              </label>
+
+              <div>
+                <p className="mb-1.5 text-xs font-semibold text-gray-600">
+                  アイコン
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setEmojiInput(null)}
+                    title="絵文字なし（イニシャル表示）"
+                    className={`grid h-9 w-9 place-items-center rounded-xl border text-sm font-bold ${
+                      emojiInput === null
+                        ? "border-brand-400 ring-2 ring-brand-300"
+                        : "border-gray-200 hover:border-gray-300"
+                    } ${paletteFor(colorInput).soft} ${paletteFor(colorInput).text}`}
+                  >
+                    {(nameInput || userEmail)[0]?.toUpperCase() ?? "?"}
+                  </button>
+                  {AVATAR_EMOJIS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => setEmojiInput(emoji)}
+                      className={`grid h-9 w-9 place-items-center rounded-xl border text-lg ${
+                        emojiInput === emoji
+                          ? "border-brand-400 ring-2 ring-brand-300"
+                          : "border-gray-200 hover:border-gray-300"
+                      } ${paletteFor(colorInput).soft}`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-1.5 text-xs font-semibold text-gray-600">
+                  背景色
+                </p>
+                <div className="flex items-center gap-1.5">
+                  {PALETTE_KEYS.map((k) => {
+                    const kp = paletteFor(k);
+                    return (
+                      <button
+                        key={k}
+                        type="button"
+                        onClick={() => setColorInput(k)}
+                        className={`h-6 w-6 rounded-full ${kp.dot} ${
+                          colorInput === k
+                            ? "ring-2 ring-gray-400 ring-offset-1"
+                            : ""
+                        }`}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={saveProfile}
+                  className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+                >
+                  保存
+                </button>
+                <button
+                  onClick={() => setEditingProfile(false)}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                >
+                  キャンセル
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-4">
+              <div
+                className={`grid h-16 w-16 shrink-0 place-items-center rounded-2xl text-2xl font-bold text-white shadow-sm ${
+                  profile?.avatar_emoji ? avatarPal.soft : avatarPal.dot
+                }`}
+              >
+                {profile?.avatar_emoji ?? initial}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <h1 className="truncate text-xl font-bold text-gray-800">
+                    {displayName}
+                  </h1>
+                  <button
+                    onClick={startEditProfile}
+                    title="表示名・アイコンを編集"
+                    className="shrink-0 rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                {profile?.display_name?.trim() && (
+                  <p className="truncate text-sm text-gray-500">{userEmail}</p>
+                )}
+              </div>
+            </div>
+          )}
         </section>
 
         {/* 統計 */}

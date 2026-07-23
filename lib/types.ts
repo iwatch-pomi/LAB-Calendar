@@ -111,6 +111,25 @@ export interface UserSettings {
   updated_at: string;
 }
 
+/** プロフィールの表示名とアイコン（絵文字＋背景色） */
+export interface UserProfile {
+  display_name: string | null;
+  avatar_emoji: string | null;
+  avatar_color: string | null;
+}
+
+/** アイコンに選べる絵文字のプリセット */
+export const AVATAR_EMOJIS = [
+  "🧪",
+  "🔬",
+  "🧬",
+  "🦠",
+  "⚗️",
+  "🌱",
+  "⚛️",
+  "🛠️",
+] as const;
+
 /** 培地（継代培養を管理ページで扱う独立エンティティ） */
 export interface CultureMedium {
   id: string;

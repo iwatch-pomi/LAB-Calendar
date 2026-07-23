@@ -16,6 +16,7 @@ import type {
   Template,
   TemplateStep,
   Todo,
+  UserProfile,
 } from "@/lib/types";
 
 const supabase = createClient();
@@ -30,6 +31,7 @@ export const qk = {
   todos: ["todos"] as const,
   settings: ["settings"] as const,
   cultureMedia: ["culture_media"] as const,
+  profile: ["profile"] as const,
 };
 
 // ---------------- Queries ----------------
@@ -167,6 +169,25 @@ export function useSettings() {
       // テーブル未作成でもクラッシュさせず既定（全機能オフ）を返す
       if (error) return {};
       return ((data?.features as FeatureFlags) ?? {}) as FeatureFlags;
+    },
+  });
+}
+
+export function useProfile() {
+  return useQuery({
+    queryKey: qk.profile,
+    queryFn: async (): Promise<UserProfile> => {
+      const { data, error } = await supabase
+        .from("user_settings")
+        .select("display_name, avatar_emoji, avatar_color")
+        .maybeSingle();
+      // カラム未追加でもクラッシュさせず既定を返す
+      if (error) return { display_name: null, avatar_emoji: null, avatar_color: null };
+      return {
+        display_name: data?.display_name ?? null,
+        avatar_emoji: data?.avatar_emoji ?? null,
+        avatar_color: data?.avatar_color ?? null,
+      };
     },
   });
 }
@@ -504,6 +525,40 @@ export function useDeleteTodo() {
       if (ctx?.prev) qc.setQueryData(qk.todos, ctx.prev);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: qk.todos }),
+  });
+}
+
+export function useUpdateProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (patch: Partial<UserProfile>) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("not authenticated");
+      const { error } = await supabase.from("user_settings").upsert({
+        user_id: user.id,
+        ...patch,
+        updated_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+    },
+    onMutate: async (patch) => {
+      await qc.cancelQueries({ queryKey: qk.profile });
+      const prev = qc.getQueryData<UserProfile>(qk.profile);
+      qc.setQueryData<UserProfile>(qk.profile, (old) => ({
+        display_name: null,
+        avatar_emoji: null,
+        avatar_color: null,
+        ...(old ?? {}),
+        ...patch,
+      }));
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(qk.profile, ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.profile }),
   });
 }
 
