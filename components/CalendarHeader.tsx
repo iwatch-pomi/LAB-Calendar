@@ -44,7 +44,7 @@ export function CalendarHeader({
     view === "month" ? "今月" : visibleDays >= 7 ? "今週" : "今日";
 
   return (
-    <header className="flex items-center justify-between gap-1 border-b border-gray-200 bg-white px-2 py-3 sm:px-4">
+    <header className="flex flex-wrap items-center justify-between gap-y-1.5 gap-x-2 border-b border-gray-200 bg-white px-2 py-3 sm:px-4">
       <div className="flex min-w-0 items-center gap-1.5 sm:gap-4">
         {/* サイドバー固定表示/非表示 */}
         <button
@@ -89,7 +89,7 @@ export function CalendarHeader({
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <span className="whitespace-nowrap text-center text-[13px] font-semibold text-gray-800 sm:min-w-[9.5rem] sm:text-sm">
+          <span className="whitespace-nowrap text-center text-[13px] font-semibold text-gray-800 sm:min-w-[7rem] sm:text-sm">
             {title}
           </span>
           <button
