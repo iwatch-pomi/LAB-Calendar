@@ -30,6 +30,7 @@ import {
   Info,
   Sprout,
   LayoutGrid,
+  Settings,
 } from "lucide-react";
 
 export function Sidebar({
@@ -181,6 +182,13 @@ export function Sidebar({
           <Logo />
         </Link>
         <div className="flex items-center gap-1">
+          <Link
+            href="/profile"
+            title="設定（プロフィール）"
+            className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+          >
+            <Settings className="h-4 w-4" />
+          </Link>
           <button
             onClick={onClose}
             title="サイドバーを閉じる"
