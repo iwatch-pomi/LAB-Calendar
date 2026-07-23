@@ -694,7 +694,7 @@ function MediumRow({
         onHighlight(highlighted ? null : m.id);
       }}
       title="クリックでカレンダー上をハイライト"
-      className={`group cursor-pointer rounded-xl border p-2.5 transition ${
+      className={`cursor-pointer rounded-xl border p-2.5 transition ${
         highlighted
           ? "border-brand-300 bg-brand-50 ring-2 ring-brand-300"
           : "border-gray-100 bg-gray-50/60 hover:border-brand-200 hover:bg-brand-50/40"
@@ -883,7 +883,7 @@ function ListTab({
         return (
           <div
             key={m.id}
-            className="group flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-3"
+            className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-3"
           >
             <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${st.dot}`} />
             <div className="min-w-0 flex-1">
@@ -908,7 +908,7 @@ function ListTab({
               <button
                 onClick={() => onUpdate(m.id, { disposed_date: null })}
                 title="廃棄を取消"
-                className="rounded-lg px-2 py-1 text-[11px] text-gray-500 opacity-0 transition hover:bg-gray-100 group-hover:opacity-100"
+                className="rounded-lg px-2 py-1 text-[11px] text-gray-500 transition hover:bg-gray-100"
               >
                 復元
               </button>
@@ -916,7 +916,7 @@ function ListTab({
               <button
                 onClick={() => onUpdate(m.id, { disposed_date: todayJst() })}
                 title="廃棄する"
-                className="rounded-lg px-2 py-1 text-[11px] text-gray-500 opacity-0 transition hover:bg-gray-100 group-hover:opacity-100"
+                className="rounded-lg px-2 py-1 text-[11px] text-gray-500 transition hover:bg-gray-100"
               >
                 廃棄
               </button>
@@ -924,14 +924,14 @@ function ListTab({
             <button
               onClick={() => setEditId(m.id)}
               title="編集"
-              className="rounded-lg p-1.5 text-gray-400 opacity-0 transition hover:bg-gray-100 hover:text-gray-600 group-hover:opacity-100"
+              className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
             >
               <Pencil className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => onDelete(m)}
               title="削除"
-              className="rounded-lg p-1.5 text-gray-400 opacity-0 transition hover:bg-gray-100 hover:text-rose-500 group-hover:opacity-100"
+              className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-rose-500"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>

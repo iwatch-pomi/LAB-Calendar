@@ -281,7 +281,7 @@ export function Sidebar({
             return (
               <div
                 key={exp.id}
-                className={`group relative w-full rounded-xl border p-3 text-left transition ${
+                className={`relative w-full rounded-xl border p-3 text-left transition ${
                   active
                     ? `${p.border} ${p.bg} ring-2 ring-offset-1 ${p.border}`
                     : "border-gray-200 bg-white hover:border-gray-300"
@@ -298,7 +298,7 @@ export function Sidebar({
                     </span>
                   </div>
                 </button>
-                <div className="absolute right-2.5 top-2.5 flex items-center gap-0.5 opacity-0 transition group-hover:opacity-100">
+                <div className="absolute right-2.5 top-2.5 flex items-center gap-0.5">
                   <button
                     onClick={() => startEditExperiment(exp)}
                     title="編集"
@@ -470,7 +470,7 @@ export function Sidebar({
             ) : (
               <div
                 key={todo.id}
-                className="group flex items-start gap-2.5 rounded-lg px-1.5 py-1.5 hover:bg-gray-50"
+                className="flex items-start gap-2.5 rounded-lg px-1.5 py-1.5 hover:bg-gray-50"
               >
                 <button
                   onClick={() =>
@@ -505,7 +505,7 @@ export function Sidebar({
                 <button
                   onClick={() => deleteTodo.mutate(todo.id)}
                   title="削除"
-                  className="mt-0.5 shrink-0 rounded p-0.5 text-gray-300 opacity-0 transition hover:bg-gray-200 hover:text-rose-500 group-hover:opacity-100"
+                  className="mt-0.5 shrink-0 rounded p-0.5 text-gray-300 transition hover:bg-gray-200 hover:text-rose-500"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>

@@ -77,7 +77,7 @@ export function AddExperimentMenu({
             return (
               <div
                 key={t.id}
-                className={`group flex items-stretch rounded-xl border transition hover:border-gray-300 ${
+                className={`flex items-stretch rounded-xl border transition hover:border-gray-300 ${
                   busy === t.id
                     ? "border-brand-300 bg-brand-50"
                     : "border-gray-200 bg-white"
@@ -102,7 +102,7 @@ export function AddExperimentMenu({
                     </div>
                   </div>
                 </button>
-                <div className="flex flex-col justify-center gap-0.5 pr-1.5 opacity-0 transition group-hover:opacity-100">
+                <div className="flex flex-col justify-center gap-0.5 pr-1.5">
                   <button
                     onClick={() => onEditTemplate(t)}
                     title="編集"
