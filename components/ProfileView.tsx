@@ -608,9 +608,6 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
           </form>
         </section>
 
-        {/* お問い合わせ・ご要望 */}
-        <FeedbackSection userEmail={userEmail} />
-
         {/* 継代培養（培地）はサイドバー「継代培養を管理」→ /culture ページに集約 */}
 
         {/* 一旦: 化学/物理/工学モードのツールは非表示 */}
@@ -663,6 +660,8 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
           </section>
         )}
 
+        {/* お問い合わせ・ご要望（常に最後に配置） */}
+        <FeedbackSection userEmail={userEmail} />
       </main>
     </div>
   );
