@@ -6,6 +6,8 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { useGuest } from "@/components/GuestProvider";
+import { guestStore } from "@/lib/guestStore";
 import type {
   CultureMedium,
   Equipment,
@@ -37,11 +39,17 @@ export const qk = {
 };
 
 // ---------------- Queries ----------------
+// ゲスト（未ログイン）ではサーバーを見ず guestStore（localStorage）から返す。
+// 匿名のSELECTはRLSで「0件の成功」になり空表示になってしまうため。
+// queryKey に "guest" を足してログイン後のキャッシュと混ざらないようにする
+// （invalidateQueries は前方一致なので既存の qk.* 指定はそのまま効く）。
 
 export function useEquipment() {
+  const { isGuest } = useGuest();
   return useQuery({
-    queryKey: qk.equipment,
+    queryKey: [...qk.equipment, isGuest ? "guest" : "user"],
     queryFn: async (): Promise<Equipment[]> => {
+      if (isGuest) return guestStore.equipment();
       const { data, error } = await supabase
         .from("equipment")
         .select("*")
@@ -53,9 +61,11 @@ export function useEquipment() {
 }
 
 export function useTemplates() {
+  const { isGuest } = useGuest();
   return useQuery({
-    queryKey: qk.templates,
+    queryKey: [...qk.templates, isGuest ? "guest" : "user"],
     queryFn: async (): Promise<Template[]> => {
+      if (isGuest) return guestStore.templates();
       const { data, error } = await supabase
         .from("templates")
         .select("*")
@@ -67,9 +77,11 @@ export function useTemplates() {
 }
 
 export function useTemplateSteps() {
+  const { isGuest } = useGuest();
   return useQuery({
-    queryKey: qk.templateSteps,
+    queryKey: [...qk.templateSteps, isGuest ? "guest" : "user"],
     queryFn: async (): Promise<TemplateStep[]> => {
+      if (isGuest) return guestStore.templateSteps();
       const { data, error } = await supabase
         .from("template_steps")
         .select("*")
@@ -81,9 +93,11 @@ export function useTemplateSteps() {
 }
 
 export function useExperiments() {
+  const { isGuest } = useGuest();
   return useQuery({
-    queryKey: qk.experiments,
+    queryKey: [...qk.experiments, isGuest ? "guest" : "user"],
     queryFn: async (): Promise<Experiment[]> => {
+      if (isGuest) return guestStore.experiments();
       const { data, error } = await supabase
         .from("experiments")
         .select("*")
@@ -95,9 +109,11 @@ export function useExperiments() {
 }
 
 export function useTasks() {
+  const { isGuest } = useGuest();
   return useQuery({
-    queryKey: qk.tasks,
+    queryKey: [...qk.tasks, isGuest ? "guest" : "user"],
     queryFn: async (): Promise<Task[]> => {
+      if (isGuest) return guestStore.tasks();
       const { data, error } = await supabase
         .from("tasks")
         .select("*")
@@ -109,9 +125,11 @@ export function useTasks() {
 }
 
 export function useDependencies() {
+  const { isGuest } = useGuest();
   return useQuery({
-    queryKey: qk.deps,
+    queryKey: [...qk.deps, isGuest ? "guest" : "user"],
     queryFn: async (): Promise<TaskDependency[]> => {
+      if (isGuest) return guestStore.deps();
       const { data, error } = await supabase
         .from("task_dependencies")
         .select("*");
@@ -122,9 +140,11 @@ export function useDependencies() {
 }
 
 export function useTodos() {
+  const { isGuest } = useGuest();
   return useQuery({
-    queryKey: qk.todos,
+    queryKey: [...qk.todos, isGuest ? "guest" : "user"],
     queryFn: async (): Promise<Todo[]> => {
+      if (isGuest) return guestStore.todos();
       const { data, error } = await supabase
         .from("todos")
         .select("*")
@@ -137,12 +157,15 @@ export function useTodos() {
 
 export function useDeleteTemplate() {
   const qc = useQueryClient();
+  const { isGuest, requireLogin } = useGuest();
   return useMutation({
     mutationFn: async (id: string) => {
+      if (isGuest) return requireLogin();
       const { error } = await supabase.from("templates").delete().eq("id", id);
       if (error) throw error;
     },
     onMutate: async (id) => {
+      if (isGuest) return {};
       await qc.cancelQueries({ queryKey: qk.templates });
       const prev = qc.getQueryData<Template[]>(qk.templates);
       qc.setQueryData<Template[]>(qk.templates, (old) =>
@@ -161,9 +184,13 @@ export function useDeleteTemplate() {
 }
 
 export function useSettings() {
+  const { isGuest } = useGuest();
   return useQuery({
-    queryKey: qk.settings,
+    queryKey: [...qk.settings, isGuest ? "guest" : "user"],
     queryFn: async (): Promise<FeatureFlags> => {
+      // ゲストは設定を保存できないので既定値。onboarded を立てて
+      // オンボーディング（保存にログインが要り、閉じられない）を抑止する。
+      if (isGuest) return { onboarded: true };
       const { data, error } = await supabase
         .from("user_settings")
         .select("features")
@@ -213,12 +240,21 @@ export function useCultureMedia() {
 
 export function useMoveTask() {
   const qc = useQueryClient();
+  const { isGuest, notifyGuestEdit } = useGuest();
   return useMutation({
     mutationFn: async (args: {
       id: string;
       start_time: string;
       end_time: string;
     }) => {
+      if (isGuest) {
+        guestStore.updateTask(args.id, {
+          start_time: args.start_time,
+          end_time: args.end_time,
+        });
+        notifyGuestEdit();
+        return;
+      }
       const { error } = await supabase
         .from("tasks")
         .update({ start_time: args.start_time, end_time: args.end_time })
@@ -246,9 +282,15 @@ export function useMoveTask() {
 
 export function useUpdateTask() {
   const qc = useQueryClient();
+  const { isGuest, notifyGuestEdit } = useGuest();
   return useMutation({
     mutationFn: async (args: { id: string } & Partial<Task>) => {
       const { id, ...patch } = args;
+      if (isGuest) {
+        guestStore.updateTask(id, patch);
+        notifyGuestEdit();
+        return;
+      }
       const { error } = await supabase.from("tasks").update(patch).eq("id", id);
       if (error) throw error;
     },
@@ -273,8 +315,14 @@ export function useUpdateTask() {
 
 export function useDeleteTask() {
   const qc = useQueryClient();
+  const { isGuest, notifyGuestEdit } = useGuest();
   return useMutation({
     mutationFn: async (id: string) => {
+      if (isGuest) {
+        guestStore.deleteTask(id);
+        notifyGuestEdit();
+        return;
+      }
       const { error } = await supabase.from("tasks").delete().eq("id", id);
       if (error) throw error;
     },
@@ -287,6 +335,7 @@ export function useDeleteTask() {
 
 export function useCreateTask() {
   const qc = useQueryClient();
+  const { isGuest, notifyGuestEdit } = useGuest();
   return useMutation({
     mutationFn: async (args: {
       title: string;
@@ -297,6 +346,11 @@ export function useCreateTask() {
       equipment_id?: string | null;
       is_wait?: boolean;
     }) => {
+      if (isGuest) {
+        const t = guestStore.createTask(args);
+        notifyGuestEdit();
+        return t;
+      }
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -325,9 +379,15 @@ export function useCreateTask() {
 
 export function useToggleTodo() {
   const qc = useQueryClient();
+  const { isGuest, notifyGuestEdit } = useGuest();
   return useMutation({
     mutationFn: async (args: { id: string; done: boolean }) => {
       const completed_at = args.done ? new Date().toISOString() : null;
+      if (isGuest) {
+        guestStore.updateTodo(args.id, { done: args.done, completed_at });
+        notifyGuestEdit();
+        return;
+      }
       const { error } = await supabase
         .from("todos")
         .update({ done: args.done, completed_at })
@@ -398,12 +458,18 @@ export function useDeleteEquipment() {
 
 export function useAddTodo() {
   const qc = useQueryClient();
+  const { isGuest, notifyGuestEdit } = useGuest();
   return useMutation({
     mutationFn: async (args: {
       title: string;
       sort_order: number;
       due_at?: string | null;
     }) => {
+      if (isGuest) {
+        guestStore.createTodo(args);
+        notifyGuestEdit();
+        return;
+      }
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -445,8 +511,10 @@ export function useAddFeedback() {
 
 export function useUpdateExperiment() {
   const qc = useQueryClient();
+  const { isGuest, requireLogin } = useGuest();
   return useMutation({
     mutationFn: async (args: { id: string } & Partial<Experiment>) => {
+      if (isGuest) return requireLogin();
       const { id, ...patch } = args;
       const { error } = await supabase
         .from("experiments")
@@ -455,6 +523,7 @@ export function useUpdateExperiment() {
       if (error) throw error;
     },
     onMutate: async (args) => {
+      if (isGuest) return {};
       await qc.cancelQueries({ queryKey: qk.experiments });
       const prev = qc.getQueryData<Experiment[]>(qk.experiments);
       const { id, ...patch } = args;
@@ -472,8 +541,10 @@ export function useUpdateExperiment() {
 
 export function useDeleteExperiment() {
   const qc = useQueryClient();
+  const { isGuest, requireLogin } = useGuest();
   return useMutation({
     mutationFn: async (id: string) => {
+      if (isGuest) return requireLogin();
       const { error } = await supabase
         .from("experiments")
         .delete()
@@ -481,6 +552,7 @@ export function useDeleteExperiment() {
       if (error) throw error;
     },
     onMutate: async (id) => {
+      if (isGuest) return {};
       await qc.cancelQueries({ queryKey: qk.experiments });
       const prev = qc.getQueryData<Experiment[]>(qk.experiments);
       qc.setQueryData<Experiment[]>(qk.experiments, (old) =>
@@ -502,6 +574,7 @@ export function useDeleteExperiment() {
 
 export function useUpdateTodo() {
   const qc = useQueryClient();
+  const { isGuest, notifyGuestEdit } = useGuest();
   return useMutation({
     mutationFn: async (args: {
       id: string;
@@ -509,6 +582,11 @@ export function useUpdateTodo() {
       due_at?: string | null;
     }) => {
       const { id, ...patch } = args;
+      if (isGuest) {
+        guestStore.updateTodo(id, patch);
+        notifyGuestEdit();
+        return;
+      }
       const { error } = await supabase
         .from("todos")
         .update(patch)
@@ -533,8 +611,14 @@ export function useUpdateTodo() {
 
 export function useDeleteTodo() {
   const qc = useQueryClient();
+  const { isGuest, notifyGuestEdit } = useGuest();
   return useMutation({
     mutationFn: async (id: string) => {
+      if (isGuest) {
+        guestStore.deleteTodo(id);
+        notifyGuestEdit();
+        return;
+      }
       const { error } = await supabase.from("todos").delete().eq("id", id);
       if (error) throw error;
     },
@@ -626,8 +710,10 @@ export function useUpdateFeature() {
 /** 複数のフラグを一括更新（オンボーディング等） */
 export function useUpdateFeatures() {
   const qc = useQueryClient();
+  const { isGuest, requireLogin } = useGuest();
   return useMutation({
     mutationFn: async (partial: FeatureFlags) => {
+      if (isGuest) return requireLogin();
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -659,6 +745,7 @@ export function useUpdateFeatures() {
 
 export function useAddCultureMedium() {
   const qc = useQueryClient();
+  const { isGuest, requireLogin } = useGuest();
   return useMutation({
     mutationFn: async (args: {
       name: string;
@@ -668,6 +755,10 @@ export function useAddCultureMedium() {
       source_task_id?: string | null;
       note?: string | null;
     }): Promise<CultureMedium | null> => {
+      if (isGuest) {
+        requireLogin();
+        return null;
+      }
       const {
         data: { user },
       } = await supabase.auth.getUser();

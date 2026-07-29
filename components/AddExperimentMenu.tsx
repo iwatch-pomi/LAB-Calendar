@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useCreateTask, useDeleteTemplate } from "@/lib/queries";
+import { useGuest } from "./GuestProvider";
 import { paletteFor, type Template } from "@/lib/types";
 import { weekStartMs } from "@/lib/calendar";
 import { FileText, CalendarPlus, Wand2, Pencil, Trash2 } from "lucide-react";
@@ -25,9 +26,15 @@ export function AddExperimentMenu({
 }) {
   const createTask = useCreateTask();
   const deleteTemplate = useDeleteTemplate();
+  const { isGuest, requireLogin } = useGuest();
   const [busy, setBusy] = useState<string | null>(null);
 
   function handleDelete(t: Template) {
+    if (isGuest) {
+      requireLogin();
+      onClose();
+      return;
+    }
     if (
       confirm(
         `テンプレート「${t.name}」を削除しますか？\n（登録済みの実験・予定は残ります）`,
@@ -39,6 +46,13 @@ export function AddExperimentMenu({
 
   // テンプレを選ぶ → 配置モードに入り、カレンダーのクリック位置に展開
   function pickTemplate(t: Template) {
+    // ゲストはテンプレ配置（実験の一括登録）を保存できないので、
+    // 配置モードに入る前にログイン案内を出す
+    if (isGuest) {
+      requireLogin();
+      onClose();
+      return;
+    }
     onPlaceTemplate(t);
     onClose();
   }

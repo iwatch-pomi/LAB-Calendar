@@ -36,11 +36,14 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isAuthRoute =
-    pathname.startsWith("/login") || pathname.startsWith("/auth");
+
+  // アカウント機能のページはログイン必須。
+  // カレンダー(/)は未ログインでも「ゲストモード」で閲覧・お試し編集できる。
+  const isProtectedRoute =
+    pathname.startsWith("/profile") || pathname.startsWith("/culture");
 
   // 未ログインで保護ページ → ログインへ
-  if (!user && !isAuthRoute) {
+  if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CalendarApp } from "@/components/CalendarApp";
 
@@ -8,7 +7,11 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  // 未ログインでもカレンダーを表示（ゲストモード）。
+  // デモデータはクライアント側の guestStore が用意する。
+  if (!user) {
+    return <CalendarApp userEmail="" isGuest />;
+  }
 
   // 初回ログイン: 実験が無ければデモデータを投入
   const { count } = await supabase

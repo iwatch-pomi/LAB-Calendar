@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { qk } from "@/lib/queries";
+import { useGuest } from "./GuestProvider";
 import { PALETTE_KEYS, paletteFor, type Template } from "@/lib/types";
 import { X, Plus, Trash2 } from "lucide-react";
 
@@ -30,6 +31,7 @@ export function TemplateBuilder({
 }) {
   const supabase = createClient();
   const qc = useQueryClient();
+  const { isGuest, requireLogin } = useGuest();
   const isEdit = !!template;
   const [name, setName] = useState(template?.name ?? "");
   const [estimatedLabel, setEstimatedLabel] = useState(
@@ -76,6 +78,12 @@ export function TemplateBuilder({
 
   async function save() {
     setError(null);
+    // ゲストはテンプレートを保存できない（ログイン案内を出して閉じる）
+    if (isGuest) {
+      requireLogin();
+      onClose();
+      return;
+    }
     const validSteps = steps.filter((s) => s.title.trim());
     if (!name.trim() || validSteps.length === 0) {
       setError("テンプレート名と少なくとも1つのステップが必要です。");

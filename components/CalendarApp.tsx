@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   useTasks,
   useExperiments,
@@ -11,7 +11,7 @@ import {
   useSettings,
   useUpdateFeatures,
 } from "@/lib/queries";
-import { useCreateTask, useDeleteTask } from "@/lib/queries";
+import { useCreateTask, useDeleteTask, useAddTodo } from "@/lib/queries";
 import { usePlaceTemplateAt } from "@/lib/mutations";
 import type { FeatureFlags } from "@/lib/types";
 import { Onboarding } from "./Onboarding";
@@ -28,10 +28,32 @@ import { MonthView } from "./MonthView";
 import { TaskModal } from "./TaskModal";
 import { AddExperimentMenu } from "./AddExperimentMenu";
 import { TemplateBuilder } from "./TemplateBuilder";
+import { GuestProvider, useGuest } from "./GuestProvider";
+import { LoginPromptModal } from "./LoginPromptModal";
+import { GuestBanner, MigratedBanner } from "./GuestBanner";
+import { guestStore } from "@/lib/guestStore";
 
 export type ViewMode = "day" | "week" | "month";
 
-export function CalendarApp({ userEmail }: { userEmail: string }) {
+/**
+ * ゲスト文脈は全データフックから参照されるため、フックを呼ぶ本体より
+ * 外側に Provider を置く必要がある。
+ */
+export function CalendarApp({
+  userEmail,
+  isGuest = false,
+}: {
+  userEmail: string;
+  isGuest?: boolean;
+}) {
+  return (
+    <GuestProvider isGuest={isGuest}>
+      <CalendarAppInner userEmail={userEmail} />
+    </GuestProvider>
+  );
+}
+
+function CalendarAppInner({ userEmail }: { userEmail: string }) {
   const tasksQ = useTasks();
   const experimentsQ = useExperiments();
   const depsQ = useDependencies();
@@ -43,8 +65,12 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
   const placeTemplate = usePlaceTemplateAt();
   const settingsQ = useSettings();
   const updateFeatures = useUpdateFeatures();
+  const { isGuest, promptOpen, closePrompt } = useGuest();
+  const addTodo = useAddTodo();
 
   const [view, setView] = useState<ViewMode>("week");
+  // ログイン直後、ゲスト中に作った予定/ToDoを引き継いだ件数
+  const [migrated, setMigrated] = useState<number | null>(null);
   const [refMs, setRefMs] = useState<number>(() => nowMs());
   const [selectedExperiment, setSelectedExperiment] = useState<string | null>(
     null,
@@ -183,13 +209,61 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
       ? settingsQ.data.work_end_hour
       : DEFAULT_WORK_END_HOUR;
 
-  // 初回起動: 設定が読み込めて未オンボーディングなら分野選択を表示
+  // 初回起動: 設定が読み込めて未オンボーディングなら分野選択を表示。
+  // ゲストは設定を保存できず overlay を閉じられなくなるため出さない。
   const showOnboarding =
-    settingsQ.isSuccess && !settingsQ.data?.onboarded;
+    !isGuest && settingsQ.isSuccess && !settingsQ.data?.onboarded;
 
   function completeOnboarding(flags: FeatureFlags) {
     updateFeatures.mutate(flags);
   }
+
+  // ログイン直後: ゲスト中にブラウザへ作った予定/ToDoをアカウントへ引き継ぐ。
+  // 対象はユーザーが自分で作成/変更した分のみ（デモそのままの行は含めない）。
+  const migrateRan = useRef(false);
+  useEffect(() => {
+    if (isGuest || migrateRan.current) return;
+    const { tasks: gTasks, todos: gTodos } = guestStore.exportForMigration();
+    if (gTasks.length === 0 && gTodos.length === 0) {
+      // 引き継ぐものが無ければゲストデータは破棄しておく
+      guestStore.clear();
+      return;
+    }
+    migrateRan.current = true;
+    (async () => {
+      let n = 0;
+      for (const t of gTasks) {
+        try {
+          await createTask.mutateAsync({
+            title: t.title,
+            start_time: t.start_time,
+            end_time: t.end_time,
+            // ゲストの実験idはサーバーに存在しないため単発の予定として保存
+            experiment_id: null,
+            subtitle: t.subtitle,
+            is_wait: t.is_wait,
+          });
+          n++;
+        } catch {
+          // 1件失敗しても残りは続行
+        }
+      }
+      for (const [i, td] of gTodos.entries()) {
+        try {
+          await addTodo.mutateAsync({
+            title: td.title,
+            sort_order: 1000 + i,
+            due_at: td.due_at,
+          });
+          n++;
+        } catch {
+          // 同上
+        }
+      }
+      guestStore.clear();
+      setMigrated(n);
+    })();
+  }, [isGuest, createTask, addTodo]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f6f8fa]">
@@ -216,6 +290,10 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {isGuest && <GuestBanner />}
+        {migrated !== null && migrated > 0 && (
+          <MigratedBanner count={migrated} onClose={() => setMigrated(null)} />
+        )}
         <CalendarHeader
           view={view}
           onViewChange={setView}
@@ -312,6 +390,9 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
           onClose={() => setTemplateEdit(null)}
         />
       )}
+
+      {/* 予定モーダルを開いている間は重ねず、閉じてから案内を出す */}
+      {promptOpen && !openTask && <LoginPromptModal onClose={closePrompt} />}
     </div>
   );
 }

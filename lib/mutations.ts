@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { useGuest } from "@/components/GuestProvider";
 import { expandTemplate } from "@/lib/expandTemplate";
 import { WORKING_HOURS, TZ_OFFSET_MINUTES } from "@/lib/config";
 import type { Interval } from "@/lib/reschedule";
@@ -143,8 +144,14 @@ export function useCreateExperimentFromTemplate() {
  */
 export function usePlaceTemplateAt() {
   const qc = useQueryClient();
+  const { isGuest, requireLogin } = useGuest();
   return useMutation({
     mutationFn: async (args: { templateId: string; startISO: string }) => {
+      // ゲストはテンプレ配置（実験一括登録）を保存できない
+      if (isGuest) {
+        requireLogin();
+        return null;
+      }
       const userId = await getUserId();
       const startMs = new Date(args.startISO).getTime();
 
@@ -259,8 +266,14 @@ export function useCommitReschedule() {
 /** 空の実験を作成（テンプレ無し） */
 export function useCreateEmptyExperiment() {
   const qc = useQueryClient();
+  const { isGuest, requireLogin } = useGuest();
   return useMutation({
     mutationFn: async (args: { name: string; color: string }) => {
+      // ゲストはカレンダー（実験）を保存できない
+      if (isGuest) {
+        requireLogin();
+        return null;
+      }
       const userId = await getUserId();
       const { data, error } = await supabase
         .from("experiments")

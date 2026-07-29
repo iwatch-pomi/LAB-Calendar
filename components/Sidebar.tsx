@@ -19,6 +19,7 @@ import {
   useSettings,
 } from "@/lib/queries";
 import { useCreateEmptyExperiment } from "@/lib/mutations";
+import { useGuest } from "./GuestProvider";
 import { fmtTime, jstInputToISO, isoToJstInput } from "@/lib/calendar";
 import {
   Plus,
@@ -31,6 +32,7 @@ import {
   Sprout,
   LayoutGrid,
   Settings,
+  LogIn,
 } from "lucide-react";
 
 export function Sidebar({
@@ -56,6 +58,7 @@ export function Sidebar({
   const updateExperiment = useUpdateExperiment();
   const deleteExperiment = useDeleteExperiment();
   const features = useSettings().data ?? {};
+  const { isGuest } = useGuest();
   const [newTodo, setNewTodo] = useState("");
   const [newDue, setNewDue] = useState("");
   const [adding, setAdding] = useState(false);
@@ -174,21 +177,30 @@ export function Sidebar({
   return (
     <aside className="flex h-full w-[264px] shrink-0 flex-col border-r border-gray-200 bg-white">
       <div className="flex items-center justify-between px-4 py-4">
-        <Link
-          href="/profile"
-          title="プロフィール（過去の実験）"
-          className="rounded-lg transition hover:opacity-80"
-        >
-          <Logo />
-        </Link>
-        <div className="flex items-center gap-1">
+        {/* ゲストはプロフィール（ログイン必須ページ）へ飛ばせないのでリンクにしない */}
+        {isGuest ? (
+          <span className="rounded-lg">
+            <Logo />
+          </span>
+        ) : (
           <Link
             href="/profile"
-            title="設定（プロフィール）"
-            className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+            title="プロフィール（過去の実験）"
+            className="rounded-lg transition hover:opacity-80"
           >
-            <Settings className="h-4 w-4" />
+            <Logo />
           </Link>
+        )}
+        <div className="flex items-center gap-1">
+          {!isGuest && (
+            <Link
+              href="/profile"
+              title="設定（プロフィール）"
+              className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+            >
+              <Settings className="h-4 w-4" />
+            </Link>
+          )}
           <button
             onClick={onClose}
             title="サイドバーを閉じる"
@@ -198,6 +210,19 @@ export function Sidebar({
           </button>
         </div>
       </div>
+
+      {/* ゲスト: ログイン導線（プロフィール/設定の代わり） */}
+      {isGuest && (
+        <div className="px-4 pb-3">
+          <Link
+            href="/login"
+            className="flex items-center justify-center gap-1.5 rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-600"
+          >
+            <LogIn className="h-4 w-4" />
+            ログイン・新規登録
+          </Link>
+        </div>
+      )}
 
       <div className="thin-scroll flex-1 overflow-y-auto px-4 pb-4">
         {/* カレンダー一覧 */}
