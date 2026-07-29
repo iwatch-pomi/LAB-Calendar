@@ -30,6 +30,7 @@ import { AddExperimentMenu } from "./AddExperimentMenu";
 import { TemplateBuilder } from "./TemplateBuilder";
 import { GuestProvider, useGuest } from "./GuestProvider";
 import { LoginPromptModal } from "./LoginPromptModal";
+import { DemoNoticeModal } from "./DemoNoticeModal";
 import { GuestBanner, MigratedBanner } from "./GuestBanner";
 import { guestStore } from "@/lib/guestStore";
 
@@ -65,7 +66,8 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
   const placeTemplate = usePlaceTemplateAt();
   const settingsQ = useSettings();
   const updateFeatures = useUpdateFeatures();
-  const { isGuest, promptOpen, closePrompt } = useGuest();
+  const { isGuest, promptOpen, closePrompt, demoNoticeOpen, closeDemoNotice } =
+    useGuest();
   const addTodo = useAddTodo();
 
   const [view, setView] = useState<ViewMode>("week");
@@ -392,7 +394,12 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
       )}
 
       {/* 予定モーダルを開いている間は重ねず、閉じてから案内を出す */}
-      {promptOpen && !openTask && <LoginPromptModal onClose={closePrompt} />}
+      {demoNoticeOpen && !openTask && (
+        <DemoNoticeModal onClose={closeDemoNotice} />
+      )}
+      {!demoNoticeOpen && promptOpen && !openTask && (
+        <LoginPromptModal onClose={closePrompt} />
+      )}
     </div>
   );
 }

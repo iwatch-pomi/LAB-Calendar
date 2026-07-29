@@ -14,6 +14,8 @@ interface GuestState extends GuestSnapshot {
   touchedTodoIds: string[];
   /** 初回編集時のログイン案内モーダルを既に出したか */
   hasPromptedLogin: boolean;
+  /** 初回アクセス時の「デモデータ表示中」案内モーダルを既に出したか */
+  hasSeenDemoNotice: boolean;
 }
 
 function isBrowser() {
@@ -26,6 +28,7 @@ function fresh(): GuestState {
     touchedTaskIds: [],
     touchedTodoIds: [],
     hasPromptedLogin: false,
+    hasSeenDemoNotice: false,
   };
 }
 
@@ -177,6 +180,14 @@ export const guestStore = {
   markPromptedLogin() {
     const s = load();
     s.hasPromptedLogin = true;
+    save();
+  },
+
+  // ---------------- 初回アクセス時のデモ案内 ----------------
+  hasSeenDemoNotice: () => !!load().hasSeenDemoNotice,
+  markSeenDemoNotice() {
+    const s = load();
+    s.hasSeenDemoNotice = true;
     save();
   },
 

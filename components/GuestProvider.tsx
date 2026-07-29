@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useCallback, useContext, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { guestStore } from "@/lib/guestStore";
 
 interface GuestContextValue {
@@ -12,6 +18,9 @@ interface GuestContextValue {
   notifyGuestEdit: () => void;
   promptOpen: boolean;
   closePrompt: () => void;
+  /** 初回アクセス時のみ「これはデモデータです」を知らせるモーダルが開いているか */
+  demoNoticeOpen: boolean;
+  closeDemoNotice: () => void;
 }
 
 const GuestContext = createContext<GuestContextValue>({
@@ -20,6 +29,8 @@ const GuestContext = createContext<GuestContextValue>({
   notifyGuestEdit: () => {},
   promptOpen: false,
   closePrompt: () => {},
+  demoNoticeOpen: false,
+  closeDemoNotice: () => {},
 });
 
 export function useGuest() {
@@ -34,6 +45,19 @@ export function GuestProvider({
   children: React.ReactNode;
 }) {
   const [promptOpen, setPromptOpen] = useState(false);
+  const [demoNoticeOpen, setDemoNoticeOpen] = useState(false);
+
+  // 初回アクセス（未ログイン）のみ、表示中のデータがデモであることを知らせる
+  useEffect(() => {
+    if (!isGuest) return;
+    if (guestStore.hasSeenDemoNotice()) return;
+    setDemoNoticeOpen(true);
+  }, [isGuest]);
+
+  const closeDemoNotice = useCallback(() => {
+    guestStore.markSeenDemoNotice();
+    setDemoNoticeOpen(false);
+  }, []);
 
   const requireLogin = useCallback(() => {
     if (isGuest) setPromptOpen(true);
@@ -51,7 +75,15 @@ export function GuestProvider({
 
   return (
     <GuestContext.Provider
-      value={{ isGuest, requireLogin, notifyGuestEdit, promptOpen, closePrompt }}
+      value={{
+        isGuest,
+        requireLogin,
+        notifyGuestEdit,
+        promptOpen,
+        closePrompt,
+        demoNoticeOpen,
+        closeDemoNotice,
+      }}
     >
       {children}
     </GuestContext.Provider>
