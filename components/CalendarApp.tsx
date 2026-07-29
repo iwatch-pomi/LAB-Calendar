@@ -29,7 +29,7 @@ import { TaskModal } from "./TaskModal";
 import { AddExperimentMenu } from "./AddExperimentMenu";
 import { TemplateBuilder } from "./TemplateBuilder";
 
-export type ViewMode = "week" | "month";
+export type ViewMode = "day" | "week" | "month";
 
 export function CalendarApp({ userEmail }: { userEmail: string }) {
   const tasksQ = useTasks();
@@ -170,6 +170,9 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
   const loading =
     tasksQ.isLoading || experimentsQ.isLoading || depsQ.isLoading;
 
+  // 表示日数: 日表示は常に1日、週表示は画面幅に応じて3/7日、月表示は無関係
+  const activeDays = view === "day" ? 1 : visibleDays;
+
   const weekStartsOn: 0 | 1 = settingsQ.data?.week_start_day === 0 ? 0 : 1;
   const workStartHour =
     typeof settingsQ.data?.work_start_hour === "number"
@@ -220,7 +223,7 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
           onRefChange={setRefMs}
           onToggleSidebar={() => setSidebarOpen((v) => !v)}
           sidebarOpen={sidebarOpen}
-          visibleDays={visibleDays}
+          visibleDays={activeDays}
           weekStartsOn={weekStartsOn}
           onAddClick={() => setAddMenuOpen((v) => !v)}
           addMenuOpen={addMenuOpen}
@@ -262,7 +265,7 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
             <div className="grid h-full place-items-center text-sm text-gray-400">
               読み込み中…
             </div>
-          ) : view === "week" ? (
+          ) : view !== "month" ? (
             <WeekView
               refMs={refMs}
               tasks={tasks}
@@ -270,7 +273,7 @@ export function CalendarApp({ userEmail }: { userEmail: string }) {
               expColorById={expColorById}
               equipNameById={equipNameById}
               selectedExperiment={selectedExperiment}
-              visibleDays={visibleDays}
+              visibleDays={activeDays}
               weekStartsOn={weekStartsOn}
               workStartHour={workStartHour}
               workEndHour={workEndHour}

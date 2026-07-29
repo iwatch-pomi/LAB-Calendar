@@ -117,6 +117,14 @@ export function fmtMonthTitle(refMs: number): string {
   return `${s.getUTCFullYear()}年${s.getUTCMonth() + 1}月`;
 }
 
+/** ヘッダー用: "2026年7月23日(木)" のような1日表示のタイトル */
+export function fmtDayTitle(refMs: number): string {
+  const s = shift(refMs);
+  return `${s.getUTCFullYear()}年${s.getUTCMonth() + 1}月${s.getUTCDate()}日(${
+    WEEKDAY_JP[s.getUTCDay()]
+  })`;
+}
+
 /** 月表示用: その月を含む週(weekStartsOn 始まり)で埋めた 6週 x 7日 のグリッド */
 export function buildMonthGrid(
   refMs: number,

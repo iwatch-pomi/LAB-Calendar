@@ -5,6 +5,7 @@ import {
   buildRange,
   fmtWeekRange,
   fmtMonthTitle,
+  fmtDayTitle,
   nowMs,
   DAY,
 } from "@/lib/calendar";
@@ -38,10 +39,21 @@ export function CalendarHeader({
 }) {
   const cells = buildRange(refMs, nowMs(), visibleDays, weekStartsOn);
   const title =
-    view === "week" ? fmtWeekRange(cells) : fmtMonthTitle(refMs);
-  const step = view === "week" ? visibleDays * DAY : 30 * DAY;
+    view === "month"
+      ? fmtMonthTitle(refMs)
+      : view === "day"
+        ? fmtDayTitle(refMs)
+        : fmtWeekRange(cells);
+  const step =
+    view === "month" ? 30 * DAY : view === "day" ? DAY : visibleDays * DAY;
   const todayLabel =
-    view === "month" ? "今月" : visibleDays >= 7 ? "今週" : "今日";
+    view === "month"
+      ? "今月"
+      : view === "day"
+        ? "今日"
+        : visibleDays >= 7
+          ? "今週"
+          : "今日";
 
   return (
     <header className="flex flex-wrap items-center justify-between gap-y-1.5 gap-x-2 border-b border-gray-200 bg-white px-2 py-3 sm:px-4">
@@ -57,8 +69,18 @@ export function CalendarHeader({
           <PanelLeft className="h-4 w-4" />
         </button>
 
-        {/* 週/月 トグル */}
+        {/* 日/週/月 トグル */}
         <div className="flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-sm">
+          <button
+            onClick={() => onViewChange("day")}
+            className={`rounded-md px-2 py-1 font-medium transition sm:px-3 ${
+              view === "day"
+                ? "bg-white text-gray-800 shadow-sm"
+                : "text-gray-500"
+            }`}
+          >
+            日
+          </button>
           <button
             onClick={() => onViewChange("week")}
             className={`rounded-md px-2 py-1 font-medium transition sm:px-3 ${
