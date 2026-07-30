@@ -42,17 +42,19 @@ export async function updateSession(request: NextRequest) {
   const isProtectedRoute =
     pathname.startsWith("/profile") || pathname.startsWith("/culture");
 
-  // 未ログインで保護ページ → ログインへ
+  // 未ログインで保護ページ → カレンダーへ戻し、ログインモーダルを開く
   if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = "/";
+    url.searchParams.set("login", "1");
     return NextResponse.redirect(url);
   }
 
-  // ログイン済みでログインページ → ホームへ
+  // ログイン済みでログインページ → ホームへ（ログインUIはモーダルに統合済み）
   if (user && pathname.startsWith("/login")) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
+    url.searchParams.delete("login");
     return NextResponse.redirect(url);
   }
 

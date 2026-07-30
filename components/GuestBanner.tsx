@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { Info, LogIn, CheckCircle2 } from "lucide-react";
+import { useGuest } from "./GuestProvider";
 
 /** ゲスト中に常時出す「このブラウザにのみ保存」の案内バー */
 export function GuestBanner() {
+  const { openAuth } = useGuest();
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm">
       <span className="flex min-w-0 items-center gap-1.5 text-amber-900">
@@ -14,13 +15,13 @@ export function GuestBanner() {
           保存されています
         </span>
       </span>
-      <Link
-        href="/login"
+      <button
+        onClick={openAuth}
         className="flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-1 text-xs font-semibold text-white transition hover:bg-brand-600"
       >
         <LogIn className="h-3.5 w-3.5" />
         ログインして保存
-      </Link>
+      </button>
     </div>
   );
 }

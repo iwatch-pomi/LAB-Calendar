@@ -21,6 +21,10 @@ interface GuestContextValue {
   /** 初回アクセス時のみ「これはデモデータです」を知らせるモーダルが開いているか */
   demoNoticeOpen: boolean;
   closeDemoNotice: () => void;
+  /** ログイン・新規登録モーダル（専用ページへは遷移しない） */
+  authOpen: boolean;
+  openAuth: () => void;
+  closeAuth: () => void;
 }
 
 const GuestContext = createContext<GuestContextValue>({
@@ -31,6 +35,9 @@ const GuestContext = createContext<GuestContextValue>({
   closePrompt: () => {},
   demoNoticeOpen: false,
   closeDemoNotice: () => {},
+  authOpen: false,
+  openAuth: () => {},
+  closeAuth: () => {},
 });
 
 export function useGuest() {
@@ -46,10 +53,35 @@ export function GuestProvider({
 }) {
   const [promptOpen, setPromptOpen] = useState(false);
   const [demoNoticeOpen, setDemoNoticeOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
 
-  // 初回アクセス（未ログイン）のみ、表示中のデータがデモであることを知らせる
+  const openAuth = useCallback(() => {
+    setPromptOpen(false);
+    setDemoNoticeOpen(false);
+    setAuthOpen(true);
+  }, []);
+  const closeAuth = useCallback(() => setAuthOpen(false), []);
+
   useEffect(() => {
     if (!isGuest) return;
+
+    // 保護ページ(/profile, /culture)や /login から `?login=1` で戻された場合は
+    // そのままログインモーダルを開く。URL からは印を消して再表示を防ぐ。
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("login")) {
+      setAuthOpen(true);
+      params.delete("login");
+      const q = params.toString();
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}${q ? `?${q}` : ""}`,
+      );
+      // ログインしに来た人にデモの案内は不要（次の素の訪問で出す）
+      return;
+    }
+
+    // 初回アクセス（未ログイン）のみ、表示中のデータがデモであることを知らせる
     if (guestStore.hasSeenDemoNotice()) return;
     setDemoNoticeOpen(true);
   }, [isGuest]);
@@ -83,6 +115,9 @@ export function GuestProvider({
         closePrompt,
         demoNoticeOpen,
         closeDemoNotice,
+        authOpen,
+        openAuth,
+        closeAuth,
       }}
     >
       {children}

@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { LogIn, X } from "lucide-react";
+import { useGuest } from "./GuestProvider";
 
 /**
  * ゲスト（未ログイン）に「保存にはログインが必要」であることを伝えるモーダル。
@@ -9,6 +9,7 @@ import { LogIn, X } from "lucide-react";
  * ・ログインが必要な操作（カレンダー追加・テンプレ保存など）を押したとき
  */
 export function LoginPromptModal({ onClose }: { onClose: () => void }) {
+  const { openAuth } = useGuest();
   return (
     <div
       className="fixed inset-0 z-[70] grid place-items-center bg-black/30 p-4"
@@ -47,13 +48,13 @@ export function LoginPromptModal({ onClose }: { onClose: () => void }) {
         </p>
 
         <div className="flex gap-2">
-          <Link
-            href="/login"
+          <button
+            onClick={openAuth}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-600"
           >
             <LogIn className="h-4 w-4" />
             ログイン・新規登録
-          </Link>
+          </button>
           <button
             onClick={onClose}
             className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 transition hover:bg-gray-100"

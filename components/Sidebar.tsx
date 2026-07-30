@@ -58,7 +58,7 @@ export function Sidebar({
   const updateExperiment = useUpdateExperiment();
   const deleteExperiment = useDeleteExperiment();
   const features = useSettings().data ?? {};
-  const { isGuest } = useGuest();
+  const { isGuest, openAuth } = useGuest();
   const [newTodo, setNewTodo] = useState("");
   const [newDue, setNewDue] = useState("");
   const [adding, setAdding] = useState(false);
@@ -214,13 +214,13 @@ export function Sidebar({
       {/* ゲスト: ログイン導線（プロフィール/設定の代わり） */}
       {isGuest && (
         <div className="px-4 pb-3">
-          <Link
-            href="/login"
-            className="flex items-center justify-center gap-1.5 rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-600"
+          <button
+            onClick={openAuth}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-600"
           >
             <LogIn className="h-4 w-4" />
             ログイン・新規登録
-          </Link>
+          </button>
         </div>
       )}
 

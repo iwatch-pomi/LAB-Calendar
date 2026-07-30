@@ -31,6 +31,7 @@ import { TemplateBuilder } from "./TemplateBuilder";
 import { GuestProvider, useGuest } from "./GuestProvider";
 import { LoginPromptModal } from "./LoginPromptModal";
 import { DemoNoticeModal } from "./DemoNoticeModal";
+import { AuthModal } from "./auth/AuthModal";
 import { GuestBanner, MigratedBanner } from "./GuestBanner";
 import { guestStore } from "@/lib/guestStore";
 
@@ -66,8 +67,15 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
   const placeTemplate = usePlaceTemplateAt();
   const settingsQ = useSettings();
   const updateFeatures = useUpdateFeatures();
-  const { isGuest, promptOpen, closePrompt, demoNoticeOpen, closeDemoNotice } =
-    useGuest();
+  const {
+    isGuest,
+    promptOpen,
+    closePrompt,
+    demoNoticeOpen,
+    closeDemoNotice,
+    authOpen,
+    closeAuth,
+  } = useGuest();
   const addTodo = useAddTodo();
 
   const [view, setView] = useState<ViewMode>("week");
@@ -394,12 +402,14 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
       )}
 
       {/* 予定モーダルを開いている間は重ねず、閉じてから案内を出す */}
-      {demoNoticeOpen && !openTask && (
+      {!authOpen && demoNoticeOpen && !openTask && (
         <DemoNoticeModal onClose={closeDemoNotice} />
       )}
-      {!demoNoticeOpen && promptOpen && !openTask && (
+      {!authOpen && !demoNoticeOpen && promptOpen && !openTask && (
         <LoginPromptModal onClose={closePrompt} />
       )}
+
+      {authOpen && <AuthModal onClose={closeAuth} />}
     </div>
   );
 }

@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
         : origin;
 
   if (!code) {
-    return NextResponse.redirect(`${base}/login?error=auth`);
+    return NextResponse.redirect(`${base}/?login=1&error=auth`);
   }
 
   // 先にリダイレクト先レスポンスを作り、そこへ cookie を書き込む
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
-    return NextResponse.redirect(`${base}/login?error=auth`);
+    return NextResponse.redirect(`${base}/?login=1&error=auth`);
   }
   return response;
 }

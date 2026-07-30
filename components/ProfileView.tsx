@@ -159,7 +159,7 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
     if (!confirm("ログアウトしますか？")) return;
     const supabase = createClient();
     await supabase.auth.signOut();
-    window.location.href = "/login";
+    window.location.href = "/";
   }
 
   function submitEquipment() {
