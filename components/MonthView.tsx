@@ -16,6 +16,7 @@ export function MonthView({
   weekStartsOn,
   onTaskClick,
   onCreateAt,
+  readOnly = false,
 }: {
   refMs: number;
   tasks: Task[];
@@ -23,6 +24,8 @@ export function MonthView({
   weekStartsOn: 0 | 1;
   onTaskClick: (t: Task) => void;
   onCreateAt: (startMs: number) => void;
+  /** 閲覧専用（アーカイブの見返しなど）。空き枠クリックでの追加を無効にする */
+  readOnly?: boolean;
 }) {
   const weeks = buildMonthGrid(refMs, nowMs(), weekStartsOn);
   const curMonth = new Date(refMs + 540 * 60000).getUTCMonth() + 1;
@@ -71,11 +74,15 @@ export function MonthView({
                 return (
                   <div
                     key={cell.startMs}
-                    onClick={() => onCreateAt(cell.startMs + 9 * 60 * 60 * 1000)}
-                    title="クリックで予定を追加"
-                    className={`min-h-0 cursor-pointer overflow-hidden border-b border-l border-gray-200 p-1.5 hover:bg-brand-50/40 ${
-                      cell.isWeekend ? "bg-gray-50/40" : ""
-                    }`}
+                    onClick={
+                      readOnly
+                        ? undefined
+                        : () => onCreateAt(cell.startMs + 9 * 60 * 60 * 1000)
+                    }
+                    title={readOnly ? undefined : "クリックで予定を追加"}
+                    className={`min-h-0 overflow-hidden border-b border-l border-gray-200 p-1.5 ${
+                      readOnly ? "" : "cursor-pointer hover:bg-brand-50/40"
+                    } ${cell.isWeekend ? "bg-gray-50/40" : ""}`}
                   >
                     <div
                       className={`mb-1 inline-grid h-6 w-6 place-items-center rounded-full text-xs font-semibold ${

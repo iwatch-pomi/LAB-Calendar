@@ -40,7 +40,9 @@ export async function updateSession(request: NextRequest) {
   // アカウント機能のページはログイン必須。
   // カレンダー(/)は未ログインでも「ゲストモード」で閲覧・お試し編集できる。
   const isProtectedRoute =
-    pathname.startsWith("/profile") || pathname.startsWith("/culture");
+    pathname.startsWith("/profile") ||
+    pathname.startsWith("/culture") ||
+    pathname.startsWith("/archive");
 
   // 未ログインで保護ページ → カレンダーへ戻し、ログインモーダルを開く
   if (!user && isProtectedRoute) {

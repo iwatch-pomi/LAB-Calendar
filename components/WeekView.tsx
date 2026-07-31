@@ -110,6 +110,7 @@ export function WeekView({
   workEndHour,
   onTaskClick,
   onCreateAt,
+  readOnly = false,
 }: {
   refMs: number;
   tasks: Task[];
@@ -123,6 +124,8 @@ export function WeekView({
   workEndHour: number;
   onTaskClick: (t: Task) => void;
   onCreateAt: (startMs: number) => void;
+  /** 閲覧専用（アーカイブの見返しなど）。追加・移動・リサイズを無効にする */
+  readOnly?: boolean;
 }) {
   const moveTask = useMoveTask();
   const gridRef = useRef<HTMLDivElement>(null);
@@ -212,6 +215,7 @@ export function WeekView({
 
   // 空き枠クリック → クリック位置の時刻(30分スナップ)で新規予定
   function onColumnClick(dayStartMs: number, e: React.MouseEvent) {
+    if (readOnly) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
     const snapped = Math.floor((y / hourPx) * 60 / 30) * 30; // 分（グリッド先頭から）
@@ -222,6 +226,7 @@ export function WeekView({
   }
 
   function onDragEnd(ev: DragEndEvent) {
+    if (readOnly) return;
     // セグメント id は `${taskId}__${dayIndex}` 形式
     const id = String(ev.active.id).split("__")[0];
     const task = tasks.find((t) => t.id === id);
@@ -241,6 +246,7 @@ export function WeekView({
   }
 
   function startResize(task: Task, e: React.PointerEvent) {
+    if (readOnly) return;
     e.stopPropagation();
     e.preventDefault();
     const s = new Date(task.start_time).getTime();
@@ -368,10 +374,10 @@ export function WeekView({
                 <div
                   key={c.index}
                   onClick={(e) => onColumnClick(c.startMs, e)}
-                  title="クリックで予定を追加"
-                  className={`relative cursor-pointer border-l border-gray-200 ${
-                    c.isWeekend ? "bg-gray-50/40" : ""
-                  }`}
+                  title={readOnly ? undefined : "クリックで予定を追加"}
+                  className={`relative border-l border-gray-200 ${
+                    readOnly ? "" : "cursor-pointer"
+                  } ${c.isWeekend ? "bg-gray-50/40" : ""}`}
                   style={{ height: TOTAL_H }}
                 >
                   {/* 時間グリッド線 */}
@@ -414,6 +420,7 @@ export function WeekView({
                       }
                       onClick={() => onTaskClick(p.task)}
                       onResizeStart={(e) => startResize(p.task, e)}
+                      readOnly={readOnly}
                     />
                   ))}
                 </div>
@@ -434,6 +441,7 @@ function TaskBlock({
   dimmed,
   onClick,
   onResizeStart,
+  readOnly = false,
 }: {
   dndId: string;
   p: LaidOut;
@@ -442,6 +450,7 @@ function TaskBlock({
   dimmed: boolean;
   onClick: () => void;
   onResizeStart: (e: React.PointerEvent) => void;
+  readOnly?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({ id: dndId });
@@ -478,19 +487,21 @@ function TaskBlock({
 
   return (
     <div
-      ref={setNodeRef}
+      ref={readOnly ? undefined : setNodeRef}
       style={style}
-      {...listeners}
-      {...attributes}
+      {...(readOnly ? {} : listeners)}
+      {...(readOnly ? {} : attributes)}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
       }}
-      className={`group absolute cursor-grab overflow-hidden rounded-lg border px-1.5 py-1 text-left shadow-sm transition active:cursor-grabbing ${
-        isWait ? `bg-white ${pal.border}` : `${pal.bg} ${pal.border}`
-      } ${dimmed ? "opacity-35" : ""} ${
-        failed ? "ring-2 ring-rose-400" : ""
-      } ${isDragging ? "shadow-lg" : ""}`}
+      className={`group absolute overflow-hidden rounded-lg border px-1.5 py-1 text-left shadow-sm transition ${
+        readOnly ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
+      } ${isWait ? `bg-white ${pal.border}` : `${pal.bg} ${pal.border}`} ${
+        dimmed ? "opacity-35" : ""
+      } ${failed ? "ring-2 ring-rose-400" : ""} ${
+        isDragging ? "shadow-lg" : ""
+      }`}
     >
       <div
         className={`text-[11px] font-semibold leading-tight sm:text-xs ${pal.text} ${done ? "line-through opacity-60" : ""}`}
@@ -522,7 +533,7 @@ function TaskBlock({
       )}
 
       {/* リサイズハンドル（実際の終了があるセグメントのみ） */}
-      {!p.continuesToNext && (
+      {!readOnly && !p.continuesToNext && (
         <div
           onPointerDown={onResizeStart}
           onClick={(e) => e.stopPropagation()}

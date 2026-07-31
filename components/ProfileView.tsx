@@ -54,6 +54,7 @@ import {
   Cog,
   Archive,
   ArchiveRestore,
+  ExternalLink,
   Trash2,
   Pencil,
   MessageSquare,
@@ -625,7 +626,8 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
               </span>
             </div>
             <p className="mb-3 text-xs text-gray-500">
-              サイドバーの一覧には表示されません。復元するとまた表示されます。
+              サイドバーの一覧には表示されません。名前をクリックすると、その実験だけの
+              カレンダーを別タブで開いて見返せます（復元はされません）。
             </p>
             <div className="space-y-2">
               {archivedExperiments.map((exp) => {
@@ -636,9 +638,18 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
                     className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3"
                   >
                     <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${pal.dot}`} />
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-600">
-                      {exp.name}
-                    </span>
+                    <a
+                      href={`/archive/${exp.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="別タブでこの実験のカレンダーを開く"
+                      className="group flex min-w-0 flex-1 items-center gap-1.5 text-left"
+                    >
+                      <span className="min-w-0 truncate text-sm font-medium text-gray-600 group-hover:text-brand-600 group-hover:underline">
+                        {exp.name}
+                      </span>
+                      <ExternalLink className="h-3.5 w-3.5 shrink-0 text-gray-400 group-hover:text-brand-600" />
+                    </a>
                     <button
                       onClick={() => restoreExperiment(exp)}
                       className="flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-600 ring-1 ring-gray-200 hover:bg-gray-100"
