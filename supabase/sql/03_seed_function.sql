@@ -29,6 +29,7 @@ declare
   -- タスク
   t_pre uuid; t_main uuid; t_wait uuid; t_iptg uuid;
   t_harvest uuid; t_sonic uuid; t_ninta uuid; t_sds uuid; t_result uuid;
+  t_mini uuid; t_restrict uuid; t_agarose uuid; t_confirm uuid;
 begin
   if uid is null then
     raise exception 'not authenticated';
@@ -165,6 +166,36 @@ begin
   insert into experiments(user_id, template_id, name, status, current_step, total_steps, color)
     values (uid, tpl_plasmid, 'プラスミド抽出＋制限酵素', 'planning', 0, 4, 'violet')
     returning id into exp_plasmid;
+
+  -- タスク（水曜午後。大腸菌実験と装置・時間帯が重ならない枠）
+  insert into tasks(user_id, experiment_id, title, subtitle, start_time, end_time, status, equipment_id, needs_reservation, is_wait)
+    values (uid, exp_plasmid, 'ミニプレップ', null,
+      ((monday + 2)::timestamp + make_interval(hours=>13)) at time zone tz,
+      ((monday + 2)::timestamp + make_interval(hours=>14)) at time zone tz,
+      'planned', null, false, false) returning id into t_mini;
+
+  insert into tasks(user_id, experiment_id, title, subtitle, start_time, end_time, status, equipment_id, needs_reservation, is_wait)
+    values (uid, exp_plasmid, '制限酵素処理', '37℃',
+      ((monday + 2)::timestamp + make_interval(hours=>14)) at time zone tz,
+      ((monday + 2)::timestamp + make_interval(hours=>15, mins=>30)) at time zone tz,
+      'planned', null, false, false) returning id into t_restrict;
+
+  insert into tasks(user_id, experiment_id, title, subtitle, start_time, end_time, status, equipment_id, needs_reservation, is_wait)
+    values (uid, exp_plasmid, 'アガロース電気泳動', null,
+      ((monday + 2)::timestamp + make_interval(hours=>16, mins=>30)) at time zone tz,
+      ((monday + 2)::timestamp + make_interval(hours=>17, mins=>30)) at time zone tz,
+      'planned', null, false, false) returning id into t_agarose;
+
+  insert into tasks(user_id, experiment_id, title, subtitle, start_time, end_time, status, equipment_id, needs_reservation, is_wait)
+    values (uid, exp_plasmid, '精製・確認', null,
+      ((monday + 2)::timestamp + make_interval(hours=>17, mins=>30)) at time zone tz,
+      ((monday + 2)::timestamp + make_interval(hours=>18, mins=>30)) at time zone tz,
+      'planned', null, false, false) returning id into t_confirm;
+
+  insert into task_dependencies(user_id, predecessor_id, successor_id, gap_minutes) values
+    (uid, t_mini,     t_restrict, 0),
+    (uid, t_restrict, t_agarose,  60),  -- 制限酵素処理→泳動（反応時間）
+    (uid, t_agarose,  t_confirm,  0);
 
   ---------------------------------------------------------------
   -- 今日の ToDo

@@ -158,6 +158,7 @@ export function buildGuestDemo(nowMs: number = Date.now()): GuestSnapshot {
 
   // ---- 予定（曜日: 月=0, 火=1, 水=2, 木=3, 金=4）----
   const task = (
+    experimentId: string,
     id: string,
     title: string,
     subtitle: string | null,
@@ -170,7 +171,7 @@ export function buildGuestDemo(nowMs: number = Date.now()): GuestSnapshot {
   ): Task => ({
     id,
     user_id: u,
-    experiment_id: expEcoli.id,
+    experiment_id: experimentId,
     title,
     subtitle,
     start_time: startISO,
@@ -185,17 +186,26 @@ export function buildGuestDemo(nowMs: number = Date.now()): GuestSnapshot {
     created_at: createdAt,
   });
 
-  const tPre = task("guest-task-pre", "前培養（LB液体）", null, at(monday, 0, 18), at(monday, 0, 19, 30), "done", null, false, false);
-  const tMain = task("guest-task-main", "本培養 開始", null, at(monday, 1, 9), at(monday, 1, 10), "done", null, false, false);
-  const tWait = task("guest-task-wait", "培養待機", "37℃ / 6h", at(monday, 1, 10), at(monday, 1, 16), "planned", null, false, true);
-  const tIptg = task("guest-task-iptg", "IPTG誘導", null, at(monday, 1, 16), at(monday, 1, 16, 30), "planned", null, false, false);
-  const tHarvest = task("guest-task-harvest", "菌体回収・遠心", null, at(monday, 2, 9), at(monday, 2, 11), "planned", eqCentrifuge.id, true, false);
-  const tSonic = task("guest-task-sonic", "超音波破砕", null, at(monday, 2, 11), at(monday, 2, 12), "planned", null, false, false);
-  const tNinta = task("guest-task-ninta", "Ni-NTA 精製", null, at(monday, 3, 10), at(monday, 3, 13), "planned", eqAkta.id, true, false);
-  const tSds = task("guest-task-sds", "SDS-PAGE 確認", null, at(monday, 3, 14), at(monday, 3, 17), "planned", null, false, false);
-  const tResult = task("guest-task-result", "結果まとめ", null, at(monday, 4, 10), at(monday, 4, 12), "planned", null, false, false);
+  const tPre = task(expEcoli.id, "guest-task-pre", "前培養（LB液体）", null, at(monday, 0, 18), at(monday, 0, 19, 30), "done", null, false, false);
+  const tMain = task(expEcoli.id, "guest-task-main", "本培養 開始", null, at(monday, 1, 9), at(monday, 1, 10), "done", null, false, false);
+  const tWait = task(expEcoli.id, "guest-task-wait", "培養待機", "37℃ / 6h", at(monday, 1, 10), at(monday, 1, 16), "planned", null, false, true);
+  const tIptg = task(expEcoli.id, "guest-task-iptg", "IPTG誘導", null, at(monday, 1, 16), at(monday, 1, 16, 30), "planned", null, false, false);
+  const tHarvest = task(expEcoli.id, "guest-task-harvest", "菌体回収・遠心", null, at(monday, 2, 9), at(monday, 2, 11), "planned", eqCentrifuge.id, true, false);
+  const tSonic = task(expEcoli.id, "guest-task-sonic", "超音波破砕", null, at(monday, 2, 11), at(monday, 2, 12), "planned", null, false, false);
+  const tNinta = task(expEcoli.id, "guest-task-ninta", "Ni-NTA 精製", null, at(monday, 3, 10), at(monday, 3, 13), "planned", eqAkta.id, true, false);
+  const tSds = task(expEcoli.id, "guest-task-sds", "SDS-PAGE 確認", null, at(monday, 3, 14), at(monday, 3, 17), "planned", null, false, false);
+  const tResult = task(expEcoli.id, "guest-task-result", "結果まとめ", null, at(monday, 4, 10), at(monday, 4, 12), "planned", null, false, false);
 
-  const tasks = [tPre, tMain, tWait, tIptg, tHarvest, tSonic, tNinta, tSds, tResult];
+  // プラスミド抽出＋制限酵素（水曜午後。大腸菌実験と時間帯が重ならない枠）
+  const tMini = task(expPlasmid.id, "guest-task-mini", "ミニプレップ", null, at(monday, 2, 13), at(monday, 2, 14), "planned", null, false, false);
+  const tRestrict = task(expPlasmid.id, "guest-task-restrict", "制限酵素処理", "37℃", at(monday, 2, 14), at(monday, 2, 15, 30), "planned", null, false, false);
+  const tAgarose = task(expPlasmid.id, "guest-task-agarose", "アガロース電気泳動", null, at(monday, 2, 16, 30), at(monday, 2, 17, 30), "planned", null, false, false);
+  const tConfirm = task(expPlasmid.id, "guest-task-confirm", "精製・確認", null, at(monday, 2, 17, 30), at(monday, 2, 18, 30), "planned", null, false, false);
+
+  const tasks = [
+    tPre, tMain, tWait, tIptg, tHarvest, tSonic, tNinta, tSds, tResult,
+    tMini, tRestrict, tAgarose, tConfirm,
+  ];
 
   // ---- 依存関係チェーン ----
   const dep = (
@@ -220,6 +230,9 @@ export function buildGuestDemo(nowMs: number = Date.now()): GuestSnapshot {
     dep(tSonic.id, tNinta.id, 0),
     dep(tNinta.id, tSds.id, 0),
     dep(tSds.id, tResult.id, 0),
+    dep(tMini.id, tRestrict.id, 0),
+    dep(tRestrict.id, tAgarose.id, 60), // 制限酵素処理→泳動（反応時間）
+    dep(tAgarose.id, tConfirm.id, 0),
   ];
 
   // ---- 今日の ToDo ----
