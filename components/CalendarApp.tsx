@@ -78,7 +78,7 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
   } = useGuest();
   const addTodo = useAddTodo();
 
-  const [view, setView] = useState<ViewMode>("week");
+  const [view, setViewState] = useState<ViewMode>("week");
   // ログイン直後、ゲスト中に作った予定/ToDoを引き継いだ件数
   const [migrated, setMigrated] = useState<number | null>(null);
   const [refMs, setRefMs] = useState<number>(() => nowMs());
@@ -99,6 +99,23 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
   const [visibleDays, setVisibleDays] = useState(7);
 
   const SIDEBAR_KEY = "labocale.sidebarOpen";
+  const VIEW_KEY = "labocale.view";
+
+  // 表示モード（日/週/月）を localStorage に保存し、次回アクセス時も復元する
+  const setView = (value: ViewMode) => {
+    setViewState(value);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(VIEW_KEY, value);
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem(VIEW_KEY);
+    if (stored === "day" || stored === "week" || stored === "month") {
+      setViewState(stored);
+    }
+  }, []);
 
   // サイドバーの開閉状態を localStorage に保存し「固定表示」を維持する
   const setSidebarOpen = (
