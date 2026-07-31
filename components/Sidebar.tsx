@@ -28,7 +28,6 @@ import {
   Pencil,
   Trash2,
   Archive,
-  Info,
   Sprout,
   LayoutGrid,
   Settings,
@@ -426,15 +425,7 @@ export function Sidebar({
 
         {/* 今日の ToDo */}
         <div className="mb-1 mt-6 flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <h2 className="text-xs font-semibold text-gray-500">今日のToDo</h2>
-            <span
-              title="完了したToDoは、完了から1日経つとこの一覧から自動的に非表示になります。プロフィール画面の「完了したToDo」でいつでも確認・未完了に戻せます。"
-              className="text-gray-300 hover:text-gray-500"
-            >
-              <Info className="h-3.5 w-3.5" />
-            </span>
-          </div>
+          <h2 className="text-xs font-semibold text-gray-500">今日のToDo</h2>
           <span className="text-xs text-gray-400">
             {doneCount}/{visibleTodos.length}
           </span>
