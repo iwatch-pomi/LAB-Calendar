@@ -5,8 +5,11 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { guestStore } from "@/lib/guestStore";
 
 interface GuestContextValue {
@@ -61,6 +64,49 @@ export function GuestProvider({
     setAuthOpen(true);
   }, []);
   const closeAuth = useCallback(() => setAuthOpen(false), []);
+
+  // サーバーが描画した認証状態(isGuest)とブラウザが持つセッションのズレを直す。
+  // OAuth から戻った直後（特に既にGoogleにログイン済みで即座に戻ってくる場合）、
+  // サーバー描画が「未ログイン」のままになることがあり、手動でリロードするまで
+  // ゲスト表示が残ってしまう。ズレを検知したら router.refresh() で描画し直す。
+  const router = useRouter();
+  const syncedFor = useRef<boolean | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    let cancelled = false;
+
+    const reconcile = (hasSession: boolean) => {
+      if (cancelled) return;
+      // hasSession と isGuest が同じ値 = サーバー描画とブラウザの認識がズレている
+      if (hasSession !== isGuest) return;
+      // 同じ状態に対して繰り返し refresh しない（ループ防止）
+      if (syncedFor.current === isGuest) return;
+      syncedFor.current = isGuest;
+      router.refresh();
+    };
+
+    // URLのハッシュにトークンが載って戻るケースもここで拾える
+    supabase.auth.getSession().then(({ data }) => reconcile(!!data.session));
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) =>
+      reconcile(!!session),
+    );
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, [isGuest, router]);
+
+  // ログインが反映されたら、ゲスト向けのモーダルは閉じる
+  useEffect(() => {
+    if (isGuest) return;
+    setAuthOpen(false);
+    setPromptOpen(false);
+    setDemoNoticeOpen(false);
+  }, [isGuest]);
 
   useEffect(() => {
     if (!isGuest) return;
