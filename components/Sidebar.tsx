@@ -29,6 +29,8 @@ import {
   Trash2,
   Archive,
   Info,
+  Share2,
+  Users,
   Sprout,
   LayoutGrid,
   Settings,
@@ -413,6 +415,28 @@ export function Sidebar({
             <Plus className="h-4 w-4" />
             カレンダーを追加
           </button>
+        )}
+
+        {/* 共有・研究室（ログイン時のみ。ゲストはアカウント機能を使えない） */}
+        {!isGuest && (
+          <div className="mt-4 space-y-0.5">
+            <Link
+              href="/shared"
+              title="カレンダーを共有して進捗を報告する"
+              className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-gray-600 transition hover:bg-brand-50 hover:text-brand-700"
+            >
+              <Share2 className="h-4 w-4 text-brand-600" />
+              カレンダーを共有
+            </Link>
+            <Link
+              href="/lab"
+              title="研究室のメンバーを管理する"
+              className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-gray-600 transition hover:bg-brand-50 hover:text-brand-700"
+            >
+              <Users className="h-4 w-4 text-brand-600" />
+              研究室
+            </Link>
+          </div>
         )}
 
         {/* 継代培養を管理（生物実験モードON時のみ） */}
