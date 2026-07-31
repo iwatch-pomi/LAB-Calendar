@@ -42,7 +42,9 @@ export async function updateSession(request: NextRequest) {
   const isProtectedRoute =
     pathname.startsWith("/profile") ||
     pathname.startsWith("/culture") ||
-    pathname.startsWith("/archive");
+    pathname.startsWith("/archive") ||
+    pathname.startsWith("/lab") ||
+    pathname.startsWith("/shared");
 
   // 未ログインで保護ページ → カレンダーへ戻し、ログインモーダルを開く
   if (!user && isProtectedRoute) {
