@@ -28,6 +28,7 @@ import {
   Pencil,
   Trash2,
   Archive,
+  Info,
   Sprout,
   LayoutGrid,
   Settings,
@@ -113,6 +114,9 @@ export function Sidebar({
       deleteExperiment.mutate(exp.id);
     }
   }
+
+  // 「今日のToDo」見出し横の説明ポップオーバー（クリックで開閉）
+  const [todoInfoOpen, setTodoInfoOpen] = useState(false);
 
   // 編集中の ToDo
   const [editId, setEditId] = useState<string | null>(null);
@@ -425,7 +429,29 @@ export function Sidebar({
 
         {/* 今日の ToDo */}
         <div className="mb-1 mt-6 flex items-center justify-between">
-          <h2 className="text-xs font-semibold text-gray-500">今日のToDo</h2>
+          <div className="relative flex items-center gap-1">
+            <h2 className="text-xs font-semibold text-gray-500">今日のToDo</h2>
+            <button
+              type="button"
+              onClick={() => setTodoInfoOpen((v) => !v)}
+              title="説明を表示"
+              className="relative z-50 text-gray-300 transition hover:text-gray-500"
+            >
+              <Info className="h-3.5 w-3.5" />
+            </button>
+            {todoInfoOpen && (
+              <>
+                {/* 背景クリックで閉じる */}
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setTodoInfoOpen(false)}
+                />
+                <div className="absolute left-0 top-full z-50 mt-1.5 w-64 rounded-lg border border-gray-200 bg-white p-2.5 text-xs leading-relaxed text-gray-600 shadow-lg">
+                  完了したToDoは、完了から1日経つとこの一覧から自動的に非表示になります。プロフィール画面の「完了したToDo」でいつでも確認・未完了に戻せます。
+                </div>
+              </>
+            )}
+          </div>
           <span className="text-xs text-gray-400">
             {doneCount}/{visibleTodos.length}
           </span>
