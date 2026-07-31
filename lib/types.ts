@@ -167,6 +167,82 @@ export interface CultureMedium {
   created_at: string;
 }
 
+// ---------------- 共有・研究室（マルチユーザー） ----------------
+
+/** 研究室での役割。owner/staff は所属メンバーのカレンダーを閲覧できる。 */
+export type LabRole = "owner" | "staff" | "student";
+
+/** 共有の範囲: アカウント全体 / 特定の実験だけ */
+export type ShareScope = "all" | "experiment";
+
+/** 共有された相手ができること */
+export type SharePermission = "view" | "comment";
+
+/** 研究室 */
+export interface Lab {
+  id: string;
+  owner_id: string;
+  name: string;
+  invite_code: string; // 学生が参加するときの合言葉
+  created_at: string;
+}
+
+/** 研究室への所属 */
+export interface LabMember {
+  id: string;
+  lab_id: string;
+  user_id: string;
+  role: LabRole;
+  share_calendar: boolean; // 自分の予定を研究室に見せるか（学生が停止できる）
+  joined_at: string;
+}
+
+/** カレンダーの共有（個人あて or 研究室あて） */
+export interface CalendarShare {
+  id: string;
+  owner_id: string; // カレンダーの持ち主
+  grantee_user_id: string | null; // 個人あてのとき
+  grantee_lab_id: string | null; // 研究室あてのとき
+  scope: ShareScope;
+  experiment_id: string | null; // scope="experiment" のとき
+  permission: SharePermission;
+  created_at: string;
+}
+
+/** 相手がまだ登録していないときのメール招待 */
+export interface ShareInvitation {
+  id: string;
+  owner_id: string;
+  email: string;
+  scope: ShareScope;
+  experiment_id: string | null;
+  permission: SharePermission;
+  accepted_at: string | null;
+  created_at: string;
+}
+
+/** 予定へのコメント（進捗報告のやり取り） */
+export interface TaskComment {
+  id: string;
+  task_id: string;
+  author_id: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * 名前を表示してよい相手（visible_profiles() RPC の戻り）。
+ * user_settings は共有していないので、表示に必要な列だけがここに来る。
+ */
+export interface VisibleProfile {
+  user_id: string;
+  email: string | null;
+  display_name: string | null;
+  avatar_emoji: string | null;
+  avatar_color: string | null;
+}
+
 /** 実験カラーのプリセット（淡いパステル）。hatch は待機/培養ブロックの斜線用 RGB。 */
 export const EXPERIMENT_PALETTE: Record<
   string,

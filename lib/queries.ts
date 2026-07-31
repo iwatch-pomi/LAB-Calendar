@@ -38,6 +38,22 @@ export const qk = {
   feedback: ["feedback"] as const,
 };
 
+/**
+ * ゲストとログイン後でキャッシュを分けるためのキー。
+ *
+ * 読み取りは `[...qk.tasks, "guest"|"user"]` を使うのに、ミューテーションの
+ * onMutate 側は `qk.tasks`（サフィックス無し）を読み書きしていたため、
+ * 楽観的更新が誰も見ていないキャッシュに書かれて効いていなかった。
+ * invalidateQueries は前方一致なので気付きにくいが、getQueryData /
+ * setQueryData / cancelQueries は完全一致なので必ずこれを通す。
+ */
+export function scoped<T extends readonly string[]>(
+  base: T,
+  isGuest: boolean,
+): readonly [...T, string] {
+  return [...base, isGuest ? "guest" : "user"] as const;
+}
+
 // ---------------- Queries ----------------
 // ゲスト（未ログイン）ではサーバーを見ず guestStore（localStorage）から返す。
 // 匿名のSELECTはRLSで「0件の成功」になり空表示になってしまうため。
@@ -47,7 +63,7 @@ export const qk = {
 export function useEquipment() {
   const { isGuest } = useGuest();
   return useQuery({
-    queryKey: [...qk.equipment, isGuest ? "guest" : "user"],
+    queryKey: scoped(qk.equipment, isGuest),
     queryFn: async (): Promise<Equipment[]> => {
       if (isGuest) return guestStore.equipment();
       const { data, error } = await supabase
@@ -63,7 +79,7 @@ export function useEquipment() {
 export function useTemplates() {
   const { isGuest } = useGuest();
   return useQuery({
-    queryKey: [...qk.templates, isGuest ? "guest" : "user"],
+    queryKey: scoped(qk.templates, isGuest),
     queryFn: async (): Promise<Template[]> => {
       if (isGuest) return guestStore.templates();
       const { data, error } = await supabase
@@ -79,7 +95,7 @@ export function useTemplates() {
 export function useTemplateSteps() {
   const { isGuest } = useGuest();
   return useQuery({
-    queryKey: [...qk.templateSteps, isGuest ? "guest" : "user"],
+    queryKey: scoped(qk.templateSteps, isGuest),
     queryFn: async (): Promise<TemplateStep[]> => {
       if (isGuest) return guestStore.templateSteps();
       const { data, error } = await supabase
@@ -95,7 +111,7 @@ export function useTemplateSteps() {
 export function useExperiments() {
   const { isGuest } = useGuest();
   return useQuery({
-    queryKey: [...qk.experiments, isGuest ? "guest" : "user"],
+    queryKey: scoped(qk.experiments, isGuest),
     queryFn: async (): Promise<Experiment[]> => {
       if (isGuest) return guestStore.experiments();
       const { data, error } = await supabase
@@ -111,7 +127,7 @@ export function useExperiments() {
 export function useTasks() {
   const { isGuest } = useGuest();
   return useQuery({
-    queryKey: [...qk.tasks, isGuest ? "guest" : "user"],
+    queryKey: scoped(qk.tasks, isGuest),
     queryFn: async (): Promise<Task[]> => {
       if (isGuest) return guestStore.tasks();
       const { data, error } = await supabase
@@ -127,7 +143,7 @@ export function useTasks() {
 export function useDependencies() {
   const { isGuest } = useGuest();
   return useQuery({
-    queryKey: [...qk.deps, isGuest ? "guest" : "user"],
+    queryKey: scoped(qk.deps, isGuest),
     queryFn: async (): Promise<TaskDependency[]> => {
       if (isGuest) return guestStore.deps();
       const { data, error } = await supabase
@@ -142,7 +158,7 @@ export function useDependencies() {
 export function useTodos() {
   const { isGuest } = useGuest();
   return useQuery({
-    queryKey: [...qk.todos, isGuest ? "guest" : "user"],
+    queryKey: scoped(qk.todos, isGuest),
     queryFn: async (): Promise<Todo[]> => {
       if (isGuest) return guestStore.todos();
       const { data, error } = await supabase
@@ -166,15 +182,15 @@ export function useDeleteTemplate() {
     },
     onMutate: async (id) => {
       if (isGuest) return {};
-      await qc.cancelQueries({ queryKey: qk.templates });
-      const prev = qc.getQueryData<Template[]>(qk.templates);
-      qc.setQueryData<Template[]>(qk.templates, (old) =>
+      await qc.cancelQueries({ queryKey: scoped(qk.templates, isGuest) });
+      const prev = qc.getQueryData<Template[]>(scoped(qk.templates, isGuest));
+      qc.setQueryData<Template[]>(scoped(qk.templates, isGuest), (old) =>
         (old ?? []).filter((t) => t.id !== id),
       );
       return { prev };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(qk.templates, ctx.prev);
+      if (ctx?.prev) qc.setQueryData(scoped(qk.templates, isGuest), ctx.prev);
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.templates });
@@ -186,7 +202,7 @@ export function useDeleteTemplate() {
 export function useSettings() {
   const { isGuest } = useGuest();
   return useQuery({
-    queryKey: [...qk.settings, isGuest ? "guest" : "user"],
+    queryKey: scoped(qk.settings, isGuest),
     queryFn: async (): Promise<FeatureFlags> => {
       // ゲストは設定を保存できないので既定値。onboarded を立てて
       // オンボーディング（保存にログインが要り、閉じられない）を抑止する。
@@ -262,9 +278,9 @@ export function useMoveTask() {
       if (error) throw error;
     },
     onMutate: async (args) => {
-      await qc.cancelQueries({ queryKey: qk.tasks });
-      const prev = qc.getQueryData<Task[]>(qk.tasks);
-      qc.setQueryData<Task[]>(qk.tasks, (old) =>
+      await qc.cancelQueries({ queryKey: scoped(qk.tasks, isGuest) });
+      const prev = qc.getQueryData<Task[]>(scoped(qk.tasks, isGuest));
+      qc.setQueryData<Task[]>(scoped(qk.tasks, isGuest), (old) =>
         (old ?? []).map((t) =>
           t.id === args.id
             ? { ...t, start_time: args.start_time, end_time: args.end_time }
@@ -274,7 +290,7 @@ export function useMoveTask() {
       return { prev };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(qk.tasks, ctx.prev);
+      if (ctx?.prev) qc.setQueryData(scoped(qk.tasks, isGuest), ctx.prev);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: qk.tasks }),
   });
@@ -295,16 +311,16 @@ export function useUpdateTask() {
       if (error) throw error;
     },
     onMutate: async (args) => {
-      await qc.cancelQueries({ queryKey: qk.tasks });
-      const prev = qc.getQueryData<Task[]>(qk.tasks);
+      await qc.cancelQueries({ queryKey: scoped(qk.tasks, isGuest) });
+      const prev = qc.getQueryData<Task[]>(scoped(qk.tasks, isGuest));
       const { id, ...patch } = args;
-      qc.setQueryData<Task[]>(qk.tasks, (old) =>
+      qc.setQueryData<Task[]>(scoped(qk.tasks, isGuest), (old) =>
         (old ?? []).map((t) => (t.id === id ? { ...t, ...patch } : t)),
       );
       return { prev };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(qk.tasks, ctx.prev);
+      if (ctx?.prev) qc.setQueryData(scoped(qk.tasks, isGuest), ctx.prev);
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.tasks });
@@ -395,10 +411,10 @@ export function useToggleTodo() {
       if (error) throw error;
     },
     onMutate: async (args) => {
-      await qc.cancelQueries({ queryKey: qk.todos });
-      const prev = qc.getQueryData<Todo[]>(qk.todos);
+      await qc.cancelQueries({ queryKey: scoped(qk.todos, isGuest) });
+      const prev = qc.getQueryData<Todo[]>(scoped(qk.todos, isGuest));
       const completed_at = args.done ? new Date().toISOString() : null;
-      qc.setQueryData<Todo[]>(qk.todos, (old) =>
+      qc.setQueryData<Todo[]>(scoped(qk.todos, isGuest), (old) =>
         (old ?? []).map((t) =>
           t.id === args.id ? { ...t, done: args.done, completed_at } : t,
         ),
@@ -406,7 +422,7 @@ export function useToggleTodo() {
       return { prev };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(qk.todos, ctx.prev);
+      if (ctx?.prev) qc.setQueryData(scoped(qk.todos, isGuest), ctx.prev);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: qk.todos }),
   });
@@ -433,21 +449,22 @@ export function useAddEquipment() {
 
 export function useDeleteEquipment() {
   const qc = useQueryClient();
+  const { isGuest } = useGuest();
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("equipment").delete().eq("id", id);
       if (error) throw error;
     },
     onMutate: async (id) => {
-      await qc.cancelQueries({ queryKey: qk.equipment });
-      const prev = qc.getQueryData<Equipment[]>(qk.equipment);
-      qc.setQueryData<Equipment[]>(qk.equipment, (old) =>
+      await qc.cancelQueries({ queryKey: scoped(qk.equipment, isGuest) });
+      const prev = qc.getQueryData<Equipment[]>(scoped(qk.equipment, isGuest));
+      qc.setQueryData<Equipment[]>(scoped(qk.equipment, isGuest), (old) =>
         (old ?? []).filter((e) => e.id !== id),
       );
       return { prev };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(qk.equipment, ctx.prev);
+      if (ctx?.prev) qc.setQueryData(scoped(qk.equipment, isGuest), ctx.prev);
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.equipment });
@@ -524,16 +541,16 @@ export function useUpdateExperiment() {
     },
     onMutate: async (args) => {
       if (isGuest) return {};
-      await qc.cancelQueries({ queryKey: qk.experiments });
-      const prev = qc.getQueryData<Experiment[]>(qk.experiments);
+      await qc.cancelQueries({ queryKey: scoped(qk.experiments, isGuest) });
+      const prev = qc.getQueryData<Experiment[]>(scoped(qk.experiments, isGuest));
       const { id, ...patch } = args;
-      qc.setQueryData<Experiment[]>(qk.experiments, (old) =>
+      qc.setQueryData<Experiment[]>(scoped(qk.experiments, isGuest), (old) =>
         (old ?? []).map((e) => (e.id === id ? { ...e, ...patch } : e)),
       );
       return { prev };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(qk.experiments, ctx.prev);
+      if (ctx?.prev) qc.setQueryData(scoped(qk.experiments, isGuest), ctx.prev);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: qk.experiments }),
   });
@@ -553,15 +570,15 @@ export function useDeleteExperiment() {
     },
     onMutate: async (id) => {
       if (isGuest) return {};
-      await qc.cancelQueries({ queryKey: qk.experiments });
-      const prev = qc.getQueryData<Experiment[]>(qk.experiments);
-      qc.setQueryData<Experiment[]>(qk.experiments, (old) =>
+      await qc.cancelQueries({ queryKey: scoped(qk.experiments, isGuest) });
+      const prev = qc.getQueryData<Experiment[]>(scoped(qk.experiments, isGuest));
+      qc.setQueryData<Experiment[]>(scoped(qk.experiments, isGuest), (old) =>
         (old ?? []).filter((e) => e.id !== id),
       );
       return { prev };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(qk.experiments, ctx.prev);
+      if (ctx?.prev) qc.setQueryData(scoped(qk.experiments, isGuest), ctx.prev);
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: qk.experiments });
@@ -594,16 +611,16 @@ export function useUpdateTodo() {
       if (error) throw error;
     },
     onMutate: async (args) => {
-      await qc.cancelQueries({ queryKey: qk.todos });
-      const prev = qc.getQueryData<Todo[]>(qk.todos);
+      await qc.cancelQueries({ queryKey: scoped(qk.todos, isGuest) });
+      const prev = qc.getQueryData<Todo[]>(scoped(qk.todos, isGuest));
       const { id, ...patch } = args;
-      qc.setQueryData<Todo[]>(qk.todos, (old) =>
+      qc.setQueryData<Todo[]>(scoped(qk.todos, isGuest), (old) =>
         (old ?? []).map((t) => (t.id === id ? { ...t, ...patch } : t)),
       );
       return { prev };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(qk.todos, ctx.prev);
+      if (ctx?.prev) qc.setQueryData(scoped(qk.todos, isGuest), ctx.prev);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: qk.todos }),
   });
@@ -623,15 +640,15 @@ export function useDeleteTodo() {
       if (error) throw error;
     },
     onMutate: async (id) => {
-      await qc.cancelQueries({ queryKey: qk.todos });
-      const prev = qc.getQueryData<Todo[]>(qk.todos);
-      qc.setQueryData<Todo[]>(qk.todos, (old) =>
+      await qc.cancelQueries({ queryKey: scoped(qk.todos, isGuest) });
+      const prev = qc.getQueryData<Todo[]>(scoped(qk.todos, isGuest));
+      qc.setQueryData<Todo[]>(scoped(qk.todos, isGuest), (old) =>
         (old ?? []).filter((t) => t.id !== id),
       );
       return { prev };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(qk.todos, ctx.prev);
+      if (ctx?.prev) qc.setQueryData(scoped(qk.todos, isGuest), ctx.prev);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: qk.todos }),
   });
@@ -673,6 +690,7 @@ export function useUpdateProfile() {
 
 export function useUpdateFeature() {
   const qc = useQueryClient();
+  const { isGuest } = useGuest();
   return useMutation({
     mutationFn: async (args: {
       key: keyof FeatureFlags;
@@ -682,7 +700,7 @@ export function useUpdateFeature() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) throw new Error("not authenticated");
-      const current = qc.getQueryData<FeatureFlags>(qk.settings) ?? {};
+      const current = qc.getQueryData<FeatureFlags>(scoped(qk.settings, isGuest)) ?? {};
       const features = { ...current, [args.key]: args.value };
       const { error } = await supabase.from("user_settings").upsert({
         user_id: user.id,
@@ -692,16 +710,16 @@ export function useUpdateFeature() {
       if (error) throw error;
     },
     onMutate: async (args) => {
-      await qc.cancelQueries({ queryKey: qk.settings });
-      const prev = qc.getQueryData<FeatureFlags>(qk.settings);
-      qc.setQueryData<FeatureFlags>(qk.settings, (old) => ({
+      await qc.cancelQueries({ queryKey: scoped(qk.settings, isGuest) });
+      const prev = qc.getQueryData<FeatureFlags>(scoped(qk.settings, isGuest));
+      qc.setQueryData<FeatureFlags>(scoped(qk.settings, isGuest), (old) => ({
         ...(old ?? {}),
         [args.key]: args.value,
       }));
       return { prev };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(qk.settings, ctx.prev);
+      if (ctx?.prev) qc.setQueryData(scoped(qk.settings, isGuest), ctx.prev);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: qk.settings }),
   });
@@ -718,7 +736,7 @@ export function useUpdateFeatures() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) throw new Error("not authenticated");
-      const current = qc.getQueryData<FeatureFlags>(qk.settings) ?? {};
+      const current = qc.getQueryData<FeatureFlags>(scoped(qk.settings, isGuest)) ?? {};
       const features = { ...current, ...partial };
       const { error } = await supabase.from("user_settings").upsert({
         user_id: user.id,
@@ -728,16 +746,16 @@ export function useUpdateFeatures() {
       if (error) throw error;
     },
     onMutate: async (partial) => {
-      await qc.cancelQueries({ queryKey: qk.settings });
-      const prev = qc.getQueryData<FeatureFlags>(qk.settings);
-      qc.setQueryData<FeatureFlags>(qk.settings, (old) => ({
+      await qc.cancelQueries({ queryKey: scoped(qk.settings, isGuest) });
+      const prev = qc.getQueryData<FeatureFlags>(scoped(qk.settings, isGuest));
+      qc.setQueryData<FeatureFlags>(scoped(qk.settings, isGuest), (old) => ({
         ...(old ?? {}),
         ...partial,
       }));
       return { prev };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(qk.settings, ctx.prev);
+      if (ctx?.prev) qc.setQueryData(scoped(qk.settings, isGuest), ctx.prev);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: qk.settings }),
   });
