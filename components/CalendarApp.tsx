@@ -36,6 +36,7 @@ import { DemoNoticeModal } from "./DemoNoticeModal";
 import { AuthModal } from "./auth/AuthModal";
 import { GuestBanner, MigratedBanner } from "./GuestBanner";
 import { guestStore } from "@/lib/guestStore";
+import { useClaimInvitations } from "@/lib/sharedQueries";
 
 export type ViewMode = "day" | "week" | "month";
 
@@ -80,6 +81,7 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
     closeAuth,
   } = useGuest();
   const addTodo = useAddTodo();
+  const claimInvitations = useClaimInvitations();
 
   const [view, setViewState] = useState<ViewMode>("week");
   // ログイン直後、ゲスト中に作った予定/ToDoを引き継いだ件数
@@ -267,6 +269,15 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
 
   // ログイン直後: ゲスト中にブラウザへ作った予定/ToDoをアカウントへ引き継ぐ。
   // 対象はユーザーが自分で作成/変更した分のみ（デモそのままの行は含めない）。
+  // ログイン後: 自分のメール宛に届いていた共有の招待を実際の共有に変える。
+  // （相手が「まだ登録していない人」に共有したときは招待として積まれている）
+  const claimRan = useRef(false);
+  useEffect(() => {
+    if (isGuest || claimRan.current) return;
+    claimRan.current = true;
+    claimInvitations.mutate();
+  }, [isGuest, claimInvitations]);
+
   const migrateRan = useRef(false);
   useEffect(() => {
     if (isGuest || migrateRan.current) return;
