@@ -743,6 +743,28 @@ export function useUpdateFeatures() {
   });
 }
 
+/** 新規登録直後、デモデータを使う選択をしたときだけ呼ぶ（RPC は初回のみ有効） */
+export function useSeedDemoData() {
+  const qc = useQueryClient();
+  const { isGuest, requireLogin } = useGuest();
+  return useMutation({
+    mutationFn: async () => {
+      if (isGuest) return requireLogin();
+      const { error } = await supabase.rpc("seed_demo_data");
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.equipment });
+      qc.invalidateQueries({ queryKey: qk.templates });
+      qc.invalidateQueries({ queryKey: qk.templateSteps });
+      qc.invalidateQueries({ queryKey: qk.experiments });
+      qc.invalidateQueries({ queryKey: qk.tasks });
+      qc.invalidateQueries({ queryKey: qk.deps });
+      qc.invalidateQueries({ queryKey: qk.todos });
+    },
+  });
+}
+
 export function useAddCultureMedium() {
   const qc = useQueryClient();
   const { isGuest, requireLogin } = useGuest();

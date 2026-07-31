@@ -10,11 +10,13 @@ import {
   useTemplates,
   useSettings,
   useUpdateFeatures,
+  useSeedDemoData,
 } from "@/lib/queries";
 import { useCreateTask, useDeleteTask, useAddTodo } from "@/lib/queries";
 import { usePlaceTemplateAt } from "@/lib/mutations";
 import type { FeatureFlags } from "@/lib/types";
 import { Onboarding } from "./Onboarding";
+import { DemoDataChoiceModal } from "./DemoDataChoiceModal";
 import { nowMs } from "@/lib/calendar";
 import {
   DEFAULT_WORK_START_HOUR,
@@ -67,6 +69,7 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
   const placeTemplate = usePlaceTemplateAt();
   const settingsQ = useSettings();
   const updateFeatures = useUpdateFeatures();
+  const seedDemo = useSeedDemoData();
   const {
     isGuest,
     promptOpen,
@@ -236,10 +239,27 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
       ? settingsQ.data.work_end_hour
       : DEFAULT_WORK_END_HOUR;
 
+  // 新規登録直後（実験が1件も無い）は、まずデモデータを使うか確認する。
+  // 回答が済むまでは分野選択のオンボーディングを出さない。
+  const showDemoChoice =
+    !isGuest &&
+    settingsQ.isSuccess &&
+    experimentsQ.isSuccess &&
+    experiments.length === 0 &&
+    !settingsQ.data?.demo_seed_asked;
+
+  function chooseDemo(useDemo: boolean) {
+    if (useDemo) seedDemo.mutate();
+    updateFeatures.mutate({ demo_seed_asked: true });
+  }
+
   // 初回起動: 設定が読み込めて未オンボーディングなら分野選択を表示。
   // ゲストは設定を保存できず overlay を閉じられなくなるため出さない。
   const showOnboarding =
-    !isGuest && settingsQ.isSuccess && !settingsQ.data?.onboarded;
+    !isGuest &&
+    !showDemoChoice &&
+    settingsQ.isSuccess &&
+    !settingsQ.data?.onboarded;
 
   function completeOnboarding(flags: FeatureFlags) {
     updateFeatures.mutate(flags);
@@ -294,6 +314,13 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f6f8fa]">
+      {showDemoChoice && (
+        <DemoDataChoiceModal
+          onKeep={() => chooseDemo(true)}
+          onSkip={() => chooseDemo(false)}
+          saving={seedDemo.isPending || updateFeatures.isPending}
+        />
+      )}
       {showOnboarding && (
         <Onboarding
           onComplete={completeOnboarding}

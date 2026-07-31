@@ -13,13 +13,7 @@ export default async function HomePage() {
     return <CalendarApp userEmail="" isGuest />;
   }
 
-  // 初回ログイン: 実験が無ければデモデータを投入
-  const { count } = await supabase
-    .from("experiments")
-    .select("id", { count: "exact", head: true });
-  if ((count ?? 0) === 0) {
-    await supabase.rpc("seed_demo_data");
-  }
-
+  // 初回ログイン時にデモデータを使うかどうかは、クライアント側で
+  // ユーザーに確認してから決める（DemoDataChoiceModal）。
   return <CalendarApp userEmail={user.email ?? ""} />;
 }
