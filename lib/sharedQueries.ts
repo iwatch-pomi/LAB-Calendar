@@ -165,6 +165,27 @@ export function useLeaveLab() {
   });
 }
 
+/**
+ * 研究室そのものを削除する（主宰のみ。labs_write ポリシーが owner_id を
+ * 検証する）。lab_members / 研究室あての calendar_shares は
+ * on delete cascade で一緒に消える。
+ */
+export function useDeleteLab() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (labId: string) => {
+      const { error } = await supabase.from("labs").delete().eq("id", labId);
+      if (error) throw error;
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: sqk.labs });
+      qc.invalidateQueries({ queryKey: ["shared", "lab_members"] });
+      qc.invalidateQueries({ queryKey: sqk.profiles });
+      qc.invalidateQueries({ queryKey: sqk.incomingShares });
+    },
+  });
+}
+
 // ---------------- 共有 ----------------
 
 /** ログイン中のユーザーID */

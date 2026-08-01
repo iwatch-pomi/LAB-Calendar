@@ -9,6 +9,7 @@ import {
   useJoinLab,
   useSetLabShare,
   useLeaveLab,
+  useDeleteLab,
   useVisibleProfiles,
   useMyUserId,
   profileLabel,
@@ -25,6 +26,7 @@ import {
   EyeOff,
   UserMinus,
   CalendarDays,
+  Trash2,
 } from "lucide-react";
 
 /**
@@ -59,6 +61,7 @@ export function LabManager({ userEmail }: { userEmail: string }) {
   const joinLab = useJoinLab();
   const setShare = useSetLabShare();
   const leaveLab = useLeaveLab();
+  const deleteLab = useDeleteLab();
 
   const labs = labsQ.data ?? [];
   const me = meQ.data ?? null;
@@ -112,6 +115,23 @@ export function LabManager({ userEmail }: { userEmail: string }) {
       setError(
         `参加できませんでした。参加コードをご確認ください。${detail(e)}`,
       );
+    }
+  }
+
+  async function requestDeleteLab() {
+    if (!lab) return;
+    if (
+      !confirm(
+        `「${lab.name}」を削除しますか？\nメンバー全員がこの研究室から外れ、この研究室宛ての共有も解除されます。この操作は取り消せません。`,
+      )
+    )
+      return;
+    setError(null);
+    try {
+      await deleteLab.mutateAsync(lab.id);
+      setSelectedLab(null);
+    } catch (e) {
+      setError(`研究室を削除できませんでした。${detail(e)}`);
     }
   }
 
@@ -257,22 +277,35 @@ export function LabManager({ userEmail }: { userEmail: string }) {
                 </h2>
                 <span className="text-xs text-gray-400">{members.length}人</span>
               </div>
-              {iManage && (
-                <button
-                  onClick={copyCode}
-                  className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 transition hover:bg-gray-50"
-                >
-                  {copied ? (
-                    <Check className="h-3.5 w-3.5 text-brand-600" />
-                  ) : (
-                    <Copy className="h-3.5 w-3.5" />
-                  )}
-                  参加コード:{" "}
-                  <span className="font-mono tracking-widest">
-                    {lab.invite_code}
-                  </span>
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {iManage && (
+                  <button
+                    onClick={copyCode}
+                    className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 transition hover:bg-gray-50"
+                  >
+                    {copied ? (
+                      <Check className="h-3.5 w-3.5 text-brand-600" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" />
+                    )}
+                    参加コード:{" "}
+                    <span className="font-mono tracking-widest">
+                      {lab.invite_code}
+                    </span>
+                  </button>
+                )}
+                {myMembership?.role === "owner" && (
+                  <button
+                    onClick={requestDeleteLab}
+                    disabled={deleteLab.isPending}
+                    title="研究室を削除する"
+                    className="flex shrink-0 items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    削除
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="space-y-1.5">
