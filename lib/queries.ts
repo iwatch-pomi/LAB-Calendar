@@ -54,6 +54,20 @@ export function scoped<T extends readonly string[]>(
   return [...base, isGuest ? "guest" : "user"] as const;
 }
 
+/**
+ * 自分の行だけを取るための user_id。
+ *
+ * 共有機能で experiments / tasks / task_dependencies / todos / equipment の
+ * SELECT が「共有された他人の行」まで広がったため、メイン画面の読み取りは
+ * RLS 任せにできない。RLS は「見せてよい範囲」、こちらは「この画面で見たい
+ * 範囲」で別物なので明示的に絞る。
+ * getSession() はローカルのクッキー読みなので毎クエリ呼んでも安い。
+ */
+async function currentUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user?.id ?? null;
+}
+
 // ---------------- Queries ----------------
 // ゲスト（未ログイン）ではサーバーを見ず guestStore（localStorage）から返す。
 // 匿名のSELECTはRLSで「0件の成功」になり空表示になってしまうため。
@@ -66,9 +80,12 @@ export function useEquipment() {
     queryKey: scoped(qk.equipment, isGuest),
     queryFn: async (): Promise<Equipment[]> => {
       if (isGuest) return guestStore.equipment();
+      const uid = await currentUserId();
+      if (!uid) return [];
       const { data, error } = await supabase
         .from("equipment")
         .select("*")
+        .eq("user_id", uid)
         .order("created_at");
       if (error) throw error;
       return data ?? [];
@@ -114,9 +131,12 @@ export function useExperiments() {
     queryKey: scoped(qk.experiments, isGuest),
     queryFn: async (): Promise<Experiment[]> => {
       if (isGuest) return guestStore.experiments();
+      const uid = await currentUserId();
+      if (!uid) return [];
       const { data, error } = await supabase
         .from("experiments")
         .select("*")
+        .eq("user_id", uid)
         .order("created_at");
       if (error) throw error;
       return data ?? [];
@@ -130,9 +150,12 @@ export function useTasks() {
     queryKey: scoped(qk.tasks, isGuest),
     queryFn: async (): Promise<Task[]> => {
       if (isGuest) return guestStore.tasks();
+      const uid = await currentUserId();
+      if (!uid) return [];
       const { data, error } = await supabase
         .from("tasks")
         .select("*")
+        .eq("user_id", uid)
         .order("start_time");
       if (error) throw error;
       return data ?? [];
@@ -146,9 +169,12 @@ export function useDependencies() {
     queryKey: scoped(qk.deps, isGuest),
     queryFn: async (): Promise<TaskDependency[]> => {
       if (isGuest) return guestStore.deps();
+      const uid = await currentUserId();
+      if (!uid) return [];
       const { data, error } = await supabase
         .from("task_dependencies")
-        .select("*");
+        .select("*")
+        .eq("user_id", uid);
       if (error) throw error;
       return data ?? [];
     },
@@ -161,9 +187,12 @@ export function useTodos() {
     queryKey: scoped(qk.todos, isGuest),
     queryFn: async (): Promise<Todo[]> => {
       if (isGuest) return guestStore.todos();
+      const uid = await currentUserId();
+      if (!uid) return [];
       const { data, error } = await supabase
         .from("todos")
         .select("*")
+        .eq("user_id", uid)
         .order("sort_order");
       if (error) throw error;
       return data ?? [];

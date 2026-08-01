@@ -156,6 +156,54 @@ export function SharedManager({ userEmail }: { userEmail: string }) {
           </p>
         </div>
 
+        {/* 自分が見られるカレンダー（教授が学生の予定を見に来る主目的なので先頭に置く） */}
+        <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
+          <div className="mb-3 flex items-center gap-1.5">
+            <Inbox className="h-4 w-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-700">
+              自分が見られるカレンダー
+            </h2>
+            <span className="text-xs text-gray-400">{incoming.length}</span>
+          </div>
+
+          {incomingQ.isLoading ? (
+            <p className="py-3 text-center text-xs text-gray-400">読み込み中…</p>
+          ) : incoming.length === 0 ? (
+            <p className="py-3 text-center text-xs text-gray-400">
+              共有されているカレンダーはありません。
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              {incoming.map((ownerId) => {
+                const label = profileById.get(ownerId) ?? "不明なユーザー";
+                const pal = paletteFor(PALETTE_KEYS[0]);
+                return (
+                  <div
+                    key={ownerId}
+                    className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/60 p-2.5"
+                  >
+                    <span
+                      className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold ${pal.bg} ${pal.text}`}
+                    >
+                      {(label[0] ?? "?").toUpperCase()}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-700">
+                      {label}
+                    </span>
+                    <Link
+                      href={`/shared/${ownerId}`}
+                      className="flex shrink-0 items-center gap-1 rounded-lg bg-brand-500 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-brand-600"
+                    >
+                      <CalendarDays className="h-3.5 w-3.5" />
+                      開く
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
         {/* 共有する */}
         <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
           <div className="mb-3 flex items-center gap-1.5">
@@ -342,53 +390,6 @@ export function SharedManager({ userEmail }: { userEmail: string }) {
           )}
         </section>
 
-        {/* 自分が見られるカレンダー */}
-        <section className="rounded-2xl border border-gray-200 bg-white p-4">
-          <div className="mb-3 flex items-center gap-1.5">
-            <Inbox className="h-4 w-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-700">
-              自分が見られるカレンダー
-            </h2>
-            <span className="text-xs text-gray-400">{incoming.length}</span>
-          </div>
-
-          {incomingQ.isLoading ? (
-            <p className="py-3 text-center text-xs text-gray-400">読み込み中…</p>
-          ) : incoming.length === 0 ? (
-            <p className="py-3 text-center text-xs text-gray-400">
-              共有されているカレンダーはありません。
-            </p>
-          ) : (
-            <div className="space-y-1.5">
-              {incoming.map((ownerId) => {
-                const label = profileById.get(ownerId) ?? "不明なユーザー";
-                const pal = paletteFor(PALETTE_KEYS[0]);
-                return (
-                  <div
-                    key={ownerId}
-                    className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/60 p-2.5"
-                  >
-                    <span
-                      className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold ${pal.bg} ${pal.text}`}
-                    >
-                      {(label[0] ?? "?").toUpperCase()}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-700">
-                      {label}
-                    </span>
-                    <Link
-                      href={`/shared/${ownerId}`}
-                      className="flex shrink-0 items-center gap-1 rounded-lg bg-brand-500 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-brand-600"
-                    >
-                      <CalendarDays className="h-3.5 w-3.5" />
-                      開く
-                    </Link>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
       </main>
     </div>
   );

@@ -44,8 +44,15 @@ export function useCreateExperimentFromTemplate() {
             .select("*")
             .eq("template_id", args.templateId)
             .order("step_order"),
-          supabase.from("equipment").select("*"),
-          supabase.from("tasks").select("*").not("equipment_id", "is", null),
+          // 共有でRLSのSELECTが広がったので、自分の行だけを明示的に絞る。
+          // 他人の装置を name で拾うと自分の装置が作られず、他人の
+          // equipment_id を挿入して with check に弾かれる。
+          supabase.from("equipment").select("*").eq("user_id", userId),
+          supabase
+            .from("tasks")
+            .select("*")
+            .eq("user_id", userId)
+            .not("equipment_id", "is", null),
         ]);
       if (!tpl) throw new Error("template not found");
       const templateSteps = (steps ?? []) as TemplateStep[];
@@ -167,7 +174,8 @@ export function usePlaceTemplateAt() {
             .select("*")
             .eq("template_id", args.templateId)
             .order("step_order"),
-          supabase.from("equipment").select("*"),
+          // 上と同じ理由で自分の装置だけに絞る
+          supabase.from("equipment").select("*").eq("user_id", userId),
         ]);
       if (!tpl) throw new Error("template not found");
       const templateSteps = ((steps ?? []) as TemplateStep[]).slice().sort(
