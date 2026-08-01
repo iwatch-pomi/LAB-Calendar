@@ -27,6 +27,19 @@ import {
   CalendarDays,
 } from "lucide-react";
 
+/**
+ * 失敗の理由を画面に出すための補助。
+ * 「作成できませんでした」だけだと、SQL の未適用なのか権限なのか
+ * 区別が付かず調べようがないので、サーバーからのメッセージを添える。
+ */
+function detail(e: unknown): string {
+  const msg =
+    typeof e === "object" && e !== null && "message" in e
+      ? String((e as { message: unknown }).message)
+      : "";
+  return msg ? `（${msg}）` : "";
+}
+
 const ROLE_LABEL: Record<LabRole, string> = {
   owner: "主宰",
   staff: "スタッフ",
@@ -81,8 +94,8 @@ export function LabManager({ userEmail }: { userEmail: string }) {
       const id = await createLab.mutateAsync(name);
       setNewName("");
       if (id) setSelectedLab(id);
-    } catch {
-      setError("研究室を作成できませんでした。");
+    } catch (e) {
+      setError(`研究室を作成できませんでした。${detail(e)}`);
     }
   }
 
@@ -95,8 +108,10 @@ export function LabManager({ userEmail }: { userEmail: string }) {
       const id = await joinLab.mutateAsync(code);
       setJoinCode("");
       if (id) setSelectedLab(id);
-    } catch {
-      setError("その参加コードの研究室は見つかりませんでした。");
+    } catch (e) {
+      setError(
+        `参加できませんでした。参加コードをご確認ください。${detail(e)}`,
+      );
     }
   }
 
