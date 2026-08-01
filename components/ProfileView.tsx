@@ -18,6 +18,7 @@ import {
   useDeleteEquipment,
   useAddFeedback,
 } from "@/lib/queries";
+import { useMyShares, useSharedWithMe, useMyLabs } from "@/lib/sharedQueries";
 import { createClient } from "@/lib/supabase/client";
 import { fmtTime } from "@/lib/calendar";
 import {
@@ -55,6 +56,9 @@ import {
   Archive,
   ArchiveRestore,
   ExternalLink,
+  Share2,
+  Users,
+  ChevronRight,
   Trash2,
   Pencil,
   MessageSquare,
@@ -95,6 +99,10 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
   const todosQ = useTodos();
   const settingsQ = useSettings();
   const profileQ = useProfile();
+  // 共有・研究室セクションの件数表示用
+  const mySharesQ = useMyShares();
+  const sharedWithMeQ = useSharedWithMe();
+  const myLabsQ = useMyLabs();
   const updateExp = useUpdateExperiment();
   const deleteExp = useDeleteExperiment();
   const toggleTodo = useToggleTodo();
@@ -149,6 +157,10 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
       const bt = b.completed_at ?? b.created_at;
       return new Date(bt).getTime() - new Date(at).getTime();
     });
+
+  const myShares = mySharesQ.data ?? [];
+  const sharedWithMe = sharedWithMeQ.data ?? [];
+  const myLabs = myLabsQ.data ?? [];
 
   const activeExperiments = experiments.filter((e) => !e.archived);
   const archivedExperiments = experiments.filter((e) => e.archived);
@@ -430,6 +442,62 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
                 ))}
               </select>
             </div>
+          </div>
+        </section>
+
+        {/* 共有・研究室 */}
+        <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
+          <div className="mb-1 flex items-center gap-1.5">
+            <Share2 className="h-4 w-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-700">共有・研究室</h2>
+          </div>
+          <p className="mb-3 text-xs text-gray-500">
+            カレンダーを見せる相手を管理します。相手が予定を編集することはできません。
+          </p>
+
+          <div className="space-y-2">
+            <Link
+              href="/shared"
+              className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 transition hover:border-brand-300 hover:bg-brand-50/40"
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50">
+                <Share2 className="h-4 w-4 text-brand-600" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-gray-800 group-hover:text-brand-700">
+                  カレンダーを共有
+                </span>
+                <span className="block text-xs text-gray-500">
+                  教授・先輩・共同研究者に予定を見せて進捗を報告できます。
+                </span>
+                <span className="mt-0.5 block text-[11px] text-gray-400">
+                  共有中 {myShares.length} 件 ／ 見られるカレンダー{" "}
+                  {sharedWithMe.length} 件
+                </span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-brand-600" />
+            </Link>
+
+            <Link
+              href="/lab"
+              className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 transition hover:border-brand-300 hover:bg-brand-50/40"
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50">
+                <Users className="h-4 w-4 text-brand-600" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-gray-800 group-hover:text-brand-700">
+                  研究室
+                </span>
+                <span className="block text-xs text-gray-500">
+                  研究室を作って参加コードを配る／参加コードで参加する。
+                </span>
+                <span className="mt-0.5 block text-[11px] text-gray-400">
+                  所属 {myLabs.length} 件
+                </span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-brand-600" />
+            </Link>
           </div>
         </section>
 
