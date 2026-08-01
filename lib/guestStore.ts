@@ -2,16 +2,21 @@
 // サーバーには一切書き込まないため、ゲストの読み書きはすべてここを経由する。
 // ログイン後、ユーザーが自分で作成/変更した分だけアカウントへ引き継ぐ。
 
+import { weekStartMs } from "@/lib/calendar";
 import { buildGuestDemo, GUEST_USER_ID, type GuestSnapshot } from "@/lib/guestData";
 import type { Task, Todo } from "@/lib/types";
 
 const KEY = "labocale.guest.v1";
 
-interface GuestState extends GuestSnapshot {
+export interface GuestState extends GuestSnapshot {
   /** ユーザーが自分で作成・変更した予定の id（引継ぎ対象） */
   touchedTaskIds: string[];
   /** ユーザーが自分で作成・変更した ToDo の id（引継ぎ対象） */
   touchedTodoIds: string[];
+  /** ユーザーが削除した「元デモ」予定の id（再アンカー時に復活させないため） */
+  deletedDemoTaskIds: string[];
+  /** 同上・ToDo */
+  deletedDemoTodoIds: string[];
   /** 初回編集時のログイン案内モーダルを既に出したか */
   hasPromptedLogin: boolean;
   /** 初回アクセス時の「デモデータ表示中」案内モーダルを既に出したか */
@@ -27,27 +32,84 @@ function fresh(): GuestState {
     ...buildGuestDemo(),
     touchedTaskIds: [],
     touchedTodoIds: [],
+    deletedDemoTaskIds: [],
+    deletedDemoTodoIds: [],
     hasPromptedLogin: false,
     hasSeenDemoNotice: false,
+  };
+}
+
+/**
+ * 保存済みスナップショットの週が「今」とズレていたら、今週基点に再アンカーする。
+ *
+ * ゲストは localStorage に保存された内容をそのまま使い続けるため、週をまたいで
+ * 再訪すると元デモの予定・ToDo が古い週の日時のまま固定されてしまう
+ * （buildGuestDemo() 自体は毎回「今週」を計算する純粋関数だが、それを
+ * 呼び直す処理が無かった）。ユーザーが編集・削除していない元デモの項目だけを
+ * 今週の日時に差し替え、編集済み・削除済み・ユーザー作成分はそのまま残す。
+ * DOM に依存しないピュア関数なのでテスト可能。
+ */
+export function reanchorIfStale(state: GuestState, nowMs: number): GuestState {
+  const monday = weekStartMs(nowMs, 1);
+  if (state.anchorMonday === monday) return state;
+
+  const regen = buildGuestDemo(nowMs);
+  // 本フィックス以前に保存された localStorage には無いフィールドなので、
+  // 無ければ「何も編集/削除していない」扱いにする（未リリースのため移行処理は不要）。
+  const touchedTaskIds = state.touchedTaskIds ?? [];
+  const touchedTodoIds = state.touchedTodoIds ?? [];
+  const deletedDemoTaskIds = state.deletedDemoTaskIds ?? [];
+  const deletedDemoTodoIds = state.deletedDemoTodoIds ?? [];
+
+  const keepTasks = state.tasks.filter(
+    (t) => !t.id.startsWith("guest-task-") || touchedTaskIds.includes(t.id),
+  );
+  const freshTasks = regen.tasks.filter(
+    (t) => !touchedTaskIds.includes(t.id) && !deletedDemoTaskIds.includes(t.id),
+  );
+
+  const keepTodos = state.todos.filter(
+    (t) => !t.id.startsWith("guest-todo-") || touchedTodoIds.includes(t.id),
+  );
+  const freshTodos = regen.todos.filter(
+    (t) => !touchedTodoIds.includes(t.id) && !deletedDemoTodoIds.includes(t.id),
+  );
+
+  return {
+    ...state,
+    anchorMonday: monday,
+    tasks: [...keepTasks, ...freshTasks],
+    todos: [...keepTodos, ...freshTodos],
+    touchedTaskIds,
+    touchedTodoIds,
+    deletedDemoTaskIds,
+    deletedDemoTodoIds,
   };
 }
 
 let cache: GuestState | null = null;
 
 function load(): GuestState {
-  if (cache) return cache;
-  if (!isBrowser()) return fresh();
-  try {
-    const raw = window.localStorage.getItem(KEY);
-    if (raw) {
-      cache = JSON.parse(raw) as GuestState;
+  if (!cache) {
+    if (!isBrowser()) return fresh();
+    try {
+      const raw = window.localStorage.getItem(KEY);
+      if (raw) cache = JSON.parse(raw) as GuestState;
+    } catch {
+      // 壊れていたら作り直す
+    }
+    if (!cache) {
+      cache = fresh();
+      save();
       return cache;
     }
-  } catch {
-    // 壊れていたら作り直す
   }
-  cache = fresh();
-  save();
+
+  const reanchored = reanchorIfStale(cache, Date.now());
+  if (reanchored !== cache) {
+    cache = reanchored;
+    save();
+  }
   return cache;
 }
 
@@ -134,6 +196,9 @@ export const guestStore = {
       (d) => d.predecessor_id !== id && d.successor_id !== id,
     );
     s.touchedTaskIds = s.touchedTaskIds.filter((x) => x !== id);
+    if (id.startsWith("guest-task-") && !s.deletedDemoTaskIds.includes(id)) {
+      s.deletedDemoTaskIds.push(id);
+    }
     save();
   },
 
@@ -172,6 +237,9 @@ export const guestStore = {
     const s = load();
     s.todos = s.todos.filter((t) => t.id !== id);
     s.touchedTodoIds = s.touchedTodoIds.filter((x) => x !== id);
+    if (id.startsWith("guest-todo-") && !s.deletedDemoTodoIds.includes(id)) {
+      s.deletedDemoTodoIds.push(id);
+    }
     save();
   },
 

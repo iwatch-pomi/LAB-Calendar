@@ -19,6 +19,8 @@ import type {
 export const GUEST_USER_ID = "guest";
 
 export interface GuestSnapshot {
+  /** このスナップショットが基点にした「今週の月曜」ms（週をまたいだ再アンカー判定用） */
+  anchorMonday: number;
   equipment: Equipment[];
   templates: Template[];
   templateSteps: TemplateStep[];
@@ -262,6 +264,7 @@ export function buildGuestDemo(nowMs: number = Date.now()): GuestSnapshot {
   ];
 
   return {
+    anchorMonday: monday,
     equipment: [eqCentrifuge, eqAkta],
     templates: [tplEcoli, tplPlasmid, tplSds],
     templateSteps,
