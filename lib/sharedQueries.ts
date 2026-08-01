@@ -8,6 +8,7 @@ import type {
   Experiment,
   Lab,
   LabMember,
+  ShareInvitation,
   SharePermission,
   ShareScope,
   Task,
@@ -34,6 +35,7 @@ export const sqk = {
   labMembers: (labId: string) => ["shared", "lab_members", labId] as const,
   myShares: ["shared", "my_shares"] as const,
   incomingShares: ["shared", "incoming_shares"] as const,
+  invitations: ["shared", "invitations"] as const,
   profiles: ["shared", "profiles"] as const,
   experiments: (ownerId: string) => ["shared", "experiments", ownerId] as const,
   tasks: (ownerId: string) => ["shared", "tasks", ownerId] as const,
@@ -240,7 +242,39 @@ export function useShareByEmail() {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: sqk.myShares });
       qc.invalidateQueries({ queryKey: sqk.profiles });
+      // 未登録の相手だった場合は「招待中」に増えるので更新する
+      qc.invalidateQueries({ queryKey: sqk.invitations });
     },
+  });
+}
+
+/** まだ登録されていない相手への招待（未受諾のものだけ） */
+export function usePendingInvitations() {
+  return useQuery({
+    queryKey: sqk.invitations,
+    queryFn: async (): Promise<ShareInvitation[]> => {
+      const { data, error } = await supabase
+        .from("share_invitations")
+        .select("*")
+        .is("accepted_at", null)
+        .order("created_at", { ascending: false });
+      if (error) return [];
+      return data ?? [];
+    },
+  });
+}
+
+export function useCancelInvitation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("share_invitations")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: sqk.invitations }),
   });
 }
 

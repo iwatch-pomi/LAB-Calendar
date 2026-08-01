@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useExperiments } from "@/lib/queries";
 import {
@@ -9,9 +9,17 @@ import {
   useShareByEmail,
   useRevokeShare,
   useVisibleProfiles,
+  usePendingInvitations,
+  useCancelInvitation,
   profileLabel,
 } from "@/lib/sharedQueries";
-import type { SharePermission, ShareScope } from "@/lib/types";
+import { useProfile } from "@/lib/queries";
+import { buildInvite } from "@/lib/inviteMessage";
+import type {
+  SharePermission,
+  ShareScope,
+  ShareInvitation,
+} from "@/lib/types";
 import { paletteFor, PALETTE_KEYS } from "@/lib/types";
 import {
   ChevronLeft,
@@ -21,6 +29,10 @@ import {
   CalendarDays,
   Inbox,
   Users,
+  Mail,
+  Copy,
+  Check,
+  MailPlus,
 } from "lucide-react";
 
 /**
@@ -35,6 +47,9 @@ export function SharedManager({ userEmail }: { userEmail: string }) {
   const profilesQ = useVisibleProfiles();
   const shareByEmail = useShareByEmail();
   const revoke = useRevokeShare();
+  const invitationsQ = usePendingInvitations();
+  const cancelInvitation = useCancelInvitation();
+  const profileQ = useProfile();
 
   const [email, setEmail] = useState("");
   const [scope, setScope] = useState<ShareScope>("all");
@@ -42,6 +57,17 @@ export function SharedManager({ userEmail }: { userEmail: string }) {
   const [permission, setPermission] = useState<SharePermission>("comment");
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** 共有直後に「招待メールを送る」を出すための情報 */
+  const [justInvited, setJustInvited] = useState<{
+    email: string;
+    scope: ShareScope;
+    experimentName: string | null;
+    permission: SharePermission;
+  } | null>(null);
+
+  const invitations = invitationsQ.data ?? [];
+  /** 送り主として名乗る名前（表示名が無ければメールアドレス） */
+  const fromLabel = profileQ.data?.display_name?.trim() || userEmail;
 
   const experiments = (experimentsQ.data ?? []).filter((e) => !e.archived);
   const myShares = mySharesQ.data ?? [];
@@ -69,6 +95,7 @@ export function SharedManager({ userEmail }: { userEmail: string }) {
     }
     setError(null);
     setNotice(null);
+    setJustInvited(null);
     try {
       const result = await shareByEmail.mutateAsync({
         email: addr,
@@ -77,11 +104,22 @@ export function SharedManager({ userEmail }: { userEmail: string }) {
         permission,
       });
       setEmail("");
-      setNotice(
-        result === "shared"
-          ? `${addr} に共有しました。`
-          : `${addr} はまだ登録がないため、招待として保存しました。相手が同じメールアドレスで登録すると自動的に共有されます。`,
-      );
+      if (result === "shared") {
+        setNotice(`${addr} に共有しました。`);
+      } else {
+        // 相手はまだ登録していない。招待は保存されたが、こちらから
+        // 知らせないと相手は気付けないのでメール送信を促す。
+        setNotice(null);
+        setJustInvited({
+          email: addr,
+          scope,
+          experimentName:
+            scope === "experiment"
+              ? (expNameById.get(experimentId) ?? null)
+              : null,
+          permission,
+        });
+      }
     } catch {
       setError(
         "共有できませんでした。メールアドレスをご確認ください（自分自身には共有できません）。",
@@ -198,12 +236,58 @@ export function SharedManager({ userEmail }: { userEmail: string }) {
               {notice}
             </p>
           )}
+          {justInvited && (
+            <InvitePrompt
+              email={justInvited.email}
+              fromLabel={fromLabel}
+              scope={justInvited.scope}
+              experimentName={justInvited.experimentName}
+              permission={justInvited.permission}
+            />
+          )}
           {error && (
             <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-600">
               {error}
             </p>
           )}
         </section>
+
+        {/* 招待中（相手がまだ登録していない） */}
+        {invitations.length > 0 && (
+          <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
+            <div className="mb-1 flex items-center gap-1.5">
+              <MailPlus className="h-4 w-4 text-gray-400" />
+              <h2 className="text-sm font-semibold text-gray-700">招待中</h2>
+              <span className="text-xs text-gray-400">
+                {invitations.length}
+              </span>
+            </div>
+            <p className="mb-3 text-xs text-gray-500">
+              相手がまだ登録していません。招待メールを送って、
+              <span className="font-medium">同じメールアドレス</span>
+              で登録してもらうと自動的に共有されます。
+            </p>
+
+            <div className="space-y-1.5">
+              {invitations.map((inv) => (
+                <InvitationRow
+                  key={inv.id}
+                  invitation={inv}
+                  fromLabel={fromLabel}
+                  experimentName={
+                    inv.experiment_id
+                      ? (expNameById.get(inv.experiment_id) ?? null)
+                      : null
+                  }
+                  onCancel={() => {
+                    if (confirm(`${inv.email} への招待を取り消しますか？`))
+                      cancelInvitation.mutate(inv.id);
+                  }}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* 共有中 */}
         <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
@@ -306,6 +390,171 @@ export function SharedManager({ userEmail }: { userEmail: string }) {
           )}
         </section>
       </main>
+    </div>
+  );
+}
+
+/** メールソフトを開くボタンと、本文コピーのフォールバック */
+function useInviteActions(args: {
+  email: string;
+  fromLabel: string;
+  scope: ShareScope;
+  experimentName: string | null;
+  permission: SharePermission;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  // アプリのURLは実際にアクセスしているドメインをそのまま使う。
+  // レンダー中に window を読むと、SSR時の空文字がハイドレーション後も
+  // href に残ってしまい「リンクの無い招待メール」ができるので、
+  // マウント後に state 経由で入れて確実に再レンダーさせる。
+  const [appUrl, setAppUrl] = useState("");
+  useEffect(() => setAppUrl(window.location.origin), []);
+
+  const invite = buildInvite({
+    toEmail: args.email,
+    fromLabel: args.fromLabel,
+    appUrl,
+    scope: args.scope,
+    experimentName: args.experimentName,
+    permission: args.permission,
+  });
+
+  function copy() {
+    const text = `${invite.subject}\n\n${invite.body}`;
+    navigator.clipboard?.writeText(text).then(
+      () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1800);
+      },
+      () => {},
+    );
+  }
+
+  return { invite, copied, copy };
+}
+
+/** 共有直後に出す「招待メールを送る」案内 */
+function InvitePrompt({
+  email,
+  fromLabel,
+  scope,
+  experimentName,
+  permission,
+}: {
+  email: string;
+  fromLabel: string;
+  scope: ShareScope;
+  experimentName: string | null;
+  permission: SharePermission;
+}) {
+  const { invite, copied, copy } = useInviteActions({
+    email,
+    fromLabel,
+    scope,
+    experimentName,
+    permission,
+  });
+
+  return (
+    <div className="mt-3 rounded-lg bg-brand-50 px-3 py-3 text-xs text-brand-800">
+      <p className="mb-2 leading-relaxed">
+        <span className="font-semibold">{email}</span>{" "}
+        はまだ登録がないため、招待として保存しました。
+        <br />
+        このままでは相手に伝わらないので、招待メールを送ってください。
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <a
+          href={invite.mailtoHref}
+          className="flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-600"
+        >
+          <Mail className="h-3.5 w-3.5" />
+          招待メールを送る
+        </a>
+        <button
+          type="button"
+          onClick={copy}
+          className="flex items-center gap-1.5 rounded-lg border border-brand-300 bg-white px-3 py-1.5 text-xs font-medium text-brand-700 transition hover:bg-brand-100"
+        >
+          {copied ? (
+            <Check className="h-3.5 w-3.5" />
+          ) : (
+            <Copy className="h-3.5 w-3.5" />
+          )}
+          {copied ? "コピーしました" : "本文をコピー"}
+        </button>
+      </div>
+      <p className="mt-2 text-[11px] text-brand-700/80">
+        ※ ボタンを押すと、いつものメールソフトが件名・本文入りで開きます。
+        開かない場合は「本文をコピー」から貼り付けて送ってください。
+      </p>
+    </div>
+  );
+}
+
+/** 「招待中」一覧の1行（再送・取り消し） */
+function InvitationRow({
+  invitation,
+  fromLabel,
+  experimentName,
+  onCancel,
+}: {
+  invitation: ShareInvitation;
+  fromLabel: string;
+  experimentName: string | null;
+  onCancel: () => void;
+}) {
+  const { invite, copied, copy } = useInviteActions({
+    email: invitation.email,
+    fromLabel,
+    scope: invitation.scope,
+    experimentName,
+    permission: invitation.permission,
+  });
+
+  const what =
+    invitation.scope === "all"
+      ? "すべての予定"
+      : `${experimentName ?? "（削除されたカレンダー）"} のみ`;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/60 p-2.5">
+      <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-700">
+        {invitation.email}
+      </span>
+      <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] text-gray-500 ring-1 ring-gray-200">
+        {what}
+      </span>
+      <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] text-gray-500 ring-1 ring-gray-200">
+        {invitation.permission === "comment" ? "閲覧＋コメント" : "閲覧のみ"}
+      </span>
+      <a
+        href={invite.mailtoHref}
+        title="招待メールを送る"
+        className="flex shrink-0 items-center gap-1 rounded-lg bg-brand-500 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-brand-600"
+      >
+        <Mail className="h-3.5 w-3.5" />
+        メール
+      </a>
+      <button
+        onClick={copy}
+        title="本文をコピー"
+        className="shrink-0 rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+      >
+        {copied ? (
+          <Check className="h-3.5 w-3.5 text-brand-600" />
+        ) : (
+          <Copy className="h-3.5 w-3.5" />
+        )}
+      </button>
+      <button
+        onClick={onCancel}
+        title="招待を取り消す"
+        className="shrink-0 rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-rose-500"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
