@@ -21,6 +21,7 @@ import {
   useSettings,
 } from "@/lib/queries";
 import { useCreateEmptyExperiment } from "@/lib/mutations";
+import { TOUR_ANCHORS, tourAttr } from "@/lib/tourAnchors";
 import { useGuest } from "./GuestProvider";
 import { fmtTime, jstInputToISO, isoToJstInput } from "@/lib/calendar";
 import {
@@ -241,7 +242,10 @@ export function Sidebar({
       )}
 
       <div className="thin-scroll flex-1 overflow-y-auto px-4 pb-4">
-        {/* カレンダー一覧 */}
+        {/* カレンダー一覧
+            外側の div はチュートリアルのハイライト範囲。マージン相殺で余白が
+            変わってしまうので class は付けないこと。 */}
+        <div {...tourAttr(TOUR_ANCHORS.experimentList)}>
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400">カレンダー一覧</h2>
           <span className="text-xs text-gray-400 dark:text-gray-500">
@@ -263,7 +267,7 @@ export function Sidebar({
         </button>
 
         <div className="space-y-2">
-          {visibleExperiments.map((exp) => {
+          {visibleExperiments.map((exp, i) => {
             const p = paletteFor(exp.color);
             const active = selectedExperiment === exp.id;
 
@@ -349,6 +353,8 @@ export function Sidebar({
                   </button>
                   <button
                     onClick={() => handleArchiveExperiment(exp)}
+                    // チュートリアルは先頭のカードだけを指す（対象を一意にするため）
+                    {...(i === 0 ? tourAttr(TOUR_ANCHORS.experimentArchive) : {})}
                     title="アーカイブ（マイページで確認・復元できます）"
                     className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-amber-600 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-amber-400"
                   >
@@ -427,10 +433,11 @@ export function Sidebar({
             カレンダーを追加
           </button>
         )}
+        </div>
 
         {/* 共有・研究室（ログイン時のみ。ゲストはアカウント機能を使えない） */}
         {!isGuest && (
-          <div className="mt-4 space-y-0.5">
+          <div className="mt-4 space-y-0.5" {...tourAttr(TOUR_ANCHORS.shareLinks)}>
             <Link
               href="/shared"
               title="カレンダーを共有して進捗を報告する"
@@ -454,6 +461,7 @@ export function Sidebar({
         {features.bio_culture_lineage && (
           <Link
             href="/culture"
+            {...tourAttr(TOUR_ANCHORS.cultureLink)}
             title="継代培養を管理（培地の作成・期限・系統）"
             className="mt-4 flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-gray-600 transition hover:bg-emerald-50 hover:text-emerald-700 dark:text-gray-300 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400"
           >
@@ -466,6 +474,7 @@ export function Sidebar({
         <button
           type="button"
           onClick={onOpenTutorial}
+          {...tourAttr(TOUR_ANCHORS.helpButton)}
           title="ラボカレの使い方をもう一度見る"
           className="mt-4 flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-gray-600 transition hover:bg-brand-50 hover:text-brand-700 dark:text-gray-300 dark:hover:bg-brand-900/20 dark:hover:text-brand-400"
         >
@@ -473,7 +482,10 @@ export function Sidebar({
           使い方
         </button>
 
-        {/* 今日の ToDo */}
+        {/* 今日の ToDo
+            外側の div はチュートリアルのハイライト範囲。マージン相殺で余白が
+            変わってしまうので class は付けないこと。 */}
+        <div {...tourAttr(TOUR_ANCHORS.todoSection)}>
         <div className="mb-1 mt-6 flex items-center justify-between">
           <div className="relative flex items-center gap-1">
             <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400">今日のToDo</h2>
@@ -656,6 +668,7 @@ export function Sidebar({
               ToDoを追加
             </button>
           )}
+        </div>
         </div>
       </div>
     </aside>

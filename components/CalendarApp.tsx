@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useTasks,
   useExperiments,
@@ -137,6 +137,13 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
       return next;
     });
   };
+
+  // チュートリアルは案内のためにサイドバーを一時的に開くだけなので、
+  // 「固定表示」の設定（localStorage）は書き換えない。終了時に元へ戻す。
+  const setSidebarOpenTransient = useCallback(
+    (open: boolean) => setSidebarOpenState(open),
+    [],
+  );
 
   // 初回マウント時: 保存済みの設定があればそれを復元、無ければ画面幅から既定値を決める
   useEffect(() => {
@@ -528,7 +535,12 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
 
       {/* 予定モーダルを開いている間は重ねず、閉じてから案内を出す */}
       {!authOpen && tutorialOpen && !openTask && (
-        <TutorialModal isGuest={isGuest} onFinish={finishTutorial} />
+        <TutorialModal
+          isGuest={isGuest}
+          onFinish={finishTutorial}
+          sidebarOpen={sidebarOpen}
+          onRequestSidebar={setSidebarOpenTransient}
+        />
       )}
       {!authOpen && !tutorialOpen && promptOpen && !openTask && (
         <LoginPromptModal onClose={closePrompt} />

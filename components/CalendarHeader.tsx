@@ -10,6 +10,7 @@ import {
   DAY,
 } from "@/lib/calendar";
 import type { ViewMode } from "./CalendarApp";
+import { TOUR_ANCHORS, tourAttr } from "@/lib/tourAnchors";
 import { ChevronLeft, ChevronRight, Plus, PanelLeft } from "lucide-react";
 
 export function CalendarHeader({
@@ -133,7 +134,7 @@ export function CalendarHeader({
           {todayLabel}
         </button>
 
-        <div className="relative">
+        <div className="relative" {...tourAttr(TOUR_ANCHORS.addExperiment)}>
           <button
             onClick={onAddClick}
             className="flex items-center gap-1.5 rounded-lg bg-brand-500 px-2.5 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 sm:px-3.5"
