@@ -1,7 +1,30 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { DEFAULT_AFTER_LOGIN } from "@/lib/authRedirect";
+
+/**
+ * 認証を見る必要がない公開パス。
+ * `/`（公式サイト）と SEO 用のファイルはここで抜けて、Supabase への
+ * ネットワーク往復（getUser）を挟まないようにする。検索エンジンが測るのは
+ * この経路なので、認証のために遅くしない。
+ */
+function isPublicPath(pathname: string): boolean {
+  return (
+    pathname === "/" ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
+    pathname === "/manifest.webmanifest" ||
+    pathname.startsWith("/opengraph-image") ||
+    pathname.startsWith("/icon") ||
+    pathname.startsWith("/apple-icon")
+  );
+}
 
 export async function updateSession(request: NextRequest) {
+  if (isPublicPath(request.nextUrl.pathname)) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -38,26 +61,30 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // アカウント機能のページはログイン必須。
-  // カレンダー(/)は未ログインでも「ゲストモード」で閲覧・お試し編集できる。
+  // カレンダー(/app)は未ログインでも「ゲストモード」で閲覧・お試し編集できる。
   const isProtectedRoute =
     pathname.startsWith("/profile") ||
     pathname.startsWith("/culture") ||
     pathname.startsWith("/archive") ||
     pathname.startsWith("/lab") ||
-    pathname.startsWith("/shared");
+    pathname.startsWith("/shared") ||
+    pathname.startsWith("/teacher");
 
-  // 未ログインで保護ページ → カレンダーへ戻し、ログインモーダルを開く
+  // 未ログインで保護ページ → 認証モーダルのあるカレンダーへ戻す。
+  // 行き先(next)を必ず持たせる。これが無いと、教授の入口(/teacher)から来た人が
+  // 黙って学生側(/app)に着地してしまう。
   if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = DEFAULT_AFTER_LOGIN;
     url.searchParams.set("login", "1");
+    url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
 
-  // ログイン済みでログインページ → ホームへ（ログインUIはモーダルに統合済み）
+  // ログイン済みでログインページ → カレンダーへ（ログインUIはモーダルに統合済み）
   if (user && pathname.startsWith("/login")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = DEFAULT_AFTER_LOGIN;
     url.searchParams.delete("login");
     return NextResponse.redirect(url);
   }

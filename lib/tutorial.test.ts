@@ -10,6 +10,8 @@ const guestFirstVisit: TutorialGateState = {
   tutorialDone: false,
   showDemoChoice: false,
   showOnboarding: false,
+  showRoleChoice: false,
+  isTeacher: false,
 };
 
 /** 「ログイン直後の新規アカウント」＝出るのが正しい状態 */
@@ -21,6 +23,8 @@ const freshAccount: TutorialGateState = {
   tutorialDone: false,
   showDemoChoice: false,
   showOnboarding: false,
+  showRoleChoice: false,
+  isTeacher: false,
 };
 
 describe("shouldAutoOpenTutorial", () => {
@@ -81,6 +85,18 @@ describe("shouldAutoOpenTutorial", () => {
       expect(
         shouldAutoOpenTutorial({ ...freshAccount, showOnboarding: true }),
       ).toBe(false);
+    });
+
+    it("利用形態の選択中は開かない", () => {
+      expect(
+        shouldAutoOpenTutorial({ ...freshAccount, showRoleChoice: true }),
+      ).toBe(false);
+    });
+
+    it("教授には開かない（カレンダーを使わないため）", () => {
+      expect(shouldAutoOpenTutorial({ ...freshAccount, isTeacher: true })).toBe(
+        false,
+      );
     });
 
     it("ゲストの既読フラグには影響されない（引き継ぎは呼び出し側の責務）", () => {

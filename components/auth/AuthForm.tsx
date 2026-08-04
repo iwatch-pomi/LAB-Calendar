@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { resolveNext, afterLoginFrom } from "@/lib/authRedirect";
 
 type Mode = "signin" | "signup";
 
@@ -55,9 +56,19 @@ export function AuthForm() {
     return () => window.removeEventListener("pageshow", onPageShow);
   }, []);
 
+  // `/` は公式サイトになったので、認証から戻る先を URL で運ぶ必要がある。
+  // 優先順位: URLの next（保護ページから弾かれた人）→ 今いる場所（教授の入口か）→ /app
+  const dest =
+    typeof window !== "undefined"
+      ? resolveNext(
+          new URLSearchParams(window.location.search).get("next"),
+          afterLoginFrom(window.location.pathname),
+        )
+      : undefined;
+
   const redirectTo =
     typeof window !== "undefined"
-      ? `${window.location.origin}/auth/callback`
+      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(dest!)}`
       : undefined;
 
   async function oauth(provider: "google" | "apple") {
@@ -87,7 +98,7 @@ export function AuthForm() {
         setMessage({ type: "error", text: jpError(error.message) });
       } else if (data.session) {
         // メール確認オフ → その場でログイン完了
-        window.location.href = "/";
+        window.location.href = dest ?? "/app";
         return;
       } else if (data.user && data.user.identities?.length === 0) {
         // 既に登録済みのメール
@@ -109,7 +120,7 @@ export function AuthForm() {
       if (error) {
         setMessage({ type: "error", text: jpError(error.message) });
       } else {
-        window.location.href = "/";
+        window.location.href = dest ?? "/app";
         return;
       }
     }

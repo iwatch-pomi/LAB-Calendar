@@ -21,6 +21,10 @@ export interface TutorialGateState {
   showDemoChoice: boolean;
   /** 研究分野の選択中 */
   showOnboarding: boolean;
+  /** 利用形態（学生/教授）の確認中 */
+  showRoleChoice: boolean;
+  /** 教授として使う人。カレンダーを持たないので使い方の案内も要らない */
+  isTeacher: boolean;
 }
 
 export function shouldAutoOpenTutorial(s: TutorialGateState): boolean {
@@ -28,11 +32,14 @@ export function shouldAutoOpenTutorial(s: TutorialGateState): boolean {
     // ゲストは設定を保存できないので localStorage の既読だけで判断する。
     return !s.cameForLogin && !s.guestSeen;
   }
+  // 教授はカレンダーを使わないので、カレンダーの使い方は案内しない。
+  if (s.isTeacher) return false;
   // ログイン後は設定が読めるまで判断しない（読めていないと未読扱いになり
-  // 一瞬だけ開いてしまう）。先に出る2つのオーバーレイが片付いてから出す。
+  // 一瞬だけ開いてしまう）。先に出るオーバーレイが片付いてから出す。
   return (
     s.settingsLoaded &&
     !s.tutorialDone &&
+    !s.showRoleChoice &&
     !s.showDemoChoice &&
     !s.showOnboarding
   );

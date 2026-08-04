@@ -63,6 +63,7 @@ import {
   Pencil,
   MessageSquare,
   Send,
+  UserCog,
 } from "lucide-react";
 
 const MODE_ICON: Record<
@@ -141,6 +142,7 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
   const equipment = equipmentQ.data ?? [];
   const features = settingsQ.data ?? {};
   const weekStartDay: 0 | 1 = features.week_start_day === 0 ? 0 : 1;
+  const teacherMode = features.is_teacher === true;
   const workStart =
     typeof features.work_start_hour === "number"
       ? features.work_start_hour
@@ -213,7 +215,7 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-5 py-3">
           <Link
-            href="/"
+            href="/app"
             className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -364,6 +366,52 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
             label="完了タスク"
             value={doneTasks}
           />
+        </section>
+
+        {/* 利用形態（学生 / 教授） */}
+        <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
+          <div className="mb-3 flex items-center gap-1.5">
+            <UserCog className="h-4 w-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-700">利用形態</h2>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-gray-500">
+              教授・指導者にすると、自分のカレンダーではなく学生の予定をまとめて
+              確認する画面が既定になります。
+            </p>
+            <div className="flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-xs">
+              {(
+                [
+                  [false, "学生"],
+                  [true, "教授・指導者"],
+                ] as [boolean, string][]
+              ).map(([value, label]) => (
+                <button
+                  key={label}
+                  onClick={() =>
+                    updateFeature.mutate({ key: "is_teacher", value })
+                  }
+                  className={`rounded-md px-3 py-1 font-medium transition ${
+                    teacherMode === value
+                      ? "bg-white text-gray-800 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {teacherMode && (
+            <Link
+              href="/teacher"
+              className="mt-3 flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/60 p-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+            >
+              <Users className="h-4 w-4 text-brand-600" />
+              <span className="flex-1">学生の予定を確認する</span>
+              <ChevronRight className="h-4 w-4 text-gray-400" />
+            </Link>
+          )}
         </section>
 
         {/* カレンダー設定 */}

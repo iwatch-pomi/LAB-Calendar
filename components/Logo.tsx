@@ -10,7 +10,9 @@ export function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
       >
         研
       </div>
-      <span className={`${text} font-bold tracking-tight text-gray-800`}>
+      <span
+        className={`${text} whitespace-nowrap font-bold tracking-tight text-gray-800`}
+      >
         ラボカレ
       </span>
     </div>

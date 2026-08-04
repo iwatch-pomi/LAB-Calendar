@@ -1,13 +1,23 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import {
+  resolveNext,
+  DEFAULT_AFTER_LOGIN,
+  TEACHER_HOME,
+} from "@/lib/authRedirect";
 
 // OAuth / メール確認のコールバック。code をセッションに交換する。
 // セッションcookieは「返すリダイレクトレスポンス」に直接書き込む（初回ログインで
 // cookieが乗らずログイン画面へ戻される不具合を防ぐ）。
+// 行き先は交換後に決まる（教授かどうかで変わる）ので、cookie はいったん配列へ
+// 溜めておき、最後に組み立てたレスポンスへまとめて載せる。
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/";
+  // 外部サイトへ飛ばされないよう必ず検証する。next が無い場合は
+  // 下で役割（教授かどうか）を見てから決めるので、ここでは保留にする。
+  const rawNext = searchParams.get("next");
+  const next = rawNext ? resolveNext(rawNext) : null;
 
   // Vercel のプロキシ配下でも正しい公開ホストへ戻す
   const forwardedHost = request.headers.get("x-forwarded-host");
@@ -19,12 +29,18 @@ export async function GET(request: NextRequest) {
         ? `${forwardedProto}://${forwardedHost}`
         : origin;
 
+  // 失敗時は認証モーダルのある場所へ戻す（`/` は公式サイトでモーダルが無い）
+  const failure = `${base}${DEFAULT_AFTER_LOGIN}?login=1&error=auth`;
+
   if (!code) {
-    return NextResponse.redirect(`${base}/?login=1&error=auth`);
+    return NextResponse.redirect(failure);
   }
 
-  // 先にリダイレクト先レスポンスを作り、そこへ cookie を書き込む
-  const response = NextResponse.redirect(`${base}${next}`);
+  const pending: {
+    name: string;
+    value: string;
+    options?: Record<string, unknown>;
+  }[] = [];
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -41,17 +57,37 @@ export async function GET(request: NextRequest) {
             options?: Record<string, unknown>;
           }[],
         ) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options),
-          );
+          pending.push(...cookiesToSet);
         },
       },
     },
   );
 
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
-    return NextResponse.redirect(`${base}/?login=1&error=auth`);
+    return NextResponse.redirect(failure);
   }
+
+  // 行き先を決める。明示の next があればそれを優先し、無ければ役割で振り分ける。
+  // 教授はカレンダーを使わないので、毎回カレンダーに着地させない。
+  let dest = next;
+  if (!dest) {
+    dest = DEFAULT_AFTER_LOGIN;
+    const uid = data.session?.user?.id;
+    if (uid) {
+      const { data: settings } = await supabase
+        .from("user_settings")
+        .select("features")
+        .eq("user_id", uid)
+        .maybeSingle();
+      const features = (settings?.features ?? {}) as Record<string, unknown>;
+      if (features.is_teacher === true) dest = TEACHER_HOME;
+    }
+  }
+
+  const response = NextResponse.redirect(`${base}${dest}`);
+  pending.forEach(({ name, value, options }) =>
+    response.cookies.set(name, value, options),
+  );
   return response;
 }

@@ -37,7 +37,9 @@ import { AuthModal } from "./auth/AuthModal";
 import { GuestBanner, MigratedBanner } from "./GuestBanner";
 import { guestStore } from "@/lib/guestStore";
 import { shouldAutoOpenTutorial } from "@/lib/tutorial";
-import { useClaimInvitations } from "@/lib/sharedQueries";
+import { isTeacher, shouldAskRole } from "@/lib/role";
+import { TeacherHint } from "./TeacherHint";
+import { useClaimInvitationsOnce } from "@/lib/sharedQueries";
 
 export type ViewMode = "day" | "week" | "month";
 
@@ -83,7 +85,6 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
     closeAuth,
   } = useGuest();
   const addTodo = useAddTodo();
-  const claimInvitations = useClaimInvitations();
 
   const [view, setViewState] = useState<ViewMode>("week");
   // ログイン直後、ゲスト中に作った予定/ToDoを引き継いだ件数
@@ -243,10 +244,23 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
       ? settingsQ.data.work_end_hour
       : DEFAULT_WORK_END_HOUR;
 
+  // 教授は自分のカレンダーを持たないので、カレンダー側の案内は一切出さない。
+  const isTeacherUser = isTeacher(settingsQ.data);
+
+  // 利用形態の確認中（モーダル自体は RoleGate が出す。ここでは重ねないための判定だけ）
+  const showRoleChoice = shouldAskRole({
+    isGuest,
+    settingsLoaded: settingsQ.isSuccess,
+    roleChosen: settingsQ.data?.role_chosen === true,
+    onboarded: settingsQ.data?.onboarded === true,
+  });
+
   // 新規登録直後（実験が1件も無い）は、まずデモデータを使うか確認する。
   // 回答が済むまでは分野選択のオンボーディングを出さない。
   const showDemoChoice =
     !isGuest &&
+    !isTeacherUser &&
+    !showRoleChoice &&
     settingsQ.isSuccess &&
     experimentsQ.isSuccess &&
     experiments.length === 0 &&
@@ -261,6 +275,8 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
   // ゲストは設定を保存できず overlay を閉じられなくなるため出さない。
   const showOnboarding =
     !isGuest &&
+    !isTeacherUser &&
+    !showRoleChoice &&
     !showDemoChoice &&
     settingsQ.isSuccess &&
     !settingsQ.data?.onboarded;
@@ -283,6 +299,8 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
         tutorialDone: !!settingsQ.data?.tutorial_done,
         showDemoChoice,
         showOnboarding,
+        showRoleChoice,
+        isTeacher: isTeacherUser,
       })
     )
       return;
@@ -294,6 +312,8 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
     settingsQ.data?.tutorial_done,
     showDemoChoice,
     showOnboarding,
+    showRoleChoice,
+    isTeacherUser,
     openTutorial,
   ]);
 
@@ -308,12 +328,7 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
   // 対象はユーザーが自分で作成/変更した分のみ（デモそのままの行は含めない）。
   // ログイン後: 自分のメール宛に届いていた共有の招待を実際の共有に変える。
   // （相手が「まだ登録していない人」に共有したときは招待として積まれている）
-  const claimRan = useRef(false);
-  useEffect(() => {
-    if (isGuest || claimRan.current) return;
-    claimRan.current = true;
-    claimInvitations.mutate();
-  }, [isGuest, claimInvitations]);
+  useClaimInvitationsOnce(!isGuest);
 
   // ゲスト中にチュートリアルを見終えていたら、その既読をアカウントへ引き継ぐ。
   // 下の移行処理が guestStore.clear() でフラグごと消すので、必ずその前に読む。
@@ -406,6 +421,7 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {isGuest && <GuestBanner />}
+        {isTeacherUser && <TeacherHint />}
         {migrated !== null && migrated > 0 && (
           <MigratedBanner count={migrated} onClose={() => setMigrated(null)} />
         )}

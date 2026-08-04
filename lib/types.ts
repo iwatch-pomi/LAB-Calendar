@@ -101,6 +101,10 @@ export interface FeatureFlags {
   demo_seed_asked?: boolean;
   /** 使い方のチュートリアルを見終えた（またはスキップした）か */
   tutorial_done?: boolean;
+  /** 利用形態を選択済みか（学生 / 教授） */
+  role_chosen?: boolean;
+  /** 教授・指導者として使う（自分のカレンダーは持たず、学生の予定を見る） */
+  is_teacher?: boolean;
   /** カレンダーの週の開始曜日（0=日曜, 1=月曜）。既定は月曜。 */
   week_start_day?: 0 | 1;
   /** 通常の活動時間の開始/終了（時, 0〜24）。既定は 8〜20。 */

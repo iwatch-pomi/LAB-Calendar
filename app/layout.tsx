@@ -2,6 +2,12 @@ import type { Metadata } from "next";
 import { Inter, Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import {
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_TITLE,
+  SITE_URL,
+} from "@/lib/site";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -16,9 +22,15 @@ const notoSansJp = Noto_Sans_JP({
 });
 
 export const metadata: Metadata = {
-  title: "ラボカレ — 卒研スケジュール管理",
-  description:
-    "理系学生の卒業研究に特化した、実験プロセスと外部リソースを連動させるカレンダー。失敗時の依存関係に基づく自動リスケ機能つき。",
+  // canonical や OG画像を絶対URLに解決するために必要。
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: SITE_TITLE,
+    // 各ページは `title` を短く書けば「〇〇｜ラボカレ」になる
+    template: `%s｜${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
 };
 
 export default function RootLayout({

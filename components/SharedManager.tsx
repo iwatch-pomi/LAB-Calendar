@@ -15,6 +15,7 @@ import {
 } from "@/lib/sharedQueries";
 import { useProfile } from "@/lib/queries";
 import { buildInvite } from "@/lib/inviteMessage";
+import { DEFAULT_AFTER_LOGIN } from "@/lib/authRedirect";
 import type {
   SharePermission,
   ShareScope,
@@ -132,7 +133,7 @@ export function SharedManager({ userEmail }: { userEmail: string }) {
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-5 py-3">
           <Link
-            href="/"
+            href="/app"
             className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -409,8 +410,13 @@ function useInviteActions(args: {
   // レンダー中に window を読むと、SSR時の空文字がハイドレーション後も
   // href に残ってしまい「リンクの無い招待メール」ができるので、
   // マウント後に state 経由で入れて確実に再レンダーさせる。
+  // 招待された人は新規登録が必要なので、公式サイト(/)ではなく
+  // 認証モーダルが開く場所へ着地させる。
   const [appUrl, setAppUrl] = useState("");
-  useEffect(() => setAppUrl(window.location.origin), []);
+  useEffect(
+    () => setAppUrl(`${window.location.origin}${DEFAULT_AFTER_LOGIN}?login=1`),
+    [],
+  );
 
   const invite = buildInvite({
     toEmail: args.email,

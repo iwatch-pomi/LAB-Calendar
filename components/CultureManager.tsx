@@ -139,7 +139,7 @@ export function CultureManager({ userEmail }: { userEmail: string }) {
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-3">
           <Link
-            href="/"
+            href="/app"
             className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100"
           >
             <ChevronLeft className="h-4 w-4" />

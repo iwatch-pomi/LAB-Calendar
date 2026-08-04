@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import type {
@@ -327,6 +328,25 @@ export function useClaimInvitations() {
       qc.invalidateQueries({ queryKey: sqk.profiles });
     },
   });
+}
+
+/**
+ * 招待の受諾をマウント時に1回だけ実行する。
+ *
+ * これを呼ばないと `claim_share_invitations()` が走らず、学生がメールで招待しても
+ * `shared_owner_ids()` が空のままになり、共有された相手の一覧が永久に空になる。
+ * カレンダーを開かない教授（/teacher に直行する）でも必ず走らせる必要があるため、
+ * ref ガードごと切り出して CalendarApp と TeacherDashboard の両方で使う。
+ */
+export function useClaimInvitationsOnce(enabled: boolean) {
+  const claim = useClaimInvitations();
+  const ran = useRef(false);
+  const { mutate } = claim;
+  useEffect(() => {
+    if (!enabled || ran.current) return;
+    ran.current = true;
+    mutate();
+  }, [enabled, mutate]);
 }
 
 // ---------------- 他人のカレンダー（閲覧専用） ----------------
