@@ -723,7 +723,7 @@ export function useUpdateFeature() {
   return useMutation({
     mutationFn: async (args: {
       key: keyof FeatureFlags;
-      value: boolean | number;
+      value: boolean | number | string;
     }) => {
       const {
         data: { user },

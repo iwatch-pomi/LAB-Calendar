@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Logo } from "./Logo";
+import { ThemeToggle } from "./ThemeToggle";
+import { useThemeAccountSync } from "./useThemeAccountSync";
 import {
   paletteFor,
   PALETTE_KEYS,
@@ -64,6 +66,7 @@ export function Sidebar({
   const deleteExperiment = useDeleteExperiment();
   const features = useSettings().data ?? {};
   const { isGuest, openAuth } = useGuest();
+  useThemeAccountSync();
   const [newTodo, setNewTodo] = useState("");
   const [newDue, setNewDue] = useState("");
   const [adding, setAdding] = useState(false);
@@ -183,7 +186,7 @@ export function Sidebar({
   const doneCount = visibleTodos.filter((t) => t.done).length;
 
   return (
-    <aside className="flex h-full w-[264px] shrink-0 flex-col border-r border-gray-200 bg-white">
+    <aside className="flex h-full w-[264px] shrink-0 flex-col border-r border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
       <div className="flex items-center justify-between px-4 py-4">
         {/* ゲストはプロフィール（ログイン必須ページ）へ飛ばせないのでリンクにしない */}
         {isGuest ? (
@@ -204,7 +207,7 @@ export function Sidebar({
             <Link
               href="/profile"
               title="設定（プロフィール）"
-              className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+              className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
             >
               <Settings className="h-4 w-4" />
             </Link>
@@ -212,11 +215,16 @@ export function Sidebar({
           <button
             onClick={onClose}
             title="サイドバーを閉じる"
-            className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+            className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
+      </div>
+
+      {/* 配色（ライト/ダーク/システム） */}
+      <div className="px-4 pb-3">
+        <ThemeToggle />
       </div>
 
       {/* ゲスト: ログイン導線（プロフィール/設定の代わり） */}
@@ -235,8 +243,8 @@ export function Sidebar({
       <div className="thin-scroll flex-1 overflow-y-auto px-4 pb-4">
         {/* カレンダー一覧 */}
         <div className="mb-1 flex items-center justify-between">
-          <h2 className="text-xs font-semibold text-gray-500">カレンダー一覧</h2>
-          <span className="text-xs text-gray-400">
+          <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400">カレンダー一覧</h2>
+          <span className="text-xs text-gray-400 dark:text-gray-500">
             {visibleExperiments.length}
           </span>
         </div>
@@ -244,14 +252,14 @@ export function Sidebar({
           onClick={() => onSelectExperiment(null)}
           className={`mb-2 flex w-full items-center gap-2 rounded-xl border p-2.5 text-left transition ${
             selectedExperiment === null
-              ? "border-brand-300 bg-brand-50 ring-2 ring-brand-300 ring-offset-1"
-              : "border-gray-200 bg-white hover:border-gray-300"
+              ? "border-brand-300 bg-brand-50 ring-2 ring-brand-300 ring-offset-1 dark:border-brand-700 dark:bg-brand-900/30 dark:ring-brand-700 dark:ring-offset-gray-900"
+              : "border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800/60 dark:hover:border-gray-600"
           }`}
         >
-          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-gray-100">
-            <LayoutGrid className="h-3 w-3 text-gray-500" />
+          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-gray-100 dark:bg-gray-700">
+            <LayoutGrid className="h-3 w-3 text-gray-500 dark:text-gray-400" />
           </span>
-          <span className="text-sm font-medium text-gray-700">すべて表示</span>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-200">すべて表示</span>
         </button>
 
         <div className="space-y-2">
@@ -267,13 +275,13 @@ export function Sidebar({
                     e.preventDefault();
                     saveEditExperiment();
                   }}
-                  className="space-y-2 rounded-xl border border-brand-200 bg-brand-50/40 p-2.5"
+                  className="space-y-2 rounded-xl border border-brand-200 bg-brand-50/40 p-2.5 dark:border-brand-800 dark:bg-brand-900/20"
                 >
                   <input
                     autoFocus
                     value={editExpName}
                     onChange={(e) => setEditExpName(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500"
+                    className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:border-brand-400"
                   />
                   <div className="flex items-center gap-1.5">
                     {PALETTE_KEYS.map((k) => {
@@ -302,7 +310,7 @@ export function Sidebar({
                     <button
                       type="button"
                       onClick={() => setEditExpId(null)}
-                      className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+                      className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                     >
                       キャンセル
                     </button>
@@ -316,8 +324,8 @@ export function Sidebar({
                 key={exp.id}
                 className={`relative w-full rounded-xl border p-3 text-left transition ${
                   active
-                    ? `${p.border} ${p.bg} ring-2 ring-offset-1 ${p.border}`
-                    : "border-gray-200 bg-white hover:border-gray-300"
+                    ? `${p.border} ${p.bg} ring-2 ring-offset-1 dark:ring-offset-gray-900 ${p.border}`
+                    : "border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800/60 dark:hover:border-gray-600"
                 }`}
               >
                 <button
@@ -326,7 +334,7 @@ export function Sidebar({
                 >
                   <div className="flex items-center gap-2">
                     <span className={`h-2 w-2 shrink-0 rounded-full ${p.dot}`} />
-                    <span className="truncate text-sm font-semibold text-gray-800">
+                    <span className="truncate text-sm font-semibold text-gray-800 dark:text-gray-100">
                       {exp.name}
                     </span>
                   </div>
@@ -335,21 +343,21 @@ export function Sidebar({
                   <button
                     onClick={() => startEditExperiment(exp)}
                     title="編集"
-                    className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-brand-600"
+                    className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-brand-600 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-brand-400"
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
                   <button
                     onClick={() => handleArchiveExperiment(exp)}
                     title="アーカイブ（マイページで確認・復元できます）"
-                    className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-amber-600"
+                    className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-amber-600 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-amber-400"
                   >
                     <Archive className="h-3.5 w-3.5" />
                   </button>
                   <button
                     onClick={() => handleDeleteExperiment(exp)}
                     title="完全に削除"
-                    className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-rose-500"
+                    className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-rose-500 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-rose-400"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -365,14 +373,14 @@ export function Sidebar({
               e.preventDefault();
               submitExperiment();
             }}
-            className="mt-2 space-y-2 rounded-xl border border-gray-200 bg-gray-50/60 p-2.5"
+            className="mt-2 space-y-2 rounded-xl border border-gray-200 bg-gray-50/60 p-2.5 dark:border-gray-700 dark:bg-gray-800/40"
           >
             <input
               autoFocus
               value={regName}
               onChange={(e) => setRegName(e.target.value)}
               placeholder="カレンダー名（例: 大腸菌タンパク質発現）"
-              className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500"
+              className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:border-brand-400"
             />
             <div className="flex items-center gap-1.5">
               {PALETTE_KEYS.map((k) => {
@@ -404,7 +412,7 @@ export function Sidebar({
                   setRegOpen(false);
                   setRegName("");
                 }}
-                className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
               >
                 キャンセル
               </button>
@@ -413,7 +421,7 @@ export function Sidebar({
         ) : (
           <button
             onClick={() => setRegOpen(true)}
-            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-gray-300 py-2.5 text-sm text-gray-500 transition hover:border-brand-400 hover:text-brand-600"
+            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-gray-300 py-2.5 text-sm text-gray-500 transition hover:border-brand-400 hover:text-brand-600 dark:border-gray-600 dark:text-gray-400 dark:hover:border-brand-500 dark:hover:text-brand-400"
           >
             <Plus className="h-4 w-4" />
             カレンダーを追加
@@ -426,17 +434,17 @@ export function Sidebar({
             <Link
               href="/shared"
               title="カレンダーを共有して進捗を報告する"
-              className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-gray-600 transition hover:bg-brand-50 hover:text-brand-700"
+              className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-gray-600 transition hover:bg-brand-50 hover:text-brand-700 dark:text-gray-300 dark:hover:bg-brand-900/20 dark:hover:text-brand-400"
             >
-              <Share2 className="h-4 w-4 text-brand-600" />
+              <Share2 className="h-4 w-4 text-brand-600 dark:text-brand-400" />
               カレンダーを共有
             </Link>
             <Link
               href="/lab"
               title="研究室のメンバーを管理する"
-              className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-gray-600 transition hover:bg-brand-50 hover:text-brand-700"
+              className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-gray-600 transition hover:bg-brand-50 hover:text-brand-700 dark:text-gray-300 dark:hover:bg-brand-900/20 dark:hover:text-brand-400"
             >
-              <Users className="h-4 w-4 text-brand-600" />
+              <Users className="h-4 w-4 text-brand-600 dark:text-brand-400" />
               研究室
             </Link>
           </div>
@@ -447,9 +455,9 @@ export function Sidebar({
           <Link
             href="/culture"
             title="継代培養を管理（培地の作成・期限・系統）"
-            className="mt-4 flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-gray-600 transition hover:bg-emerald-50 hover:text-emerald-700"
+            className="mt-4 flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-gray-600 transition hover:bg-emerald-50 hover:text-emerald-700 dark:text-gray-300 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400"
           >
-            <Sprout className="h-4 w-4 text-emerald-600" />
+            <Sprout className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             継代培養を管理
           </Link>
         )}
@@ -459,21 +467,21 @@ export function Sidebar({
           type="button"
           onClick={onOpenTutorial}
           title="ラボカレの使い方をもう一度見る"
-          className="mt-4 flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-gray-600 transition hover:bg-brand-50 hover:text-brand-700"
+          className="mt-4 flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-gray-600 transition hover:bg-brand-50 hover:text-brand-700 dark:text-gray-300 dark:hover:bg-brand-900/20 dark:hover:text-brand-400"
         >
-          <HelpCircle className="h-4 w-4 text-brand-600" />
+          <HelpCircle className="h-4 w-4 text-brand-600 dark:text-brand-400" />
           使い方
         </button>
 
         {/* 今日の ToDo */}
         <div className="mb-1 mt-6 flex items-center justify-between">
           <div className="relative flex items-center gap-1">
-            <h2 className="text-xs font-semibold text-gray-500">今日のToDo</h2>
+            <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400">今日のToDo</h2>
             <button
               type="button"
               onClick={() => setTodoInfoOpen((v) => !v)}
               title="説明を表示"
-              className="relative z-50 text-gray-300 transition hover:text-gray-500"
+              className="relative z-50 text-gray-300 transition hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400"
             >
               <Info className="h-3.5 w-3.5" />
             </button>
@@ -484,13 +492,13 @@ export function Sidebar({
                   className="fixed inset-0 z-40"
                   onClick={() => setTodoInfoOpen(false)}
                 />
-                <div className="absolute left-0 top-full z-50 mt-1.5 w-64 rounded-lg border border-gray-200 bg-white p-2.5 text-xs leading-relaxed text-gray-600 shadow-lg">
+                <div className="absolute left-0 top-full z-50 mt-1.5 w-64 rounded-lg border border-gray-200 bg-white p-2.5 text-xs leading-relaxed text-gray-600 shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
                   完了したToDoは、完了から1日経つとこの一覧から自動的に非表示になります。プロフィール画面の「完了したToDo」でいつでも確認・未完了に戻せます。
                 </div>
               </>
             )}
           </div>
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-gray-400 dark:text-gray-500">
             {doneCount}/{visibleTodos.length}
           </span>
         </div>
@@ -512,7 +520,7 @@ export function Sidebar({
                   placeholder="ToDo名"
                   className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
                 />
-                <label className="block text-[11px] text-gray-500">
+                <label className="block text-[11px] text-gray-500 dark:text-gray-400">
                   期日（任意）
                   <input
                     type="datetime-local"
@@ -531,7 +539,7 @@ export function Sidebar({
                   <button
                     type="button"
                     onClick={() => setEditId(null)}
-                    className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+                    className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                   >
                     キャンセル
                   </button>
@@ -550,7 +558,7 @@ export function Sidebar({
             ) : (
               <div
                 key={todo.id}
-                className="flex items-start gap-2.5 rounded-lg px-1.5 py-1.5 hover:bg-gray-50"
+                className="flex items-start gap-2.5 rounded-lg px-1.5 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800/60"
               >
                 <button
                   onClick={() =>
@@ -559,7 +567,7 @@ export function Sidebar({
                   className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded border transition ${
                     todo.done
                       ? "border-brand-500 bg-brand-500 text-white"
-                      : "border-gray-300 bg-white"
+                      : "border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800"
                   }`}
                 >
                   {todo.done && <Check className="h-3 w-3" strokeWidth={3} />}
@@ -571,13 +579,15 @@ export function Sidebar({
                 >
                   <div
                     className={`text-sm ${
-                      todo.done ? "text-gray-400 line-through" : "text-gray-700"
+                      todo.done
+                        ? "text-gray-400 line-through dark:text-gray-500"
+                        : "text-gray-700 dark:text-gray-200"
                     }`}
                   >
                     {todo.title}
                   </div>
                   {todo.due_at && !todo.done && (
-                    <div className="text-xs text-rose-500">
+                    <div className="text-xs text-rose-500 dark:text-rose-400">
                       {dueLabel(todo.due_at)}
                     </div>
                   )}
@@ -585,7 +595,7 @@ export function Sidebar({
                 <button
                   onClick={() => deleteTodo.mutate(todo.id)}
                   title="削除"
-                  className="mt-0.5 shrink-0 rounded p-0.5 text-gray-300 transition hover:bg-gray-200 hover:text-rose-500"
+                  className="mt-0.5 shrink-0 rounded p-0.5 text-gray-300 transition hover:bg-gray-200 hover:text-rose-500 dark:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-rose-400"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -608,7 +618,7 @@ export function Sidebar({
                 placeholder="ToDoを入力…"
                 className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
               />
-              <label className="block text-[11px] text-gray-500">
+              <label className="block text-[11px] text-gray-500 dark:text-gray-400">
                 期日（任意）
                 <input
                   type="datetime-local"
@@ -631,7 +641,7 @@ export function Sidebar({
                     setNewTodo("");
                     setNewDue("");
                   }}
-                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                 >
                   キャンセル
                 </button>
@@ -640,7 +650,7 @@ export function Sidebar({
           ) : (
             <button
               onClick={() => setAdding(true)}
-              className="flex items-center gap-1.5 px-1.5 py-1.5 text-sm text-gray-400 transition hover:text-brand-600"
+              className="flex items-center gap-1.5 px-1.5 py-1.5 text-sm text-gray-400 transition hover:text-brand-600 dark:text-gray-500 dark:hover:text-brand-400"
             >
               <Plus className="h-3.5 w-3.5" />
               ToDoを追加

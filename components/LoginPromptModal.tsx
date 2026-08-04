@@ -16,33 +16,33 @@ export function LoginPromptModal({ onClose }: { onClose: () => void }) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl"
+        className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl dark:bg-gray-900"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-start gap-2">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50">
-            <LogIn className="h-4 w-4 text-brand-600" />
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50 dark:bg-brand-900/30">
+            <LogIn className="h-4 w-4 text-brand-600 dark:text-brand-400" />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-bold text-gray-800">
+            <h2 className="text-base font-bold text-gray-800 dark:text-gray-100">
               保存するにはログインが必要です
             </h2>
           </div>
           <button
             onClick={onClose}
             title="閉じる"
-            className="shrink-0 rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+            className="shrink-0 rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <p className="mb-4 text-sm leading-relaxed text-gray-600">
+        <p className="mb-4 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
           お試し中の変更は<span className="font-semibold">このブラウザにのみ</span>
           保存されています。ログインするとアカウントに保存され、
           他の端末からも同じ予定を見られます。
           <br />
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-gray-500 dark:text-gray-400">
             ※ ログインすると、ここで作成した予定はそのまま引き継がれます。
           </span>
         </p>
@@ -57,7 +57,7 @@ export function LoginPromptModal({ onClose }: { onClose: () => void }) {
           </button>
           <button
             onClick={onClose}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 transition hover:bg-gray-100"
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 transition hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
           >
             あとで
           </button>

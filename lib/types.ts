@@ -110,7 +110,9 @@ export interface FeatureFlags {
   /** 通常の活動時間の開始/終了（時, 0〜24）。既定は 8〜20。 */
   work_start_hour?: number;
   work_end_hour?: number;
-  [key: string]: boolean | number | undefined;
+  /** 配色（ライト / ダーク / システム設定と同期）。未設定は「システム」扱い */
+  theme?: "light" | "dark" | "system";
+  [key: string]: boolean | number | string | undefined;
 }
 
 export interface UserSettings {

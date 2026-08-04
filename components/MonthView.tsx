@@ -45,13 +45,17 @@ export function MonthView({
     );
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white">
-      <div className="grid grid-cols-7 border-b border-gray-200">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+      <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-800">
         {weekdayHeader.map((w) => (
           <div
             key={w}
             className={`py-2 text-center text-xs font-medium ${
-              w === "日" ? "text-rose-400" : w === "土" ? "text-sky-400" : "text-gray-400"
+              w === "日"
+                ? "text-rose-400 dark:text-rose-400/80"
+                : w === "土"
+                  ? "text-sky-400 dark:text-sky-400/80"
+                  : "text-gray-400 dark:text-gray-500"
             }`}
           >
             {w}
@@ -80,17 +84,19 @@ export function MonthView({
                         : () => onCreateAt(cell.startMs + 9 * 60 * 60 * 1000)
                     }
                     title={readOnly ? undefined : "クリックで予定を追加"}
-                    className={`min-h-0 overflow-hidden border-b border-l border-gray-200 p-1.5 ${
-                      readOnly ? "" : "cursor-pointer hover:bg-brand-50/40"
-                    } ${cell.isWeekend ? "bg-gray-50/40" : ""}`}
+                    className={`min-h-0 overflow-hidden border-b border-l border-gray-200 p-1.5 dark:border-gray-800 ${
+                      readOnly
+                        ? ""
+                        : "cursor-pointer hover:bg-brand-50/40 dark:hover:bg-brand-900/10"
+                    } ${cell.isWeekend ? "bg-gray-50/40 dark:bg-gray-800/20" : ""}`}
                   >
                     <div
                       className={`mb-1 inline-grid h-6 w-6 place-items-center rounded-full text-xs font-semibold ${
                         cell.isToday
                           ? "bg-brand-500 text-white"
                           : isOther
-                            ? "text-gray-300"
-                            : "text-gray-600"
+                            ? "text-gray-300 dark:text-gray-600"
+                            : "text-gray-600 dark:text-gray-300"
                       }`}
                     >
                       {cell.dateNum}
@@ -122,7 +128,7 @@ export function MonthView({
                         );
                       })}
                       {dayTasks.length > 3 && (
-                        <div className="px-1 text-[10px] text-gray-400">
+                        <div className="px-1 text-[10px] text-gray-400 dark:text-gray-500">
                           +{dayTasks.length - 3} 件
                         </div>
                       )}

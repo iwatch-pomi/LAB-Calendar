@@ -48,7 +48,7 @@ export function TutorialModal({
           {isGuest && (
             <>
               <br />
-              <span className="mt-2 block text-xs text-gray-500">
+              <span className="mt-2 block text-xs text-gray-500 dark:text-gray-400">
                 ※ 今表示されている実験・予定・ToDo は、機能を試していただくための
                 <span className="font-semibold">サンプルデータ</span>
                 です。自由に編集できます（変更はこのブラウザにのみ保存されます）。
@@ -164,32 +164,32 @@ export function TutorialModal({
         role="dialog"
         aria-modal="true"
         aria-label="ラボカレの使い方"
-        className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl"
+        className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl dark:bg-gray-900"
       >
         <div className="mb-3 flex items-start gap-2">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50">
-            <Icon className="h-4 w-4 text-brand-600" />
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50 dark:bg-brand-900/30">
+            <Icon className="h-4 w-4 text-brand-600 dark:text-brand-400" />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-bold text-gray-800">{slide.title}</h2>
-            <p className="text-xs text-gray-400">
+            <h2 className="text-base font-bold text-gray-800 dark:text-gray-100">{slide.title}</h2>
+            <p className="text-xs text-gray-400 dark:text-gray-500">
               {page + 1} / {slides.length}
             </p>
           </div>
           <button
             onClick={onFinish}
             title="スキップ"
-            className="shrink-0 rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+            className="shrink-0 rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* 文章量でカードの高さが跳ねないよう下限を持たせる */}
-        <div className="mb-4 min-h-[7.5rem] text-sm leading-relaxed text-gray-600">
+        <div className="mb-4 min-h-[7.5rem] text-sm leading-relaxed text-gray-600 dark:text-gray-300">
           {slide.body}
           {isGuest && slide.guestNote && (
-            <p className="mt-2 text-xs text-gray-500">※ {slide.guestNote}</p>
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">※ {slide.guestNote}</p>
           )}
         </div>
 
@@ -203,7 +203,7 @@ export function TutorialModal({
               aria-label={`${i + 1}ページ目へ`}
               aria-current={i === page}
               className={`h-1.5 rounded-full transition-all ${
-                i === page ? "w-5 bg-brand-500" : "w-1.5 bg-gray-300"
+                i === page ? "w-5 bg-brand-500" : "w-1.5 bg-gray-300 dark:bg-gray-700"
               }`}
             />
           ))}
@@ -213,7 +213,7 @@ export function TutorialModal({
           {page > 0 ? (
             <button
               onClick={prev}
-              className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
+              className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
             >
               <ChevronLeft className="h-4 w-4" />
               戻る
@@ -221,7 +221,7 @@ export function TutorialModal({
           ) : (
             <button
               onClick={onFinish}
-              className="rounded-lg px-3 py-2 text-sm font-medium text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+              className="rounded-lg px-3 py-2 text-sm font-medium text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
             >
               スキップ
             </button>

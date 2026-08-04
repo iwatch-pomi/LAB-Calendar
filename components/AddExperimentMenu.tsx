@@ -77,10 +77,10 @@ export function AddExperimentMenu({
     <>
       {/* 背景クリックで閉じる */}
       <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-2xl border border-gray-200 bg-white p-3 shadow-xl">
+      <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-2xl border border-gray-200 bg-white p-3 shadow-xl dark:border-gray-700 dark:bg-gray-800">
         <div className="px-1 pb-2">
-          <div className="text-sm font-bold text-gray-800">実験を追加</div>
-          <div className="text-xs text-gray-500">
+          <div className="text-sm font-bold text-gray-800 dark:text-gray-100">実験を追加</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">
             テンプレートから一連のステップをまとめて登録
           </div>
         </div>
@@ -91,10 +91,10 @@ export function AddExperimentMenu({
             return (
               <div
                 key={t.id}
-                className={`flex items-stretch rounded-xl border transition hover:border-gray-300 ${
+                className={`flex items-stretch rounded-xl border transition hover:border-gray-300 dark:hover:border-gray-600 ${
                   busy === t.id
-                    ? "border-brand-300 bg-brand-50"
-                    : "border-gray-200 bg-white"
+                    ? "border-brand-300 bg-brand-50 dark:border-brand-700 dark:bg-brand-900/20"
+                    : "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
                 }`}
               >
                 <button
@@ -108,10 +108,10 @@ export function AddExperimentMenu({
                     <FileText className={`h-4 w-4 ${p.text}`} />
                   </span>
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-gray-800">
+                    <div className="truncate text-sm font-semibold text-gray-800 dark:text-gray-100">
                       {t.name}
                     </div>
-                    <div className="truncate text-xs text-gray-500">
+                    <div className="truncate text-xs text-gray-500 dark:text-gray-400">
                       {t.description}
                     </div>
                   </div>
@@ -120,14 +120,14 @@ export function AddExperimentMenu({
                   <button
                     onClick={() => onEditTemplate(t)}
                     title="編集"
-                    className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-brand-600"
+                    className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-brand-600 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-brand-400"
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
                   <button
                     onClick={() => handleDelete(t)}
                     title="削除"
-                    className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-rose-500"
+                    className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-rose-500 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-rose-400"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -137,18 +137,18 @@ export function AddExperimentMenu({
           })}
         </div>
 
-        <div className="mt-2 flex gap-1.5 border-t border-gray-100 pt-2">
+        <div className="mt-2 flex gap-1.5 border-t border-gray-100 pt-2 dark:border-gray-700">
           <button
             disabled={busy !== null}
             onClick={createEmpty}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 py-2 text-sm text-gray-600 transition hover:bg-gray-50"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 py-2 text-sm text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             <CalendarPlus className="h-4 w-4" />
             空の予定
           </button>
           <button
             onClick={onCreateTemplate}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 py-2 text-sm text-gray-600 transition hover:bg-gray-50"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 py-2 text-sm text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             <Wand2 className="h-4 w-4" />
             テンプレを作成

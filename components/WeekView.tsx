@@ -288,14 +288,14 @@ export function WeekView({
   for (let h = CAL_START_HOUR; h <= CAL_END_HOUR; h++) hours.push(h);
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white">
+    <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
       {/* 拡大・縮小コントロール */}
-      <div className="absolute right-2 top-1.5 z-10 flex items-center gap-0.5 rounded-lg border border-gray-200 bg-white/95 p-0.5 shadow-sm">
+      <div className="absolute right-2 top-1.5 z-10 flex items-center gap-0.5 rounded-lg border border-gray-200 bg-white/95 p-0.5 shadow-sm dark:border-gray-700 dark:bg-gray-800/95">
         <button
           onClick={() => zoom(-HOUR_PX_STEP)}
           disabled={hourPx <= HOUR_PX_MIN}
           title="縮小（0時〜24時を見やすく）"
-          className="rounded-md p-1 text-gray-500 transition hover:bg-gray-100 disabled:opacity-30"
+          className="rounded-md p-1 text-gray-500 transition hover:bg-gray-100 disabled:opacity-30 dark:text-gray-400 dark:hover:bg-gray-700"
         >
           <ZoomOut className="h-3.5 w-3.5" />
         </button>
@@ -303,7 +303,7 @@ export function WeekView({
           onClick={() => zoom(HOUR_PX_STEP)}
           disabled={hourPx >= HOUR_PX_MAX}
           title="拡大"
-          className="rounded-md p-1 text-gray-500 transition hover:bg-gray-100 disabled:opacity-30"
+          className="rounded-md p-1 text-gray-500 transition hover:bg-gray-100 disabled:opacity-30 dark:text-gray-400 dark:hover:bg-gray-700"
         >
           <ZoomIn className="h-3.5 w-3.5" />
         </button>
@@ -311,7 +311,7 @@ export function WeekView({
 
       {/* 曜日ヘッダー */}
       <div
-        className="grid border-b border-gray-200"
+        className="grid border-b border-gray-200 dark:border-gray-800"
         style={{
           gridTemplateColumns: `${GUTTER}px repeat(${dayCount}, minmax(0,1fr))`,
         }}
@@ -320,12 +320,14 @@ export function WeekView({
         {cells.map((c) => (
           <div
             key={c.index}
-            className={`py-2 text-center ${c.isWeekend ? "bg-gray-50/60" : ""}`}
+            className={`py-2 text-center ${c.isWeekend ? "bg-gray-50/60 dark:bg-gray-800/40" : ""}`}
           >
-            <div className="text-xs text-gray-400">{c.weekdayJp}</div>
+            <div className="text-xs text-gray-400 dark:text-gray-500">{c.weekdayJp}</div>
             <div
               className={`mx-auto mt-0.5 grid h-7 w-7 place-items-center rounded-full text-sm font-semibold ${
-                c.isToday ? "bg-brand-500 text-white" : "text-gray-700"
+                c.isToday
+                  ? "bg-brand-500 text-white"
+                  : "text-gray-700 dark:text-gray-300"
               }`}
             >
               {c.dateNum}
@@ -353,8 +355,8 @@ export function WeekView({
                     key={h}
                     className={`absolute right-2 -translate-y-1/2 text-xs ${
                       isWorkEdge
-                        ? "font-bold text-brand-600"
-                        : "text-gray-400"
+                        ? "font-bold text-brand-600 dark:text-brand-400"
+                        : "text-gray-400 dark:text-gray-500"
                     }`}
                     style={{ top: i * hourPx }}
                   >
@@ -375,16 +377,16 @@ export function WeekView({
                   key={c.index}
                   onClick={(e) => onColumnClick(c.startMs, e)}
                   title={readOnly ? undefined : "クリックで予定を追加"}
-                  className={`relative border-l border-gray-200 ${
+                  className={`relative border-l border-gray-200 dark:border-gray-800 ${
                     readOnly ? "" : "cursor-pointer"
-                  } ${c.isWeekend ? "bg-gray-50/40" : ""}`}
+                  } ${c.isWeekend ? "bg-gray-50/40 dark:bg-gray-800/20" : ""}`}
                   style={{ height: TOTAL_H }}
                 >
                   {/* 時間グリッド線 */}
                   {hours.slice(0, -1).map((h, i) => (
                     <div
                       key={h}
-                      className="absolute inset-x-0 border-b border-gray-200"
+                      className="absolute inset-x-0 border-b border-gray-200 dark:border-gray-800"
                       style={{ top: (i + 1) * hourPx, height: 0 }}
                     />
                   ))}
@@ -497,7 +499,7 @@ function TaskBlock({
       }}
       className={`group absolute overflow-hidden rounded-lg border px-1.5 py-1 text-left shadow-sm transition ${
         readOnly ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
-      } ${isWait ? `bg-white ${pal.border}` : `${pal.bg} ${pal.border}`} ${
+      } ${isWait ? `bg-white dark:bg-gray-800 ${pal.border}` : `${pal.bg} ${pal.border}`} ${
         dimmed ? "opacity-35" : ""
       } ${failed ? "ring-2 ring-rose-400" : ""} ${
         isDragging ? "shadow-lg" : ""
@@ -513,21 +515,21 @@ function TaskBlock({
           wordBreak: "break-word",
         }}
       >
-        {p.continuesFromPrev && <span className="text-gray-400">↑ </span>}
+        {p.continuesFromPrev && <span className="text-gray-400 dark:text-gray-500">↑ </span>}
         {p.task.title}
       </div>
       {p.height > 32 && (
-        <div className="truncate text-[10px] leading-tight text-gray-500">
+        <div className="truncate text-[10px] leading-tight text-gray-500 dark:text-gray-400">
           {p.task.subtitle ?? fmtTimeRange(p.startMs, p.endMs)}
         </div>
       )}
       {p.continuesToNext && (
-        <div className="absolute bottom-0.5 right-1 text-[10px] text-gray-400">
+        <div className="absolute bottom-0.5 right-1 text-[10px] text-gray-400 dark:text-gray-500">
           翌日へ ↓
         </div>
       )}
       {equipmentName && p.height > 52 && !p.continuesToNext && (
-        <span className="mt-1 inline-block whitespace-nowrap rounded bg-white/70 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 ring-1 ring-gray-200">
+        <span className="mt-1 inline-block whitespace-nowrap rounded bg-white/70 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 ring-1 ring-gray-200 dark:bg-gray-900/60 dark:text-gray-300 dark:ring-gray-700">
           {equipmentName}予約
         </span>
       )}

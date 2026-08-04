@@ -61,7 +61,7 @@ export function LandingPage() {
       {/* ヘッダー */}
       <header className="border-b border-gray-200">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-3.5">
-          <Logo size="sm" />
+          <Logo size="sm" themed={false} />
           <nav className="flex shrink-0 items-center gap-1 sm:gap-2">
             <Link
               href="/teacher"
@@ -307,7 +307,7 @@ export function LandingPage() {
 
       <footer className="border-t border-gray-200 px-5 py-7">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
-          <Logo size="sm" />
+          <Logo size="sm" themed={false} />
           <p className="text-xs text-gray-400">
             卒業研究のスケジュール管理アプリ
           </p>

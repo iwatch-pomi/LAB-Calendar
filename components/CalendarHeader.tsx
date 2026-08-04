@@ -56,27 +56,29 @@ export function CalendarHeader({
           : "今日";
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-y-1.5 gap-x-2 border-b border-gray-200 bg-white px-2 py-3 sm:px-4">
+    <header className="flex flex-wrap items-center justify-between gap-y-1.5 gap-x-2 border-b border-gray-200 bg-white px-2 py-3 dark:border-gray-800 dark:bg-gray-900 sm:px-4">
       <div className="flex min-w-0 items-center gap-1.5 sm:gap-4">
         {/* サイドバー固定表示/非表示 */}
         <button
           onClick={onToggleSidebar}
           title={sidebarOpen ? "サイドバーを非表示" : "サイドバーを固定表示"}
-          className={`shrink-0 rounded-lg p-1.5 transition hover:bg-gray-100 ${
-            sidebarOpen ? "bg-gray-100 text-gray-700" : "text-gray-500"
+          className={`shrink-0 rounded-lg p-1.5 transition hover:bg-gray-100 dark:hover:bg-gray-800 ${
+            sidebarOpen
+              ? "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
+              : "text-gray-500 dark:text-gray-400"
           }`}
         >
           <PanelLeft className="h-4 w-4" />
         </button>
 
         {/* 日/週/月 トグル */}
-        <div className="flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-sm">
+        <div className="flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-sm dark:border-gray-700 dark:bg-gray-800">
           <button
             onClick={() => onViewChange("day")}
             className={`rounded-md px-2 py-1 font-medium transition sm:px-3 ${
               view === "day"
-                ? "bg-white text-gray-800 shadow-sm"
-                : "text-gray-500"
+                ? "bg-white text-gray-800 shadow-sm dark:bg-gray-700 dark:text-gray-100"
+                : "text-gray-500 dark:text-gray-400"
             }`}
           >
             日
@@ -85,8 +87,8 @@ export function CalendarHeader({
             onClick={() => onViewChange("week")}
             className={`rounded-md px-2 py-1 font-medium transition sm:px-3 ${
               view === "week"
-                ? "bg-white text-gray-800 shadow-sm"
-                : "text-gray-500"
+                ? "bg-white text-gray-800 shadow-sm dark:bg-gray-700 dark:text-gray-100"
+                : "text-gray-500 dark:text-gray-400"
             }`}
           >
             週
@@ -95,8 +97,8 @@ export function CalendarHeader({
             onClick={() => onViewChange("month")}
             className={`rounded-md px-2 py-1 font-medium transition sm:px-3 ${
               view === "month"
-                ? "bg-white text-gray-800 shadow-sm"
-                : "text-gray-500"
+                ? "bg-white text-gray-800 shadow-sm dark:bg-gray-700 dark:text-gray-100"
+                : "text-gray-500 dark:text-gray-400"
             }`}
           >
             月
@@ -107,16 +109,16 @@ export function CalendarHeader({
         <div className="flex min-w-0 items-center gap-0.5 sm:gap-1">
           <button
             onClick={() => onRefChange(refMs - step)}
-            className="shrink-0 rounded-lg p-1 text-gray-500 transition hover:bg-gray-100 sm:p-1.5"
+            className="shrink-0 rounded-lg p-1 text-gray-500 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 sm:p-1.5"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <span className="whitespace-nowrap text-center text-[13px] font-semibold text-gray-800 sm:min-w-[7rem] sm:text-sm">
+          <span className="whitespace-nowrap text-center text-[13px] font-semibold text-gray-800 dark:text-gray-100 sm:min-w-[7rem] sm:text-sm">
             {title}
           </span>
           <button
             onClick={() => onRefChange(refMs + step)}
-            className="shrink-0 rounded-lg p-1 text-gray-500 transition hover:bg-gray-100 sm:p-1.5"
+            className="shrink-0 rounded-lg p-1 text-gray-500 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 sm:p-1.5"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -126,7 +128,7 @@ export function CalendarHeader({
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
         <button
           onClick={() => onRefChange(nowMs())}
-          className="whitespace-nowrap rounded-lg border border-gray-200 px-2 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 sm:px-3"
+          className="whitespace-nowrap rounded-lg border border-gray-200 px-2 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 sm:px-3"
         >
           {todayLabel}
         </button>

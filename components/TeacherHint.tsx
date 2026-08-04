@@ -16,8 +16,8 @@ export function TeacherHint() {
   if (closed) return null;
 
   return (
-    <div className="flex items-center gap-2 border-b border-brand-100 bg-brand-50 px-3 py-2 text-xs text-brand-800">
-      <Users className="h-4 w-4 shrink-0 text-brand-600" />
+    <div className="flex items-center gap-2 border-b border-brand-100 bg-brand-50 px-3 py-2 text-xs text-brand-800 dark:border-brand-900/40 dark:bg-brand-900/10 dark:text-brand-300">
+      <Users className="h-4 w-4 shrink-0 text-brand-600 dark:text-brand-400" />
       <span className="min-w-0 flex-1">
         教授・指導者として登録されています。学生の予定は管理画面から確認できます。
       </span>
@@ -30,7 +30,7 @@ export function TeacherHint() {
       <button
         onClick={() => setClosed(true)}
         title="閉じる"
-        className="shrink-0 rounded-lg p-1 text-brand-500 transition hover:bg-brand-100"
+        className="shrink-0 rounded-lg p-1 text-brand-500 transition hover:bg-brand-100 dark:text-brand-400 dark:hover:bg-brand-900/20"
       >
         <X className="h-3.5 w-3.5" />
       </button>

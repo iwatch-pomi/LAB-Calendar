@@ -134,7 +134,7 @@ export function AuthForm() {
         <button
           onClick={() => oauth("google")}
           disabled={loading !== null}
-          className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
         >
           <GoogleIcon />
           Google で続ける
@@ -142,17 +142,17 @@ export function AuthForm() {
         <button
           onClick={() => oauth("apple")}
           disabled={loading !== null}
-          className="flex w-full items-center justify-center gap-2.5 rounded-xl bg-black px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-2.5 rounded-xl bg-black px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-60 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
         >
           <AppleIcon />
           Apple で続ける
         </button>
       </div>
 
-      <div className="flex items-center gap-3 text-xs text-gray-400">
-        <div className="h-px flex-1 bg-gray-200" />
+      <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
+        <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
         または メールアドレス
-        <div className="h-px flex-1 bg-gray-200" />
+        <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
       </div>
 
       {/* Email / Password */}
@@ -163,7 +163,7 @@ export function AuthForm() {
           placeholder="you@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+          className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-brand-900/40"
         />
         <input
           type="password"
@@ -172,7 +172,7 @@ export function AuthForm() {
           placeholder="パスワード（6文字以上）"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+          className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-brand-900/40"
         />
         <button
           type="submit"
@@ -191,22 +191,22 @@ export function AuthForm() {
         <p
           className={`rounded-lg px-3 py-2 text-xs ${
             message.type === "error"
-              ? "bg-rose-50 text-rose-600"
-              : "bg-brand-50 text-brand-700"
+              ? "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400"
+              : "bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-300"
           }`}
         >
           {message.text}
         </p>
       )}
 
-      <p className="text-center text-sm text-gray-500">
+      <p className="text-center text-sm text-gray-500 dark:text-gray-400">
         {mode === "signin" ? "アカウントがありませんか？" : "既に登録済みですか？"}{" "}
         <button
           onClick={() => {
             setMode(mode === "signin" ? "signup" : "signin");
             setMessage(null);
           }}
-          className="font-semibold text-brand-600 hover:underline"
+          className="font-semibold text-brand-600 hover:underline dark:text-brand-400"
         >
           {mode === "signin" ? "新規登録" : "ログイン"}
         </button>

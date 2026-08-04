@@ -184,16 +184,16 @@ export function TemplateBuilder({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-gray-900"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
-          <h3 className="text-base font-bold text-gray-800">
+        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5 dark:border-gray-800">
+          <h3 className="text-base font-bold text-gray-800 dark:text-gray-100">
             {isEdit ? "テンプレを編集" : "テンプレを作成"}
           </h3>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-gray-500 hover:bg-gray-100"
+            className="rounded-lg p-1 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
           >
             <X className="h-4 w-4" />
           </button>
@@ -202,29 +202,29 @@ export function TemplateBuilder({
         <div className="thin-scroll flex-1 space-y-4 overflow-y-auto p-5">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <label className="mb-1 block text-xs font-semibold text-gray-500">
+              <label className="mb-1 block text-xs font-semibold text-gray-500 dark:text-gray-400">
                 テンプレート名
               </label>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="例: Western Blotting"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-gray-500">
+              <label className="mb-1 block text-xs font-semibold text-gray-500 dark:text-gray-400">
                 目安期間
               </label>
               <input
                 value={estimatedLabel}
                 onChange={(e) => setEstimatedLabel(e.target.value)}
                 placeholder="例: 約2日"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-gray-500">
+              <label className="mb-1 block text-xs font-semibold text-gray-500 dark:text-gray-400">
                 カラー
               </label>
               <div className="flex gap-1.5 pt-1.5">
@@ -251,7 +251,7 @@ export function TemplateBuilder({
               ステップ
             </div>
             {loading && (
-              <p className="py-4 text-center text-xs text-gray-400">
+              <p className="py-4 text-center text-xs text-gray-400 dark:text-gray-500">
                 読み込み中…
               </p>
             )}
@@ -259,31 +259,31 @@ export function TemplateBuilder({
               {steps.map((s, i) => (
                 <div
                   key={i}
-                  className="rounded-xl border border-gray-200 p-3"
+                  className="rounded-xl border border-gray-200 p-3 dark:border-gray-700"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-gray-100 text-xs font-semibold text-gray-500">
+                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-gray-100 text-xs font-semibold text-gray-500 dark:bg-gray-700 dark:text-gray-400">
                       {i + 1}
                     </span>
                     <input
                       value={s.title}
                       onChange={(e) => updateStep(i, { title: e.target.value })}
                       placeholder="ステップ名"
-                      className="flex-1 rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500"
+                      className="flex-1 rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                     />
                     {steps.length > 1 && (
                       <button
                         onClick={() =>
                           setSteps((st) => st.filter((_, idx) => idx !== i))
                         }
-                        className="text-gray-400 hover:text-rose-500"
+                        className="text-gray-400 hover:text-rose-500 dark:text-gray-500 dark:hover:text-rose-400"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}
                   </div>
                   <div className="mt-2 grid grid-cols-3 gap-2">
-                    <label className="text-xs text-gray-500">
+                    <label className="text-xs text-gray-500 dark:text-gray-400">
                       所要(分)
                       <input
                         type="number"
@@ -295,10 +295,10 @@ export function TemplateBuilder({
                             duration_minutes: Number(e.target.value),
                           })
                         }
-                        className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1 text-sm outline-none focus:border-brand-500"
+                        className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                       />
                     </label>
-                    <label className="text-xs text-gray-500">
+                    <label className="text-xs text-gray-500 dark:text-gray-400">
                       待ち(分)
                       <input
                         type="number"
@@ -310,10 +310,10 @@ export function TemplateBuilder({
                             wait_after_minutes: Number(e.target.value),
                           })
                         }
-                        className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1 text-sm outline-none focus:border-brand-500"
+                        className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                       />
                     </label>
-                    <label className="text-xs text-gray-500">
+                    <label className="text-xs text-gray-500 dark:text-gray-400">
                       装置
                       <input
                         value={s.equipment_name}
@@ -321,7 +321,7 @@ export function TemplateBuilder({
                           updateStep(i, { equipment_name: e.target.value })
                         }
                         placeholder="任意"
-                        className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1 text-sm outline-none focus:border-brand-500"
+                        className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                       />
                     </label>
                   </div>
@@ -330,7 +330,7 @@ export function TemplateBuilder({
             </div>
             <button
               onClick={() => setSteps((s) => [...s, emptyStep()])}
-              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-gray-300 py-2 text-sm text-gray-500 hover:border-brand-400 hover:text-brand-600"
+              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-gray-300 py-2 text-sm text-gray-500 hover:border-brand-400 hover:text-brand-600 dark:border-gray-600 dark:text-gray-400 dark:hover:border-brand-500 dark:hover:text-brand-400"
             >
               <Plus className="h-4 w-4" />
               ステップを追加
@@ -338,18 +338,18 @@ export function TemplateBuilder({
           </div>
 
           {error && (
-            <p className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-600">
+            <p className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-600 dark:bg-rose-500/10 dark:text-rose-400">
               {error}
             </p>
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-5 py-3">
+        <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-5 py-3 dark:border-gray-800">
           {isEdit && (
             <button
               onClick={remove}
               disabled={deleting || saving}
-              className="mr-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-60"
+              className="mr-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-60 dark:text-rose-400 dark:hover:bg-rose-500/10"
             >
               <Trash2 className="h-4 w-4" />
               {deleting ? "削除中…" : "削除"}
@@ -357,7 +357,7 @@ export function TemplateBuilder({
           )}
           <button
             onClick={onClose}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
           >
             キャンセル
           </button>

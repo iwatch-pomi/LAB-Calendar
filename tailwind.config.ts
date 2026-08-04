@@ -1,6 +1,9 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  // クラスベース（.dark を html に付け外し）。next-themes を使わず自前の
+  // ThemeProvider で切り替えるため、media クエリ方式ではなくこちらを使う。
+  darkMode: "class",
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",

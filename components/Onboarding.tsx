@@ -55,17 +55,17 @@ export function Onboarding({
   const isOther = selected.size === 0;
 
   return (
-    <div className="fixed inset-0 z-[60] grid place-items-center overflow-y-auto bg-[#f6f8fa] p-4">
+    <div className="fixed inset-0 z-[60] grid place-items-center overflow-y-auto bg-[#f6f8fa] p-4 dark:bg-gray-950">
       <div className="w-full max-w-2xl">
         <div className="mb-5">
           <Logo size="lg" />
         </div>
-        <h1 className="text-2xl font-bold text-gray-800">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
           ようこそ！まず研究分野を教えてください
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           分野に合わせて実験テンプレートや待機時間の扱いを最適化します。
-          <span className="font-medium text-gray-600">
+          <span className="font-medium text-gray-600 dark:text-gray-300">
             あとから「マイページ → 実験モード」でいつでも変更・追加できます。
           </span>
         </p>
@@ -79,8 +79,8 @@ export function Onboarding({
                 onClick={() => toggle(d.key)}
                 className={`relative rounded-2xl border p-4 text-left transition ${
                   on
-                    ? "border-brand-400 bg-brand-50 ring-2 ring-brand-400"
-                    : "border-gray-200 bg-white hover:border-gray-300"
+                    ? "border-brand-400 bg-brand-50 ring-2 ring-brand-400 dark:border-brand-600 dark:bg-brand-900/20 dark:ring-brand-600"
+                    : "border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-gray-600"
                 }`}
               >
                 {on && (
@@ -93,10 +93,10 @@ export function Onboarding({
                 >
                   {d.icon}
                 </span>
-                <div className="mt-3 text-base font-bold text-gray-800">
+                <div className="mt-3 text-base font-bold text-gray-800 dark:text-gray-100">
                   {d.title}
                 </div>
-                <p className="mt-1 text-xs leading-relaxed text-gray-500">
+                <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
                   {d.desc}
                 </p>
               </button>
@@ -108,21 +108,21 @@ export function Onboarding({
             onClick={() => setSelected(new Set())}
             className={`rounded-2xl border border-dashed p-4 text-left transition ${
               isOther
-                ? "border-gray-400 bg-gray-50"
-                : "border-gray-300 bg-white hover:border-gray-400"
+                ? "border-gray-400 bg-gray-50 dark:border-gray-500 dark:bg-gray-800"
+                : "border-gray-300 bg-white hover:border-gray-400 dark:border-gray-600 dark:bg-gray-900 dark:hover:border-gray-500"
             }`}
           >
-            <div className="mt-3 text-base font-bold text-gray-700">
+            <div className="mt-3 text-base font-bold text-gray-700 dark:text-gray-200">
               その他 / あとで決める
             </div>
-            <p className="mt-1 text-xs leading-relaxed text-gray-400">
+            <p className="mt-1 text-xs leading-relaxed text-gray-400 dark:text-gray-500">
               汎用テンプレートで始めます。
             </p>
           </button>
         </div>
 
         <div className="mt-6 flex items-center justify-between">
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-400 dark:text-gray-500">
             {isOther
               ? "モードなしで開始します"
               : `${selected.size} 個の分野を選択中`}
