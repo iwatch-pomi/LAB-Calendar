@@ -29,8 +29,10 @@ export async function GET(request: NextRequest) {
         ? `${forwardedProto}://${forwardedHost}`
         : origin;
 
-  // 失敗時は認証モーダルのある場所へ戻す（`/` は公式サイトでモーダルが無い）
-  const failure = `${base}${DEFAULT_AFTER_LOGIN}?login=1&error=auth`;
+  // 失敗時は元々ログインしようとしていた場所へ戻す（`next` が無ければカレンダーへ。
+  // `/` は公式サイトでモーダルが無いため使わない）。教授が /teacher から失敗した場合に
+  // 学生用カレンダー側へ飛ばさないために、next をそのまま使う。
+  const failure = `${base}${next ?? DEFAULT_AFTER_LOGIN}?login=1&error=auth`;
 
   if (!code) {
     return NextResponse.redirect(failure);

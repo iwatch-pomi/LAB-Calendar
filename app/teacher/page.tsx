@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { TeacherDashboard } from "@/components/TeacherDashboard";
+import { TeacherLoginScreen } from "@/components/TeacherLoginScreen";
 import { RoleGate } from "@/components/RoleGate";
 
 // ログイン後の画面なので検索結果には出さない
@@ -10,14 +10,18 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/** 教授・指導者向けの管理画面（middleware で保護済み） */
+/**
+ * 教授・指導者向けの管理画面。
+ * 未ログイン時はカレンダーへリダイレクトせず、独立したログイン画面をその場で描画する
+ * （/app の「未ログインはゲストモードでその場に留まる」パターンと同じ形）。
+ */
 export default async function TeacherPage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login?next=/teacher");
+  if (!user) return <TeacherLoginScreen />;
 
   return (
     <>

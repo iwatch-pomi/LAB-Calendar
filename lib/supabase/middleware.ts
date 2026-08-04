@@ -62,17 +62,18 @@ export async function updateSession(request: NextRequest) {
 
   // アカウント機能のページはログイン必須。
   // カレンダー(/app)は未ログインでも「ゲストモード」で閲覧・お試し編集できる。
+  // /teacher は含めない: 未ログイン時は自分自身で独立したログイン画面を描画する
+  // ため（app/teacher/page.tsx）、ここでリダイレクトすると学生用カレンダーの上に
+  // 認証モーダルが重なって見える不具合になる。
   const isProtectedRoute =
     pathname.startsWith("/profile") ||
     pathname.startsWith("/culture") ||
     pathname.startsWith("/archive") ||
     pathname.startsWith("/lab") ||
-    pathname.startsWith("/shared") ||
-    pathname.startsWith("/teacher");
+    pathname.startsWith("/shared");
 
   // 未ログインで保護ページ → 認証モーダルのあるカレンダーへ戻す。
-  // 行き先(next)を必ず持たせる。これが無いと、教授の入口(/teacher)から来た人が
-  // 黙って学生側(/app)に着地してしまう。
+  // 行き先(next)を必ず持たせる（そうしないと元々見ようとしていたページに戻れない）。
   if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone();
     url.pathname = DEFAULT_AFTER_LOGIN;
