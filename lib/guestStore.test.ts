@@ -16,7 +16,7 @@ function makeState(nowMs: number): GuestState {
     deletedDemoTaskIds: [],
     deletedDemoTodoIds: [],
     hasPromptedLogin: false,
-    hasSeenDemoNotice: false,
+    hasSeenTutorial: false,
   };
 }
 

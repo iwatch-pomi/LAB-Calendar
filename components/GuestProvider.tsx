@@ -21,9 +21,10 @@ interface GuestContextValue {
   notifyGuestEdit: () => void;
   promptOpen: boolean;
   closePrompt: () => void;
-  /** 初回アクセス時のみ「これはデモデータです」を知らせるモーダルが開いているか */
-  demoNoticeOpen: boolean;
-  closeDemoNotice: () => void;
+  /** 使い方のチュートリアルが開いているか（初回アクセス時と「使い方」ボタン） */
+  tutorialOpen: boolean;
+  openTutorial: () => void;
+  closeTutorial: () => void;
   /** ログイン・新規登録モーダル（専用ページへは遷移しない） */
   authOpen: boolean;
   openAuth: () => void;
@@ -36,8 +37,9 @@ const GuestContext = createContext<GuestContextValue>({
   notifyGuestEdit: () => {},
   promptOpen: false,
   closePrompt: () => {},
-  demoNoticeOpen: false,
-  closeDemoNotice: () => {},
+  tutorialOpen: false,
+  openTutorial: () => {},
+  closeTutorial: () => {},
   authOpen: false,
   openAuth: () => {},
   closeAuth: () => {},
@@ -55,12 +57,12 @@ export function GuestProvider({
   children: React.ReactNode;
 }) {
   const [promptOpen, setPromptOpen] = useState(false);
-  const [demoNoticeOpen, setDemoNoticeOpen] = useState(false);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
 
   const openAuth = useCallback(() => {
     setPromptOpen(false);
-    setDemoNoticeOpen(false);
+    setTutorialOpen(false);
     setAuthOpen(true);
   }, []);
   const closeAuth = useCallback(() => setAuthOpen(false), []);
@@ -100,12 +102,13 @@ export function GuestProvider({
     };
   }, [isGuest, router]);
 
-  // ログインが反映されたら、ゲスト向けのモーダルは閉じる
+  // ログインが反映されたら、ゲスト向けのモーダルは閉じる。
+  // チュートリアルはログイン後も出すものなので、ここでは閉じない
+  // （閲覧の途中でログインが通っても読み続けられるように）。
   useEffect(() => {
     if (isGuest) return;
     setAuthOpen(false);
     setPromptOpen(false);
-    setDemoNoticeOpen(false);
   }, [isGuest]);
 
   useEffect(() => {
@@ -123,19 +126,20 @@ export function GuestProvider({
         "",
         `${window.location.pathname}${q ? `?${q}` : ""}`,
       );
-      // ログインしに来た人にデモの案内は不要（次の素の訪問で出す）
+      // ログインしに来た人に使い方の案内は不要（次の素の訪問で出す）
       return;
     }
 
-    // 初回アクセス（未ログイン）のみ、表示中のデータがデモであることを知らせる
-    if (guestStore.hasSeenDemoNotice()) return;
-    setDemoNoticeOpen(true);
+    // 初回アクセス（未ログイン）のみ、使い方のチュートリアルを出す。
+    // ログイン後の自動表示は、先に出るオーバーレイの都合を見て CalendarApp が決める。
+    if (guestStore.hasSeenTutorial()) return;
+    setTutorialOpen(true);
   }, [isGuest]);
 
-  const closeDemoNotice = useCallback(() => {
-    guestStore.markSeenDemoNotice();
-    setDemoNoticeOpen(false);
-  }, []);
+  // 既読の保存先はゲスト(localStorage)とログイン後(user_settings)で違うため、
+  // ここでは開閉だけを持ち、保存は CalendarApp 側で行う。
+  const openTutorial = useCallback(() => setTutorialOpen(true), []);
+  const closeTutorial = useCallback(() => setTutorialOpen(false), []);
 
   const requireLogin = useCallback(() => {
     if (isGuest) setPromptOpen(true);
@@ -159,8 +163,9 @@ export function GuestProvider({
         notifyGuestEdit,
         promptOpen,
         closePrompt,
-        demoNoticeOpen,
-        closeDemoNotice,
+        tutorialOpen,
+        openTutorial,
+        closeTutorial,
         authOpen,
         openAuth,
         closeAuth,

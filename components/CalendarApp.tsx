@@ -32,10 +32,11 @@ import { AddExperimentMenu } from "./AddExperimentMenu";
 import { TemplateBuilder } from "./TemplateBuilder";
 import { GuestProvider, useGuest } from "./GuestProvider";
 import { LoginPromptModal } from "./LoginPromptModal";
-import { DemoNoticeModal } from "./DemoNoticeModal";
+import { TutorialModal } from "./TutorialModal";
 import { AuthModal } from "./auth/AuthModal";
 import { GuestBanner, MigratedBanner } from "./GuestBanner";
 import { guestStore } from "@/lib/guestStore";
+import { shouldAutoOpenTutorial } from "@/lib/tutorial";
 import { useClaimInvitations } from "@/lib/sharedQueries";
 
 export type ViewMode = "day" | "week" | "month";
@@ -75,8 +76,9 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
     isGuest,
     promptOpen,
     closePrompt,
-    demoNoticeOpen,
-    closeDemoNotice,
+    tutorialOpen,
+    openTutorial,
+    closeTutorial,
     authOpen,
     closeAuth,
   } = useGuest();
@@ -267,6 +269,41 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
     updateFeatures.mutate(flags);
   }
 
+  // 使い方のチュートリアル。ゲストの初回表示は GuestProvider が済ませているので、
+  // ここで見るのはログイン後の分だけ（デモ選択・分野選択が片付いてから出す）。
+  const tutorialAutoRan = useRef(false);
+  useEffect(() => {
+    if (isGuest || tutorialAutoRan.current) return;
+    if (
+      !shouldAutoOpenTutorial({
+        isGuest,
+        cameForLogin: false,
+        guestSeen: false,
+        settingsLoaded: settingsQ.isSuccess,
+        tutorialDone: !!settingsQ.data?.tutorial_done,
+        showDemoChoice,
+        showOnboarding,
+      })
+    )
+      return;
+    tutorialAutoRan.current = true;
+    openTutorial();
+  }, [
+    isGuest,
+    settingsQ.isSuccess,
+    settingsQ.data?.tutorial_done,
+    showDemoChoice,
+    showOnboarding,
+    openTutorial,
+  ]);
+
+  // 既読の保存先はモードで違う。ゲストはブラウザ、ログイン後はアカウント。
+  function finishTutorial() {
+    if (isGuest) guestStore.markSeenTutorial();
+    else updateFeatures.mutate({ tutorial_done: true });
+    closeTutorial();
+  }
+
   // ログイン直後: ゲスト中にブラウザへ作った予定/ToDoをアカウントへ引き継ぐ。
   // 対象はユーザーが自分で作成/変更した分のみ（デモそのままの行は含めない）。
   // ログイン後: 自分のメール宛に届いていた共有の招待を実際の共有に変える。
@@ -277,6 +314,18 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
     claimRan.current = true;
     claimInvitations.mutate();
   }, [isGuest, claimInvitations]);
+
+  // ゲスト中にチュートリアルを見終えていたら、その既読をアカウントへ引き継ぐ。
+  // 下の移行処理が guestStore.clear() でフラグごと消すので、必ずその前に読む。
+  // 「引き継ぐ予定が無ければ即 return」の経路（素見のゲストが登録する典型）も
+  // 通るよう、移行本体とは別の ref で1回だけに絞る。
+  const tutorialHandoffRan = useRef(false);
+  useEffect(() => {
+    if (isGuest || tutorialHandoffRan.current) return;
+    tutorialHandoffRan.current = true;
+    if (!guestStore.hasSeenTutorial()) return;
+    updateFeatures.mutate({ tutorial_done: true });
+  }, [isGuest, updateFeatures]);
 
   const migrateRan = useRef(false);
   useEffect(() => {
@@ -350,6 +399,7 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
           selectedExperiment={selectedExperiment}
           onSelectExperiment={setSelectedExperiment}
           onClose={() => setSidebarOpen(false)}
+          onOpenTutorial={openTutorial}
           userEmail={userEmail}
         />
       </div>
@@ -457,10 +507,10 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
       )}
 
       {/* 予定モーダルを開いている間は重ねず、閉じてから案内を出す */}
-      {!authOpen && demoNoticeOpen && !openTask && (
-        <DemoNoticeModal onClose={closeDemoNotice} />
+      {!authOpen && tutorialOpen && !openTask && (
+        <TutorialModal isGuest={isGuest} onFinish={finishTutorial} />
       )}
-      {!authOpen && !demoNoticeOpen && promptOpen && !openTask && (
+      {!authOpen && !tutorialOpen && promptOpen && !openTask && (
         <LoginPromptModal onClose={closePrompt} />
       )}
 

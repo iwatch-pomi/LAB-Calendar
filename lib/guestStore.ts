@@ -19,8 +19,8 @@ export interface GuestState extends GuestSnapshot {
   deletedDemoTodoIds: string[];
   /** 初回編集時のログイン案内モーダルを既に出したか */
   hasPromptedLogin: boolean;
-  /** 初回アクセス時の「デモデータ表示中」案内モーダルを既に出したか */
-  hasSeenDemoNotice: boolean;
+  /** 初回アクセス時のチュートリアルを既に出したか */
+  hasSeenTutorial: boolean;
 }
 
 function isBrowser() {
@@ -35,7 +35,7 @@ function fresh(): GuestState {
     deletedDemoTaskIds: [],
     deletedDemoTodoIds: [],
     hasPromptedLogin: false,
-    hasSeenDemoNotice: false,
+    hasSeenTutorial: false,
   };
 }
 
@@ -251,11 +251,12 @@ export const guestStore = {
     save();
   },
 
-  // ---------------- 初回アクセス時のデモ案内 ----------------
-  hasSeenDemoNotice: () => !!load().hasSeenDemoNotice,
-  markSeenDemoNotice() {
+  // ---------------- 初回アクセス時のチュートリアル ----------------
+  // 以前に保存された localStorage にはこのキーが無いので !! で未読扱いにする。
+  hasSeenTutorial: () => !!load().hasSeenTutorial,
+  markSeenTutorial() {
     const s = load();
-    s.hasSeenDemoNotice = true;
+    s.hasSeenTutorial = true;
     save();
   },
 

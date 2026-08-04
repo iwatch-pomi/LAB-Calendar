@@ -99,6 +99,8 @@ export interface FeatureFlags {
   onboarded?: boolean;
   /** 新規登録時のデモデータ案内（残す/空で始める）に回答済みか */
   demo_seed_asked?: boolean;
+  /** 使い方のチュートリアルを見終えた（またはスキップした）か */
+  tutorial_done?: boolean;
   /** カレンダーの週の開始曜日（0=日曜, 1=月曜）。既定は月曜。 */
   week_start_day?: 0 | 1;
   /** 通常の活動時間の開始/終了（時, 0〜24）。既定は 8〜20。 */

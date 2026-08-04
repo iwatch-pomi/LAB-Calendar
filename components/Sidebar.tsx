@@ -35,6 +35,7 @@ import {
   LayoutGrid,
   Settings,
   LogIn,
+  HelpCircle,
 } from "lucide-react";
 
 export function Sidebar({
@@ -43,6 +44,7 @@ export function Sidebar({
   selectedExperiment,
   onSelectExperiment,
   onClose,
+  onOpenTutorial,
   userEmail,
 }: {
   experiments: Experiment[];
@@ -50,6 +52,7 @@ export function Sidebar({
   selectedExperiment: string | null;
   onSelectExperiment: (id: string | null) => void;
   onClose: () => void;
+  onOpenTutorial: () => void;
   userEmail: string;
 }) {
   const toggleTodo = useToggleTodo();
@@ -450,6 +453,17 @@ export function Sidebar({
             継代培養を管理
           </Link>
         )}
+
+        {/* 使い方（一度閉じるとチュートリアルに戻れなくなるため、ゲストにも出す） */}
+        <button
+          type="button"
+          onClick={onOpenTutorial}
+          title="ラボカレの使い方をもう一度見る"
+          className="mt-4 flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-gray-600 transition hover:bg-brand-50 hover:text-brand-700"
+        >
+          <HelpCircle className="h-4 w-4 text-brand-600" />
+          使い方
+        </button>
 
         {/* 今日の ToDo */}
         <div className="mb-1 mt-6 flex items-center justify-between">
