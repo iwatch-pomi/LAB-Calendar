@@ -19,6 +19,20 @@ export const SITE_URL =
 
 export const SITE_NAME = "ラボカレ";
 
+/**
+ * 運営者の表記と連絡先。
+ *
+ * 利用規約・プライバシーポリシー・フッター・設定画面が同じ値を参照する。
+ * 連絡先が変わったときに直すのはここ1箇所だけで済むようにしている
+ * （文書の中に直接書くと、必ずどこかが古いまま残る）。
+ */
+export const OPERATOR_NAME = "ラボカレ運営";
+export const CONTACT_EMAIL = "iwase.workslab@gmail.com";
+
+/** 法務関連ページのパス。リンクを張る側はこれを使う */
+export const TERMS_PATH = "/terms";
+export const PRIVACY_PATH = "/privacy";
+
 export const SITE_TITLE =
   "ラボカレ｜卒業研究のスケジュール管理アプリ（実験の予定・進捗共有）";
 

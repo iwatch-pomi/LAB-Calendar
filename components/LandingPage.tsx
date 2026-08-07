@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { Logo } from "./Logo";
-import { FAQ, SITE_NAME } from "@/lib/site";
+import {
+  FAQ,
+  SITE_NAME,
+  TERMS_PATH,
+  PRIVACY_PATH,
+  CONTACT_EMAIL,
+} from "@/lib/site";
 import {
   Archive,
   ArrowRight,
@@ -306,9 +312,31 @@ export function LandingPage() {
       </main>
 
       <footer className="border-t border-gray-200 px-5 py-7">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
-          <Logo size="sm" themed={false} />
-          <p className="text-xs text-gray-400">
+        <div className="mx-auto max-w-5xl">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Logo size="sm" themed={false} />
+            <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
+              <Link
+                href={TERMS_PATH}
+                className="text-gray-500 transition hover:text-gray-800"
+              >
+                利用規約
+              </Link>
+              <Link
+                href={PRIVACY_PATH}
+                className="text-gray-500 transition hover:text-gray-800"
+              >
+                プライバシーポリシー
+              </Link>
+              <a
+                href={`mailto:${CONTACT_EMAIL}`}
+                className="text-gray-500 transition hover:text-gray-800"
+              >
+                お問い合わせ
+              </a>
+            </nav>
+          </div>
+          <p className="mt-5 text-xs text-gray-400">
             卒業研究のスケジュール管理アプリ
           </p>
         </div>

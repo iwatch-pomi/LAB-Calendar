@@ -71,8 +71,10 @@ import {
   MessageSquare,
   Send,
   UserCog,
+  FileText,
 } from "lucide-react";
 import { ThemeRoot } from "./ThemeRoot";
+import { CONTACT_EMAIL, PRIVACY_PATH, TERMS_PATH } from "@/lib/site";
 
 const MODE_ICON: Record<
   ExperimentMode,
@@ -842,6 +844,9 @@ export function ProfileView({
 
           {/* お問い合わせ・ご要望（常に最後に配置） */}
           <FeedbackSection />
+
+          {/* 規約・ポリシー。教授・指導者にも必要なので !isTeacherView の外に置く */}
+          <LegalLinksSection />
         </main>
       </div>
     </ThemeRoot>
@@ -863,6 +868,44 @@ function StatCard({
       <div className="mt-1 text-2xl font-bold text-gray-800 dark:text-gray-100">{value}</div>
       <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
     </div>
+  );
+}
+
+/** 利用規約・プライバシーポリシーへの導線（ログイン後の入口） */
+function LegalLinksSection() {
+  return (
+    <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 dark:bg-gray-900 dark:border-gray-800">
+      <div className="mb-3 flex items-center gap-1.5">
+        <FileText className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+          規約・ポリシー
+        </h2>
+      </div>
+      <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+        <Link
+          href={TERMS_PATH}
+          className="font-medium text-brand-600 hover:underline dark:text-brand-400"
+        >
+          利用規約
+        </Link>
+        <Link
+          href={PRIVACY_PATH}
+          className="font-medium text-brand-600 hover:underline dark:text-brand-400"
+        >
+          プライバシーポリシー
+        </Link>
+      </div>
+      <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+        アカウントの削除をご希望の場合は、上のお問い合わせフォームか{" "}
+        <a
+          href={`mailto:${CONTACT_EMAIL}`}
+          className="text-brand-600 hover:underline dark:text-brand-400"
+        >
+          {CONTACT_EMAIL}
+        </a>{" "}
+        までご連絡ください。
+      </p>
+    </section>
   );
 }
 

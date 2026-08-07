@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { PRIVACY_PATH, TERMS_PATH } from "@/lib/site";
 import {
   resolveNext,
   afterLoginFrom,
@@ -234,6 +236,26 @@ export function AuthForm() {
               : "新規登録"}
         </button>
       </form>
+
+      {/* 同意の意思表示。ここに置かないと規約が実際には効力を持ちにくい。
+          OAuth のボタンもフォームも、押した時点で登録になりうるので常に出す。 */}
+      <p className="text-center text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+        続行すると
+        <Link
+          href={TERMS_PATH}
+          className="mx-0.5 text-brand-600 hover:underline dark:text-brand-400"
+        >
+          利用規約
+        </Link>
+        と
+        <Link
+          href={PRIVACY_PATH}
+          className="mx-0.5 text-brand-600 hover:underline dark:text-brand-400"
+        >
+          プライバシーポリシー
+        </Link>
+        に同意したものとみなします。
+      </p>
 
       {message && (
         <p

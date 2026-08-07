@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { DEFAULT_AFTER_LOGIN, AUTH_CALLBACK_PATH } from "@/lib/authRedirect";
+import { TERMS_PATH, PRIVACY_PATH } from "@/lib/site";
 
 /**
  * 認証を見る必要がない公開パス。
@@ -11,6 +12,9 @@ import { DEFAULT_AFTER_LOGIN, AUTH_CALLBACK_PATH } from "@/lib/authRedirect";
 function isPublicPath(pathname: string): boolean {
   return (
     pathname === "/" ||
+    // 規約・ポリシーは誰でも読める。認証を見る必要がないので素通しにする
+    pathname === TERMS_PATH ||
+    pathname === PRIVACY_PATH ||
     pathname === "/robots.txt" ||
     pathname === "/sitemap.xml" ||
     pathname === "/manifest.webmanifest" ||
