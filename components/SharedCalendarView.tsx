@@ -123,150 +123,155 @@ export function SharedCalendarView({ ownerId }: { ownerId: string }) {
   const pal = paletteFor(PALETTE_KEYS[0]);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#f6f8fa]">
-      <header className="border-b border-gray-200 bg-white px-4 py-3">
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <Link
-            href="/shared"
-            className="flex items-center gap-1 text-xs text-gray-500 transition hover:text-gray-700"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            共有の管理
-          </Link>
-          <span className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
-            <Eye className="h-3 w-3" />
-            閲覧専用
-          </span>
-        </div>
+    // Tailwind の dark: は「.dark を祖先に持つ要素」にしか効かず、同じ要素に
+    // .dark と dark:bg-... を両方付けても背景色が付かない。目印(data-theme-root)
+    // だけを持つ外枠を1枚足し、実際のスタイルは内側の div に持たせる。
+    <div data-theme-root suppressHydrationWarning>
+      <div className="flex h-screen flex-col overflow-hidden bg-[#f6f8fa] dark:bg-gray-950">
+        <header className="border-b border-gray-200 bg-white px-4 py-3 dark:bg-gray-900 dark:border-gray-800">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <Link
+              href="/shared"
+              className="flex items-center gap-1 text-xs text-gray-500 transition hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              共有の管理
+            </Link>
+            <span className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+              <Eye className="h-3 w-3" />
+              閲覧専用
+            </span>
+          </div>
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span
-            className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold ${pal.bg} ${pal.text}`}
-          >
-            {(ownerName[0] ?? "?").toUpperCase()}
-          </span>
-          <h1 className="text-lg font-bold text-gray-800">
-            {ownerName} のカレンダー
-          </h1>
-          <span className="text-xs text-gray-500">
-            予定 {tasks.length} 件 / カレンダー {experiments.length} 件
-          </span>
-        </div>
-      </header>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span
+              className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold ${pal.bg} ${pal.text}`}
+            >
+              {(ownerName[0] ?? "?").toUpperCase()}
+            </span>
+            <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100">
+              {ownerName} のカレンダー
+            </h1>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              予定 {tasks.length} 件 / カレンダー {experiments.length} 件
+            </span>
+          </div>
+        </header>
 
-      {/* 表示切替・日付ナビ・期間サマリー */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-white px-4 py-2">
-        <div className="flex items-center gap-3">
-          <div className="flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-sm">
-            {(["day", "week", "month"] as ViewMode[]).map((v) => (
+        {/* 表示切替・日付ナビ・期間サマリー */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-white px-4 py-2 dark:bg-gray-900 dark:border-gray-800">
+          <div className="flex items-center gap-3">
+            <div className="flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-sm dark:bg-gray-800 dark:border-gray-700">
+              {(["day", "week", "month"] as ViewMode[]).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  className={`rounded-md px-3 py-1 font-medium transition ${
+                    view === v
+                      ? "bg-white text-gray-800 shadow-sm dark:bg-gray-900 dark:text-gray-100"
+                      : "text-gray-500 dark:text-gray-400"
+                  }`}
+                >
+                  {v === "day" ? "日" : v === "week" ? "週" : "月"}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-1">
               <button
-                key={v}
-                onClick={() => setView(v)}
-                className={`rounded-md px-3 py-1 font-medium transition ${
-                  view === v
-                    ? "bg-white text-gray-800 shadow-sm"
-                    : "text-gray-500"
-                }`}
+                onClick={() => setRefMs(refMs - step)}
+                className="rounded-lg p-1.5 text-gray-500 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
               >
-                {v === "day" ? "日" : v === "week" ? "週" : "月"}
+                <ChevronLeft className="h-4 w-4" />
               </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-1">
+              <span className="whitespace-nowrap text-center text-sm font-semibold text-gray-800 sm:min-w-[7rem] dark:text-gray-100">
+                {title}
+              </span>
+              <button
+                onClick={() => setRefMs(refMs + step)}
+                className="rounded-lg p-1.5 text-gray-500 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
             <button
-              onClick={() => setRefMs(refMs - step)}
-              className="rounded-lg p-1.5 text-gray-500 transition hover:bg-gray-100"
+              onClick={() => setRefMs(nowMs())}
+              className="whitespace-nowrap rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800 dark:border-gray-700"
             >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="whitespace-nowrap text-center text-sm font-semibold text-gray-800 sm:min-w-[7rem]">
-              {title}
-            </span>
-            <button
-              onClick={() => setRefMs(refMs + step)}
-              className="rounded-lg p-1.5 text-gray-500 transition hover:bg-gray-100"
-            >
-              <ChevronRight className="h-4 w-4" />
+              今日
             </button>
           </div>
-          <button
-            onClick={() => setRefMs(nowMs())}
-            className="whitespace-nowrap rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
-          >
-            今日
-          </button>
+
+          {view !== "month" && (
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                <CheckCircle2 className="h-3 w-3" />
+                完了 {summary.done}
+              </span>
+              <span className="flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
+                <CircleDot className="h-3 w-3" />
+                予定 {summary.planned}
+              </span>
+              {summary.failed > 0 && (
+                <span className="flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                  <AlertTriangle className="h-3 w-3" />
+                  失敗 {summary.failed}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
-        {view !== "month" && (
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700">
-              <CheckCircle2 className="h-3 w-3" />
-              完了 {summary.done}
-            </span>
-            <span className="flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-sky-700">
-              <CircleDot className="h-3 w-3" />
-              予定 {summary.planned}
-            </span>
-            {summary.failed > 0 && (
-              <span className="flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-rose-700">
-                <AlertTriangle className="h-3 w-3" />
-                失敗 {summary.failed}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
+        <div className="min-h-0 flex-1 overflow-hidden p-3">
+          {loading ? (
+            <div className="grid h-full place-items-center text-sm text-gray-400 dark:text-gray-500">
+              読み込み中…
+            </div>
+          ) : tasks.length === 0 ? (
+            <div className="grid h-full place-items-center text-sm text-gray-400 dark:text-gray-500">
+              共有されている予定がありません。
+            </div>
+          ) : view !== "month" ? (
+            <WeekView
+              refMs={refMs}
+              tasks={tasks}
+              deps={depsQ.data ?? []}
+              expColorById={expColorById}
+              equipNameById={equipNameById}
+              selectedExperiment={null}
+              visibleDays={view === "day" ? 1 : 7}
+              weekStartsOn={weekStartsOn}
+              workStartHour={workStartHour}
+              workEndHour={workEndHour}
+              onTaskClick={setOpenTask}
+              onCreateAt={() => {}}
+              readOnly
+            />
+          ) : (
+            <MonthView
+              refMs={refMs}
+              tasks={tasks}
+              expColorById={expColorById}
+              weekStartsOn={weekStartsOn}
+              onTaskClick={setOpenTask}
+              onCreateAt={() => {}}
+              readOnly
+            />
+          )}
+        </div>
 
-      <div className="min-h-0 flex-1 overflow-hidden p-3">
-        {loading ? (
-          <div className="grid h-full place-items-center text-sm text-gray-400">
-            読み込み中…
-          </div>
-        ) : tasks.length === 0 ? (
-          <div className="grid h-full place-items-center text-sm text-gray-400">
-            共有されている予定がありません。
-          </div>
-        ) : view !== "month" ? (
-          <WeekView
-            refMs={refMs}
-            tasks={tasks}
-            deps={depsQ.data ?? []}
-            expColorById={expColorById}
-            equipNameById={equipNameById}
-            selectedExperiment={null}
-            visibleDays={view === "day" ? 1 : 7}
-            weekStartsOn={weekStartsOn}
-            workStartHour={workStartHour}
-            workEndHour={workEndHour}
-            onTaskClick={setOpenTask}
-            onCreateAt={() => {}}
-            readOnly
-          />
-        ) : (
-          <MonthView
-            refMs={refMs}
-            tasks={tasks}
-            expColorById={expColorById}
-            weekStartsOn={weekStartsOn}
-            onTaskClick={setOpenTask}
-            onCreateAt={() => {}}
-            readOnly
+        {openTask && (
+          <SharedTaskDetail
+            task={openTask}
+            equipmentName={
+              openTask.equipment_id
+                ? (equipNameById.get(openTask.equipment_id) ?? null)
+                : null
+            }
+            myId={meQ.data ?? null}
+            onClose={() => setOpenTask(null)}
           />
         )}
       </div>
-
-      {openTask && (
-        <SharedTaskDetail
-          task={openTask}
-          equipmentName={
-            openTask.equipment_id
-              ? (equipNameById.get(openTask.equipment_id) ?? null)
-              : null
-          }
-          myId={meQ.data ?? null}
-          onClose={() => setOpenTask(null)}
-        />
-      )}
     </div>
   );
 }
@@ -319,17 +324,17 @@ function SharedTaskDetail({
       onClick={onClose}
     >
       <div
-        className="my-auto w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl"
+        className="my-auto w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl dark:bg-gray-900"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-start gap-2">
-          <h2 className="min-w-0 flex-1 text-base font-bold text-gray-800">
+          <h2 className="min-w-0 flex-1 text-base font-bold text-gray-800 dark:text-gray-100">
             {task.title}
           </h2>
           <button
             onClick={onClose}
             title="閉じる"
-            className="shrink-0 rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+            className="shrink-0 rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
           >
             <X className="h-4 w-4" />
           </button>
@@ -358,19 +363,19 @@ function SharedTaskDetail({
         </dl>
 
         {/* コメント */}
-        <div className="border-t border-gray-100 pt-3">
-          <h3 className="mb-2 text-xs font-semibold text-gray-600">
+        <div className="border-t border-gray-100 pt-3 dark:border-gray-800">
+          <h3 className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-300">
             コメント {comments.length > 0 && `(${comments.length})`}
           </h3>
 
           <div className="mb-3 space-y-2">
             {comments.map((c) => (
-              <div key={c.id} className="rounded-lg bg-gray-50 p-2.5">
+              <div key={c.id} className="rounded-lg bg-gray-50 p-2.5 dark:bg-gray-800">
                 <div className="mb-1 flex items-center gap-2">
-                  <span className="text-xs font-semibold text-gray-700">
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">
                     {nameById.get(c.author_id) ?? "不明なユーザー"}
                   </span>
-                  <span className="text-[11px] text-gray-400">
+                  <span className="text-[11px] text-gray-400 dark:text-gray-500">
                     {fmtDate(new Date(c.created_at).getTime())}
                   </span>
                   {c.author_id === myId && (
@@ -379,19 +384,19 @@ function SharedTaskDetail({
                         delComment.mutate({ id: c.id, taskId: task.id })
                       }
                       title="削除"
-                      className="ml-auto rounded p-0.5 text-gray-400 transition hover:bg-gray-200 hover:text-rose-500"
+                      className="ml-auto rounded p-0.5 text-gray-400 transition hover:bg-gray-200 hover:text-rose-500 dark:text-gray-500 dark:hover:bg-gray-700"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
                   )}
                 </div>
-                <p className="whitespace-pre-wrap break-words text-sm text-gray-700">
+                <p className="whitespace-pre-wrap break-words text-sm text-gray-700 dark:text-gray-200">
                   {c.body}
                 </p>
               </div>
             ))}
             {comments.length === 0 && !commentsQ.isLoading && (
-              <p className="py-2 text-center text-xs text-gray-400">
+              <p className="py-2 text-center text-xs text-gray-400 dark:text-gray-500">
                 まだコメントはありません。
               </p>
             )}
@@ -402,7 +407,7 @@ function SharedTaskDetail({
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder="コメントを書く…"
-              className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500"
+              className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             />
             <button
               type="submit"
@@ -413,13 +418,13 @@ function SharedTaskDetail({
             </button>
           </form>
           {error && (
-            <p className="mt-2 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-600">
+            <p className="mt-2 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-600 dark:bg-rose-500/10 dark:text-rose-400">
               {error}
             </p>
           )}
         </div>
 
-        <p className="mt-3 text-xs text-gray-400">
+        <p className="mt-3 text-xs text-gray-400 dark:text-gray-500">
           共有された閲覧専用ビューのため、予定は編集できません。
         </p>
       </div>
@@ -436,8 +441,8 @@ function Row({
 }) {
   return (
     <div className="flex gap-3">
-      <dt className="w-16 shrink-0 text-xs text-gray-400">{label}</dt>
-      <dd className="min-w-0 flex-1 whitespace-pre-wrap break-words text-gray-700">
+      <dt className="w-16 shrink-0 text-xs text-gray-400 dark:text-gray-500">{label}</dt>
+      <dd className="min-w-0 flex-1 whitespace-pre-wrap break-words text-gray-700 dark:text-gray-200">
         {children}
       </dd>
     </div>

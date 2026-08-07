@@ -134,199 +134,204 @@ export function CultureManager({ userEmail }: { userEmail: string }) {
   const avatarPal = paletteFor(profile?.avatar_color ?? "teal");
 
   return (
-    <div className="min-h-screen bg-[#f6f8fa]">
-      {/* ヘッダー */}
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-3">
-          <Link
-            href="/app"
-            className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            カレンダーへ戻る
-          </Link>
-          <div
-            className={`grid h-8 w-8 place-items-center rounded-lg text-sm font-bold text-white ${
-              profile?.avatar_emoji ? avatarPal.soft : avatarPal.dot
-            }`}
-          >
-            {profile?.avatar_emoji ?? initial}
+    // Tailwind の dark: は「.dark を祖先に持つ要素」にしか効かず、同じ要素に
+    // .dark と dark:bg-... を両方付けても背景色が付かない。目印(data-theme-root)
+    // だけを持つ外枠を1枚足し、実際のスタイルは内側の div に持たせる。
+    <div data-theme-root suppressHydrationWarning>
+      <div className="min-h-screen bg-[#f6f8fa] dark:bg-gray-950">
+        {/* ヘッダー */}
+        <header className="border-b border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-800">
+          <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-3">
+            <Link
+              href="/app"
+              className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              カレンダーへ戻る
+            </Link>
+            <div
+              className={`grid h-8 w-8 place-items-center rounded-lg text-sm font-bold text-white ${
+                profile?.avatar_emoji ? avatarPal.soft : avatarPal.dot
+              }`}
+            >
+              {profile?.avatar_emoji ?? initial}
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="mx-auto max-w-5xl px-5 py-6">
-        {/* タイトル + 培地登録 */}
-        <div className="mb-5 flex items-start justify-between gap-3">
-          <div>
-            <h1 className="flex items-center gap-2 text-xl font-bold text-gray-800">
-              <Sprout className="h-5 w-5 text-emerald-600" />
-              培地管理システム
-            </h1>
-            <p className="mt-1 text-sm text-gray-500">
-              培養培地の作成・管理・活用・引き継ぎを効率的に行います
-            </p>
+        <main className="mx-auto max-w-5xl px-5 py-6">
+          {/* タイトル + 培地登録 */}
+          <div className="mb-5 flex items-start justify-between gap-3">
+            <div>
+              <h1 className="flex items-center gap-2 text-xl font-bold text-gray-800 dark:text-gray-100">
+                <Sprout className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                培地管理システム
+              </h1>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                培養培地の作成・管理・活用・引き継ぎを効率的に行います
+              </p>
+            </div>
+            <button
+              onClick={() => setRegistering((v) => !v)}
+              className="flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-500 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600"
+            >
+              <Plus className="h-4 w-4" />
+              培地登録
+            </button>
           </div>
-          <button
-            onClick={() => setRegistering((v) => !v)}
-            className="flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-500 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600"
-          >
-            <Plus className="h-4 w-4" />
-            培地登録
-          </button>
-        </div>
 
-        {/* 登録フォーム */}
-        {registering && (
-          <form
-            onSubmit={submitRegister}
-            className="mb-5 space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4"
-          >
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="text-xs text-gray-600">
-                培地名
+          {/* 登録フォーム */}
+          {registering && (
+            <form
+              onSubmit={submitRegister}
+              className="mb-5 space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4 dark:bg-emerald-500/10 dark:border-emerald-500/30"
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="text-xs text-gray-600 dark:text-gray-300">
+                  培地名
+                  <input
+                    autoFocus
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="例: 大腸菌 前培養 LB"
+                    className="mt-0.5 w-full rounded-lg border border-gray-300 px-2.5 py-2 text-sm outline-none focus:border-emerald-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                  />
+                </label>
+                <label className="text-xs text-gray-600 dark:text-gray-300">
+                  継代元（任意）
+                  <select
+                    value={parentId}
+                    onChange={(e) => setParentId(e.target.value)}
+                    className="mt-0.5 w-full rounded-lg border border-gray-300 px-2.5 py-2 text-sm outline-none focus:border-emerald-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                  >
+                    <option value="">なし</option>
+                    {media.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-xs text-gray-600 dark:text-gray-300">
+                  作成日
+                  <input
+                    type="date"
+                    value={createdDate}
+                    onChange={(e) => setCreatedDate(e.target.value)}
+                    className="mt-0.5 w-full rounded-lg border border-gray-300 px-2.5 py-2 text-sm outline-none focus:border-emerald-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                  />
+                </label>
+                <label className="text-xs text-gray-600 dark:text-gray-300">
+                  期限日（任意）
+                  <input
+                    type="date"
+                    value={expiry}
+                    onChange={(e) => setExpiry(e.target.value)}
+                    className="mt-0.5 w-full rounded-lg border border-gray-300 px-2.5 py-2 text-sm outline-none focus:border-emerald-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                  />
+                </label>
+              </div>
+              <label className="block text-xs text-gray-600 dark:text-gray-300">
+                メモ（任意）
                 <input
-                  autoFocus
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="例: 大腸菌 前培養 LB"
-                  className="mt-0.5 w-full rounded-lg border border-gray-300 px-2.5 py-2 text-sm outline-none focus:border-emerald-500"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="継代比 1:10 など"
+                  className="mt-0.5 w-full rounded-lg border border-gray-300 px-2.5 py-2 text-sm outline-none focus:border-emerald-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                 />
               </label>
-              <label className="text-xs text-gray-600">
-                継代元（任意）
-                <select
-                  value={parentId}
-                  onChange={(e) => setParentId(e.target.value)}
-                  className="mt-0.5 w-full rounded-lg border border-gray-300 px-2.5 py-2 text-sm outline-none focus:border-emerald-500"
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
                 >
-                  <option value="">なし</option>
-                  {media.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="text-xs text-gray-600">
-                作成日
-                <input
-                  type="date"
-                  value={createdDate}
-                  onChange={(e) => setCreatedDate(e.target.value)}
-                  className="mt-0.5 w-full rounded-lg border border-gray-300 px-2.5 py-2 text-sm outline-none focus:border-emerald-500"
-                />
-              </label>
-              <label className="text-xs text-gray-600">
-                期限日（任意）
-                <input
-                  type="date"
-                  value={expiry}
-                  onChange={(e) => setExpiry(e.target.value)}
-                  className="mt-0.5 w-full rounded-lg border border-gray-300 px-2.5 py-2 text-sm outline-none focus:border-emerald-500"
-                />
-              </label>
-            </div>
-            <label className="block text-xs text-gray-600">
-              メモ（任意）
-              <input
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="継代比 1:10 など"
-                className="mt-0.5 w-full rounded-lg border border-gray-300 px-2.5 py-2 text-sm outline-none focus:border-emerald-500"
-              />
-            </label>
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
-              >
-                登録
-              </button>
-              <button
-                type="button"
-                onClick={resetForm}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
-              >
-                キャンセル
-              </button>
-            </div>
-          </form>
-        )}
+                  登録
+                </button>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-800"
+                >
+                  キャンセル
+                </button>
+              </div>
+            </form>
+          )}
 
-        {/* 統計 */}
-        <div className="mb-5 grid grid-cols-3 gap-3">
-          <StatCard
-            icon={<FlaskConical className="h-4 w-4" />}
-            label="培養中"
-            value={counts.culturing}
-            valueClass="text-emerald-600"
-          />
-          <StatCard
-            icon={<AlertTriangle className="h-4 w-4" />}
-            label="期限切れ間近"
-            value={counts.near}
-            valueClass="text-amber-600"
-          />
-          <StatCard
-            icon={<CircleAlert className="h-4 w-4" />}
-            label="期限切れ"
-            value={counts.expired}
-            valueClass="text-rose-600"
-          />
-        </div>
+          {/* 統計 */}
+          <div className="mb-5 grid grid-cols-3 gap-3">
+            <StatCard
+              icon={<FlaskConical className="h-4 w-4" />}
+              label="培養中"
+              value={counts.culturing}
+              valueClass="text-emerald-600"
+            />
+            <StatCard
+              icon={<AlertTriangle className="h-4 w-4" />}
+              label="期限切れ間近"
+              value={counts.near}
+              valueClass="text-amber-600"
+            />
+            <StatCard
+              icon={<CircleAlert className="h-4 w-4" />}
+              label="期限切れ"
+              value={counts.expired}
+              valueClass="text-rose-600"
+            />
+          </div>
 
-        {/* タブ */}
-        <div className="mb-4 flex gap-1 rounded-xl border border-gray-200 bg-white p-1 text-sm">
-          <TabButton active={tab === "calendar"} onClick={() => setTab("calendar")} icon={<CalendarDays className="h-4 w-4" />}>
-            カレンダー表示
-          </TabButton>
-          <TabButton active={tab === "list"} onClick={() => setTab("list")} icon={<ListChecks className="h-4 w-4" />}>
-            リスト表示
-          </TabButton>
-          <TabButton active={tab === "graph"} onClick={() => setTab("graph")} icon={<GitBranch className="h-4 w-4" />}>
-            相関図
-          </TabButton>
-        </div>
+          {/* タブ */}
+          <div className="mb-4 flex gap-1 rounded-xl border border-gray-200 bg-white p-1 text-sm dark:bg-gray-900 dark:border-gray-800">
+            <TabButton active={tab === "calendar"} onClick={() => setTab("calendar")} icon={<CalendarDays className="h-4 w-4" />}>
+              カレンダー表示
+            </TabButton>
+            <TabButton active={tab === "list"} onClick={() => setTab("list")} icon={<ListChecks className="h-4 w-4" />}>
+              リスト表示
+            </TabButton>
+            <TabButton active={tab === "graph"} onClick={() => setTab("graph")} icon={<GitBranch className="h-4 w-4" />}>
+              相関図
+            </TabButton>
+          </div>
 
-        {mediaQ.isLoading ? (
-          <p className="py-16 text-center text-sm text-gray-400">読み込み中…</p>
-        ) : tab === "calendar" ? (
-          <CalendarTab
-            media={media}
-            statusOf={statusOf}
-            refMs={refMs}
-            onRefChange={setRefMs}
-            weekStartsOn={weekStartsOn}
-            selectedDate={selectedDate}
-            onSelectDate={(d) => {
-              setSelectedDate(d);
-              setHighlightedId(null);
-            }}
-            nameById={nameById}
-            highlightedId={highlightedId}
-            onHighlight={setHighlightedId}
-            onUpdate={(id, patch) => updateMedium.mutate({ id, ...patch })}
-          />
-        ) : tab === "list" ? (
-          <ListTab
-            media={media}
-            statusOf={statusOf}
-            nameById={nameById}
-            onUpdate={(id, patch) => updateMedium.mutate({ id, ...patch })}
-            onDelete={(m) => {
-              if (
-                confirm(
-                  `培地「${m.name}」を削除しますか？\nこの操作は元に戻せません。`,
+          {mediaQ.isLoading ? (
+            <p className="py-16 text-center text-sm text-gray-400 dark:text-gray-500">読み込み中…</p>
+          ) : tab === "calendar" ? (
+            <CalendarTab
+              media={media}
+              statusOf={statusOf}
+              refMs={refMs}
+              onRefChange={setRefMs}
+              weekStartsOn={weekStartsOn}
+              selectedDate={selectedDate}
+              onSelectDate={(d) => {
+                setSelectedDate(d);
+                setHighlightedId(null);
+              }}
+              nameById={nameById}
+              highlightedId={highlightedId}
+              onHighlight={setHighlightedId}
+              onUpdate={(id, patch) => updateMedium.mutate({ id, ...patch })}
+            />
+          ) : tab === "list" ? (
+            <ListTab
+              media={media}
+              statusOf={statusOf}
+              nameById={nameById}
+              onUpdate={(id, patch) => updateMedium.mutate({ id, ...patch })}
+              onDelete={(m) => {
+                if (
+                  confirm(
+                    `培地「${m.name}」を削除しますか？\nこの操作は元に戻せません。`,
+                  )
                 )
-              )
-                deleteMedium.mutate(m.id);
-            }}
-          />
-        ) : (
-          <GraphTab media={media} statusOf={statusOf} />
-        )}
-      </main>
+                  deleteMedium.mutate(m.id);
+              }}
+            />
+          ) : (
+            <GraphTab media={media} statusOf={statusOf} />
+          )}
+        </main>
+      </div>
     </div>
   );
 }
@@ -343,10 +348,10 @@ function StatCard({
   valueClass: string;
 }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-4">
-      <div className="flex items-center gap-1.5 text-gray-400">
+    <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:bg-gray-900 dark:border-gray-800">
+      <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
         {icon}
-        <span className="text-xs text-gray-500">{label}</span>
+        <span className="text-xs text-gray-500 dark:text-gray-400">{label}</span>
       </div>
       <div className={`mt-1 text-3xl font-bold ${valueClass}`}>{value}</div>
     </div>
@@ -369,8 +374,8 @@ function TabButton({
       onClick={onClick}
       className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 font-medium transition ${
         active
-          ? "bg-brand-50 text-brand-700"
-          : "text-gray-500 hover:text-gray-700"
+          ? "bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-300"
+          : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
       }`}
     >
       {icon}
@@ -463,23 +468,23 @@ function CalendarTab({
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
       {/* カレンダー */}
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-800">
         {/* 月ナビ */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-          <h2 className="text-sm font-semibold text-gray-700">培養カレンダー</h2>
+        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">培養カレンダー</h2>
           <div className="flex items-center gap-1">
             <button
               onClick={() => onRefChange(refMs - 30 * 24 * 3600 * 1000)}
-              className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
+              className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="min-w-[7rem] text-center text-sm font-semibold text-gray-800">
+            <span className="min-w-[7rem] text-center text-sm font-semibold text-gray-800 dark:text-gray-100">
               {fmtMonthTitle(refMs)}
             </span>
             <button
               onClick={() => onRefChange(refMs + 30 * 24 * 3600 * 1000)}
-              className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
+              className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -487,12 +492,12 @@ function CalendarTab({
         </div>
 
         {/* 曜日 */}
-        <div className="grid grid-cols-7 border-b border-gray-200">
+        <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-700">
           {header.map((w) => (
             <div
               key={w}
               className={`py-2 text-center text-xs font-medium ${
-                w === "日" ? "text-rose-400" : w === "土" ? "text-sky-400" : "text-gray-400"
+                w === "日" ? "text-rose-400" : w === "土" ? "text-sky-400" : "text-gray-400 dark:text-gray-500"
               }`}
             >
               {w}
@@ -528,8 +533,8 @@ function CalendarTab({
                       key={cell.startMs}
                       onClick={() => onSelectDate(date)}
                       className={`flex items-start justify-start border-b border-l border-gray-200 p-1 text-left transition hover:bg-brand-50/40 ${
-                        cell.isWeekend ? "bg-gray-50/40" : ""
-                      } ${isSel ? "ring-2 ring-inset ring-brand-400" : ""}`}
+                        cell.isWeekend ? "bg-gray-50/40 dark:bg-gray-800/40" : ""
+                      } ${isSel ? "ring-2 ring-inset ring-brand-400" : ""} dark:border-gray-700`}
                     >
                       <div
                         className={`inline-grid h-5 w-5 place-items-center rounded-full text-xs font-semibold ${
@@ -537,7 +542,7 @@ function CalendarTab({
                             ? "bg-brand-500 text-white"
                             : isOther
                               ? "text-gray-300"
-                              : "text-gray-600"
+                              : "text-gray-600 dark:text-gray-300"
                         }`}
                       >
                         {cell.dateNum}
@@ -587,7 +592,7 @@ function CalendarTab({
                     })}
                 </div>
                 {overflowCount > 0 && (
-                  <div className="pointer-events-none absolute bottom-0.5 right-1 text-[9px] text-gray-400">
+                  <div className="pointer-events-none absolute bottom-0.5 right-1 text-[9px] text-gray-400 dark:text-gray-500">
                     +{overflowCount}
                   </div>
                 )}
@@ -597,7 +602,7 @@ function CalendarTab({
         </div>
 
         {/* 凡例 */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-gray-100 px-4 py-2 text-[11px] text-gray-500">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-gray-100 px-4 py-2 text-[11px] text-gray-500 dark:text-gray-400 dark:border-gray-800">
           <Legend cls="bg-emerald-400" label="培養中" />
           <Legend cls="bg-amber-400" label="期限切れ間近" />
           <Legend cls="bg-rose-400" label="期限切れ" />
@@ -609,16 +614,16 @@ function CalendarTab({
       {/* 選択日パネル */}
       <div
         onClick={() => onHighlight(null)}
-        className="rounded-2xl border border-gray-200 bg-white p-4"
+        className="rounded-2xl border border-gray-200 bg-white p-4 dark:bg-gray-900 dark:border-gray-800"
       >
-        <h2 className="text-sm font-semibold text-gray-800">
+        <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
           {fmtMd(selectedDate)} の培地
         </h2>
-        <p className="mb-3 mt-0.5 text-xs text-gray-400">
+        <p className="mb-3 mt-0.5 text-xs text-gray-400 dark:text-gray-500">
           選択した日付に関連する培地一覧
         </p>
         {selected.length === 0 ? (
-          <p className="py-8 text-center text-xs text-gray-400">
+          <p className="py-8 text-center text-xs text-gray-400 dark:text-gray-500">
             この日付に関連する培地はありません
           </p>
         ) : (
@@ -696,13 +701,13 @@ function MediumRow({
       title="クリックでカレンダー上をハイライト"
       className={`cursor-pointer rounded-xl border p-2.5 transition ${
         highlighted
-          ? "border-brand-300 bg-brand-50 ring-2 ring-brand-300"
-          : "border-gray-100 bg-gray-50/60 hover:border-brand-200 hover:bg-brand-50/40"
+          ? "border-brand-300 bg-brand-50 ring-2 ring-brand-300 dark:bg-brand-900/20 dark:border-brand-700"
+          : "border-gray-100 bg-gray-50/60 hover:border-brand-200 hover:bg-brand-50/40 dark:bg-gray-800/40 dark:border-gray-800"
       }`}
     >
       <div className="flex items-center gap-2">
         <span className={`h-2 w-2 shrink-0 rounded-full ${st.dot}`} />
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-800">
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-800 dark:text-gray-100">
           {m.name}
         </span>
         <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${st.bg} ${st.text}`}>
@@ -714,12 +719,12 @@ function MediumRow({
             setEditing(true);
           }}
           title="編集"
-          className="shrink-0 rounded p-1 text-gray-400 transition hover:bg-gray-200 hover:text-gray-600"
+          className="shrink-0 rounded p-1 text-gray-400 transition hover:bg-gray-200 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300"
         >
           <Pencil className="h-3.5 w-3.5" />
         </button>
       </div>
-      <div className="mt-1 flex flex-wrap gap-x-3 text-[11px] text-gray-500">
+      <div className="mt-1 flex flex-wrap gap-x-3 text-[11px] text-gray-500 dark:text-gray-400">
         <span>作成 {fmtMd(m.created_date)}</span>
         {m.expiry_date && <span>期限 {fmtMd(m.expiry_date)}</span>}
         {m.disposed_date && <span>廃棄 {fmtMd(m.disposed_date)}</span>}
@@ -763,40 +768,40 @@ function MediumEditForm({
     <form
       onClick={(e) => e.stopPropagation()}
       onSubmit={submit}
-      className="space-y-2 rounded-2xl border border-brand-200 bg-brand-50/40 p-3"
+      className="space-y-2 rounded-2xl border border-brand-200 bg-brand-50/40 p-3 dark:bg-brand-900/20 dark:border-brand-800"
     >
       <input
         autoFocus
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="培地名"
-        className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500"
+        className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
       />
       <div className="grid gap-2 sm:grid-cols-3">
-        <label className="text-[11px] text-gray-500">
+        <label className="text-[11px] text-gray-500 dark:text-gray-400">
           作成日
           <input
             type="date"
             value={created}
             onChange={(e) => setCreated(e.target.value)}
-            className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
+            className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           />
         </label>
-        <label className="text-[11px] text-gray-500">
+        <label className="text-[11px] text-gray-500 dark:text-gray-400">
           期限
           <input
             type="date"
             value={expiry}
             onChange={(e) => setExpiry(e.target.value)}
-            className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
+            className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           />
         </label>
-        <label className="text-[11px] text-gray-500">
+        <label className="text-[11px] text-gray-500 dark:text-gray-400">
           継代元
           <select
             value={parent}
             onChange={(e) => setParent(e.target.value)}
-            className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
+            className="mt-0.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           >
             <option value="">なし</option>
             {media
@@ -809,13 +814,13 @@ function MediumEditForm({
           </select>
         </label>
       </div>
-      <label className="block text-[11px] text-gray-500">
+      <label className="block text-[11px] text-gray-500 dark:text-gray-400">
         メモ
         <input
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="継代比 1:10 など"
-          className="mt-0.5 w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500"
+          className="mt-0.5 w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         />
       </label>
       <div className="flex gap-2">
@@ -828,7 +833,7 @@ function MediumEditForm({
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-800"
         >
           キャンセル
         </button>
@@ -855,7 +860,7 @@ function ListTab({
 
   if (media.length === 0) {
     return (
-      <p className="rounded-2xl border border-dashed border-gray-300 py-16 text-center text-sm text-gray-400">
+      <p className="rounded-2xl border border-dashed border-gray-300 py-16 text-center text-sm text-gray-400 dark:text-gray-500 dark:border-gray-600">
         まだ培地が登録されていません。「培地登録」から追加してください。
       </p>
     );
@@ -883,19 +888,19 @@ function ListTab({
         return (
           <div
             key={m.id}
-            className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-3"
+            className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-3 dark:bg-gray-900 dark:border-gray-800"
           >
             <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${st.dot}`} />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="truncate font-semibold text-gray-800">
+                <span className="truncate font-semibold text-gray-800 dark:text-gray-100">
                   {m.name}
                 </span>
                 <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${st.bg} ${st.text}`}>
                   {st.label}
                 </span>
               </div>
-              <div className="mt-0.5 flex flex-wrap gap-x-3 text-[11px] text-gray-500">
+              <div className="mt-0.5 flex flex-wrap gap-x-3 text-[11px] text-gray-500 dark:text-gray-400">
                 <span>作成 {fmtMd(m.created_date)}</span>
                 {m.expiry_date && <span>期限 {fmtMd(m.expiry_date)}</span>}
                 {m.disposed_date && <span>廃棄 {fmtMd(m.disposed_date)}</span>}
@@ -908,7 +913,7 @@ function ListTab({
               <button
                 onClick={() => onUpdate(m.id, { disposed_date: null })}
                 title="廃棄を取消"
-                className="rounded-lg px-2 py-1 text-[11px] text-gray-500 transition hover:bg-gray-100"
+                className="rounded-lg px-2 py-1 text-[11px] text-gray-500 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
               >
                 復元
               </button>
@@ -916,7 +921,7 @@ function ListTab({
               <button
                 onClick={() => onUpdate(m.id, { disposed_date: todayJst() })}
                 title="廃棄する"
-                className="rounded-lg px-2 py-1 text-[11px] text-gray-500 transition hover:bg-gray-100"
+                className="rounded-lg px-2 py-1 text-[11px] text-gray-500 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
               >
                 廃棄
               </button>
@@ -924,14 +929,14 @@ function ListTab({
             <button
               onClick={() => setEditId(m.id)}
               title="編集"
-              className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+              className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
             >
               <Pencil className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => onDelete(m)}
               title="削除"
-              className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-rose-500"
+              className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-rose-500 dark:text-gray-500 dark:hover:bg-gray-800"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
@@ -972,13 +977,13 @@ function GraphTab({
     const st = CULTURE_STATUS_META[statusOf.get(m.id) ?? "culturing"];
     return (
       <div key={m.id}>
-        <div className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-1.5 shadow-sm ring-1 ring-emerald-200">
+        <div className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-1.5 shadow-sm ring-1 ring-emerald-200 dark:bg-gray-900">
           <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${st.dot}`} />
           <div className="min-w-0">
-            <div className="truncate text-xs font-semibold text-gray-800">
+            <div className="truncate text-xs font-semibold text-gray-800 dark:text-gray-100">
               {m.name}
             </div>
-            <div className="truncate text-[10px] text-gray-400">
+            <div className="truncate text-[10px] text-gray-400 dark:text-gray-500">
               作成 {fmtMd(m.created_date)}
               {m.expiry_date ? ` ・期限 ${fmtMd(m.expiry_date)}` : ""}
             </div>
@@ -1013,7 +1018,7 @@ function GraphTab({
 
   if (media.length === 0) {
     return (
-      <p className="rounded-2xl border border-dashed border-gray-300 py-16 text-center text-sm text-gray-400">
+      <p className="rounded-2xl border border-dashed border-gray-300 py-16 text-center text-sm text-gray-400 dark:text-gray-500 dark:border-gray-600">
         まだ培地が登録されていません。継代元を指定して登録すると系統が表示されます。
       </p>
     );
@@ -1024,12 +1029,12 @@ function GraphTab({
       {roots.map((m) => (
         <div
           key={m.id}
-          className="overflow-x-auto rounded-2xl border border-gray-200 bg-emerald-50/30 p-4 thin-scroll"
+          className="overflow-x-auto rounded-2xl border border-gray-200 bg-emerald-50/30 p-4 thin-scroll dark:border-gray-700"
         >
           {renderNode(m, new Set())}
         </div>
       ))}
-      <p className="px-1 text-[11px] text-gray-400">
+      <p className="px-1 text-[11px] text-gray-400 dark:text-gray-500">
         継代元 → 下にぶら下がるほど後の継代です。
       </p>
     </div>

@@ -13,7 +13,7 @@ export function BackHomeLink({ isTeacher }: { isTeacher: boolean }) {
   return (
     <Link
       href={homeFor(isTeacher)}
-      className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100"
+      className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
     >
       <ChevronLeft className="h-4 w-4" />
       {isTeacher ? "管理画面へ戻る" : "カレンダーへ戻る"}

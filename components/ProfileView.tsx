@@ -73,20 +73,20 @@ const MODE_ICON: Record<
   { icon: React.ReactNode; iconBg: string }
 > = {
   bio: {
-    icon: <Sprout className="h-4 w-4 text-emerald-600" />,
-    iconBg: "bg-emerald-50",
+    icon: <Sprout className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />,
+    iconBg: "bg-emerald-50 dark:bg-emerald-500/10",
   },
   chem: {
-    icon: <FlaskConical className="h-4 w-4 text-blue-600" />,
-    iconBg: "bg-blue-50",
+    icon: <FlaskConical className="h-4 w-4 text-blue-600 dark:text-blue-400" />,
+    iconBg: "bg-blue-50 dark:bg-blue-500/10",
   },
   physics: {
-    icon: <Atom className="h-4 w-4 text-amber-600" />,
-    iconBg: "bg-amber-50",
+    icon: <Atom className="h-4 w-4 text-amber-600 dark:text-amber-400" />,
+    iconBg: "bg-amber-50 dark:bg-amber-500/10",
   },
   engineering: {
-    icon: <Cog className="h-4 w-4 text-slate-600" />,
-    iconBg: "bg-slate-100",
+    icon: <Cog className="h-4 w-4 text-slate-600 dark:text-slate-300" />,
+    iconBg: "bg-slate-100 dark:bg-slate-500/20",
   },
 };
 
@@ -220,246 +220,199 @@ export function ProfileView({
   const avatarPal = paletteFor(profile?.avatar_color ?? PALETTE_KEYS[0]);
 
   return (
-    <div className="min-h-screen bg-[#f6f8fa]">
-      {/* ヘッダー */}
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-5 py-3">
-          <BackHomeLink isTeacher={isTeacherView} />
-          <button
-            onClick={signOut}
-            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-          >
-            <LogOut className="h-4 w-4" />
-            ログアウト
-          </button>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-3xl px-5 py-6">
-        {/* プロフィール */}
-        <section className="mb-6">
-          {editingProfile ? (
-            <div className="space-y-3 rounded-2xl border border-brand-200 bg-brand-50/40 p-4">
-              <label className="block text-xs font-semibold text-gray-600">
-                表示名
-                <input
-                  autoFocus
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  placeholder={userEmail}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-2.5 py-2 text-sm outline-none focus:border-brand-500"
-                />
-              </label>
-
-              <div>
-                <p className="mb-1.5 text-xs font-semibold text-gray-600">
-                  アイコン
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setEmojiInput(null)}
-                    title="絵文字なし（イニシャル表示）"
-                    className={`grid h-9 w-9 place-items-center rounded-xl border text-sm font-bold ${
-                      emojiInput === null
-                        ? "border-brand-400 ring-2 ring-brand-300"
-                        : "border-gray-200 hover:border-gray-300"
-                    } ${paletteFor(colorInput).soft} ${paletteFor(colorInput).text}`}
-                  >
-                    {(nameInput || userEmail)[0]?.toUpperCase() ?? "?"}
-                  </button>
-                  {AVATAR_EMOJIS.map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      onClick={() => setEmojiInput(emoji)}
-                      className={`grid h-9 w-9 place-items-center rounded-xl border text-lg ${
-                        emojiInput === emoji
-                          ? "border-brand-400 ring-2 ring-brand-300"
-                          : "border-gray-200 hover:border-gray-300"
-                      } ${paletteFor(colorInput).soft}`}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <p className="mb-1.5 text-xs font-semibold text-gray-600">
-                  背景色
-                </p>
-                <div className="flex items-center gap-1.5">
-                  {PALETTE_KEYS.map((k) => {
-                    const kp = paletteFor(k);
-                    return (
-                      <button
-                        key={k}
-                        type="button"
-                        onClick={() => setColorInput(k)}
-                        className={`h-6 w-6 rounded-full ${kp.dot} ${
-                          colorInput === k
-                            ? "ring-2 ring-gray-400 ring-offset-1"
-                            : ""
-                        }`}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={saveProfile}
-                  className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
-                >
-                  保存
-                </button>
-                <button
-                  onClick={() => setEditingProfile(false)}
-                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
-                >
-                  キャンセル
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-4">
-              <div
-                className={`grid h-16 w-16 shrink-0 place-items-center rounded-2xl text-2xl font-bold text-white shadow-sm ${
-                  profile?.avatar_emoji ? avatarPal.soft : avatarPal.dot
-                }`}
-              >
-                {profile?.avatar_emoji ?? initial}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <h1 className="truncate text-xl font-bold text-gray-800">
-                    {displayName}
-                  </h1>
-                  <button
-                    onClick={startEditProfile}
-                    title="表示名・アイコンを編集"
-                    className="shrink-0 rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                {profile?.display_name?.trim() && (
-                  <p className="truncate text-sm text-gray-500">{userEmail}</p>
-                )}
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* 統計（教授は自分の実験を持たないので常に0件になる） */}
-        {!isTeacherView && (
-          <section className="mb-6 grid grid-cols-3 gap-3">
-            <StatCard
-              icon={<FlaskConical className="h-4 w-4" />}
-              label="登録した実験"
-              value={activeExperiments.length}
-            />
-            <StatCard
-              icon={<CheckCircle2 className="h-4 w-4" />}
-              label="完了した実験"
-              value={doneCount}
-            />
-            <StatCard
-              icon={<Beaker className="h-4 w-4" />}
-              label="完了タスク"
-              value={doneTasks}
-            />
-          </section>
-        )}
-
-        {/* 利用形態（学生 / 教授） */}
-        <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
-          <div className="mb-3 flex items-center gap-1.5">
-            <UserCog className="h-4 w-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-700">利用形態</h2>
+    // Tailwind の dark: は「.dark を祖先に持つ要素」にしか効かず、同じ要素に
+    // .dark と dark:bg-... を両方付けても背景色が付かない。目印(data-theme-root)
+    // だけを持つ外枠を1枚足し、実際のスタイルは内側の div に持たせる。
+    <div data-theme-root suppressHydrationWarning>
+      <div className="min-h-screen bg-[#f6f8fa] dark:bg-gray-950">
+        {/* ヘッダー */}
+        <header className="border-b border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-800">
+          <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-5 py-3">
+            <BackHomeLink isTeacher={isTeacherView} />
+            <button
+              onClick={signOut}
+              className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:text-gray-300 dark:hover:bg-rose-500/10 dark:hover:text-rose-400 dark:hover:border-rose-500/30 dark:border-gray-700"
+            >
+              <LogOut className="h-4 w-4" />
+              ログアウト
+            </button>
           </div>
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs text-gray-500">
-              教授・指導者にすると、自分のカレンダーではなく学生の予定をまとめて
-              確認する画面が既定になります。
-            </p>
-            <div className="flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-xs">
-              {(
-                [
-                  [false, "学生"],
-                  [true, "教授・指導者"],
-                ] as [boolean, string][]
-              ).map(([value, label]) => (
-                <button
-                  key={label}
-                  // 保存が終わる前に移動すると、サーバーがまだ古い役割を読んで
-                  // 弾き返してしまう。保存中は押せないようにしておく。
-                  disabled={updateFeature.isPending}
-                  onClick={() =>
-                    updateFeature.mutate(
-                      { key: "is_teacher", value },
-                      // サーバーで解決している initialIsTeacher と、教授だった頃に
-                      // 貯まった /app のキャッシュを貼り直す
-                      { onSettled: () => router.refresh() },
-                    )
-                  }
-                  className={`rounded-md px-3 py-1 font-medium transition disabled:opacity-60 ${
-                    isTeacherView === value
-                      ? "bg-white text-gray-800 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
+        </header>
+
+        <main className="mx-auto max-w-3xl px-5 py-6">
+          {/* プロフィール */}
+          <section className="mb-6">
+            {editingProfile ? (
+              <div className="space-y-3 rounded-2xl border border-brand-200 bg-brand-50/40 p-4 dark:bg-brand-900/20 dark:border-brand-800">
+                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300">
+                  表示名
+                  <input
+                    autoFocus
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    placeholder={userEmail}
+                    className="mt-1 w-full rounded-lg border border-gray-300 px-2.5 py-2 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                  />
+                </label>
+
+                <div>
+                  <p className="mb-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">
+                    アイコン
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setEmojiInput(null)}
+                      title="絵文字なし（イニシャル表示）"
+                      className={`grid h-9 w-9 place-items-center rounded-xl border text-sm font-bold ${
+                        emojiInput === null
+                          ? "border-brand-400 ring-2 ring-brand-300"
+                          : "border-gray-200 hover:border-gray-300 dark:hover:border-gray-600 dark:border-gray-700"
+                      } ${paletteFor(colorInput).soft} ${paletteFor(colorInput).text}`}
+                    >
+                      {(nameInput || userEmail)[0]?.toUpperCase() ?? "?"}
+                    </button>
+                    {AVATAR_EMOJIS.map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => setEmojiInput(emoji)}
+                        className={`grid h-9 w-9 place-items-center rounded-xl border text-lg ${
+                          emojiInput === emoji
+                            ? "border-brand-400 ring-2 ring-brand-300"
+                            : "border-gray-200 hover:border-gray-300 dark:hover:border-gray-600 dark:border-gray-700"
+                        } ${paletteFor(colorInput).soft}`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="mb-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">
+                    背景色
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    {PALETTE_KEYS.map((k) => {
+                      const kp = paletteFor(k);
+                      return (
+                        <button
+                          key={k}
+                          type="button"
+                          onClick={() => setColorInput(k)}
+                          className={`h-6 w-6 rounded-full ${kp.dot} ${
+                            colorInput === k
+                              ? "ring-2 ring-gray-400 ring-offset-1"
+                              : ""
+                          }`}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={saveProfile}
+                    className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+                  >
+                    保存
+                  </button>
+                  <button
+                    onClick={() => setEditingProfile(false)}
+                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-800"
+                  >
+                    キャンセル
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-4">
+                <div
+                  className={`grid h-16 w-16 shrink-0 place-items-center rounded-2xl text-2xl font-bold text-white shadow-sm ${
+                    profile?.avatar_emoji ? avatarPal.soft : avatarPal.dot
                   }`}
                 >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-          {isTeacherView && (
-            <Link
-              href="/teacher"
-              className="mt-3 flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/60 p-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-            >
-              <Users className="h-4 w-4 text-brand-600" />
-              <span className="flex-1">学生の予定を確認する</span>
-              <ChevronRight className="h-4 w-4 text-gray-400" />
-            </Link>
-          )}
-        </section>
+                  {profile?.avatar_emoji ?? initial}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <h1 className="truncate text-xl font-bold text-gray-800 dark:text-gray-100">
+                      {displayName}
+                    </h1>
+                    <button
+                      onClick={startEditProfile}
+                      title="表示名・アイコンを編集"
+                      className="shrink-0 rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  {profile?.display_name?.trim() && (
+                    <p className="truncate text-sm text-gray-500 dark:text-gray-400">{userEmail}</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </section>
 
-        {/* 以下はカレンダー関連の設定。教授・指導者は自分のカレンダーを
-            持たないので、まとめて出さない（値も常に0件になる）。 */}
-        {!isTeacherView && (
-          <>
-          {/* カレンダー設定 */}
-          <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
+          {/* 統計（教授は自分の実験を持たないので常に0件になる） */}
+          {!isTeacherView && (
+            <section className="mb-6 grid grid-cols-3 gap-3">
+              <StatCard
+                icon={<FlaskConical className="h-4 w-4" />}
+                label="登録した実験"
+                value={activeExperiments.length}
+              />
+              <StatCard
+                icon={<CheckCircle2 className="h-4 w-4" />}
+                label="完了した実験"
+                value={doneCount}
+              />
+              <StatCard
+                icon={<Beaker className="h-4 w-4" />}
+                label="完了タスク"
+                value={doneTasks}
+              />
+            </section>
+          )}
+
+          {/* 利用形態（学生 / 教授） */}
+          <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 dark:bg-gray-900 dark:border-gray-800">
             <div className="mb-3 flex items-center gap-1.5">
-              <CalendarDays className="h-4 w-4 text-gray-400" />
-              <h2 className="text-sm font-semibold text-gray-700">
-                カレンダー設定
-              </h2>
+              <UserCog className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+              <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">利用形態</h2>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs text-gray-500">
-                週表示・月表示の週の開始曜日を選べます（既定: 月曜）。
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                教授・指導者にすると、自分のカレンダーではなく学生の予定をまとめて
+                確認する画面が既定になります。
               </p>
-              <div className="flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-xs">
+              <div className="flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-xs dark:bg-gray-800 dark:border-gray-700">
                 {(
                   [
-                    [1, "月曜"],
-                    [0, "日曜"],
-                  ] as [0 | 1, string][]
+                    [false, "学生"],
+                    [true, "教授・指導者"],
+                  ] as [boolean, string][]
                 ).map(([value, label]) => (
                   <button
-                    key={value}
+                    key={label}
+                    // 保存が終わる前に移動すると、サーバーがまだ古い役割を読んで
+                    // 弾き返してしまう。保存中は押せないようにしておく。
+                    disabled={updateFeature.isPending}
                     onClick={() =>
-                      updateFeature.mutate({ key: "week_start_day", value })
+                      updateFeature.mutate(
+                        { key: "is_teacher", value },
+                        // サーバーで解決している initialIsTeacher と、教授だった頃に
+                        // 貯まった /app のキャッシュを貼り直す
+                        { onSettled: () => router.refresh() },
+                      )
                     }
-                    className={`rounded-md px-3 py-1 font-medium transition ${
-                      weekStartDay === value
-                        ? "bg-white text-gray-800 shadow-sm"
-                        : "text-gray-500 hover:text-gray-700"
+                    className={`rounded-md px-3 py-1 font-medium transition disabled:opacity-60 ${
+                      isTeacherView === value
+                        ? "bg-white text-gray-800 shadow-sm dark:bg-gray-900 dark:text-gray-100"
+                        : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                     }`}
                   >
                     {label}
@@ -467,349 +420,401 @@ export function ProfileView({
                 ))}
               </div>
             </div>
-
-            {/* 通常の活動時間 */}
-            <div className="mt-4 flex items-start justify-between gap-3 border-t border-gray-100 pt-4">
-              <p className="text-xs text-gray-500">
-                通常の活動時間（研究をする時間帯）を設定できます。週表示カレンダーの開始・終了時刻に太い横線を引いて、活動時間帯が一目で分かるようにします（既定: 8:00〜20:00）。
-              </p>
-              <div className="flex shrink-0 items-center gap-1.5 text-sm">
-                <select
-                  value={workStart}
-                  onChange={(e) =>
-                    updateFeature.mutate({
-                      key: "work_start_hour",
-                      value: Number(e.target.value),
-                    })
-                  }
-                  className="rounded-lg border border-gray-300 px-2 py-1.5 outline-none focus:border-brand-500"
-                >
-                  {Array.from({ length: 24 }, (_, h) => h).map((h) => (
-                    <option key={h} value={h} disabled={h >= workEnd}>
-                      {h}:00
-                    </option>
-                  ))}
-                </select>
-                <span className="text-gray-400">〜</span>
-                <select
-                  value={workEnd}
-                  onChange={(e) =>
-                    updateFeature.mutate({
-                      key: "work_end_hour",
-                      value: Number(e.target.value),
-                    })
-                  }
-                  className="rounded-lg border border-gray-300 px-2 py-1.5 outline-none focus:border-brand-500"
-                >
-                  {Array.from({ length: 24 }, (_, h) => h + 1).map((h) => (
-                    <option key={h} value={h} disabled={h <= workStart}>
-                      {h}:00
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </section>
-
-          {/* 共有・研究室 */}
-          <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
-            <div className="mb-1 flex items-center gap-1.5">
-              <Share2 className="h-4 w-4 text-gray-400" />
-              <h2 className="text-sm font-semibold text-gray-700">共有・研究室</h2>
-            </div>
-            <p className="mb-3 text-xs text-gray-500">
-              カレンダーを見せる相手を管理します。相手が予定を編集することはできません。
-            </p>
-
-            <div className="space-y-2">
+            {isTeacherView && (
               <Link
-                href="/shared"
-                className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 transition hover:border-brand-300 hover:bg-brand-50/40"
+                href="/teacher"
+                className="mt-3 flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/60 p-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:bg-gray-800/40 dark:text-gray-200 dark:hover:bg-gray-800 dark:border-gray-700"
               >
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50">
-                  <Share2 className="h-4 w-4 text-brand-600" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold text-gray-800 group-hover:text-brand-700">
-                    カレンダーを共有
-                  </span>
-                  <span className="block text-xs text-gray-500">
-                    教授・先輩・共同研究者に予定を見せて進捗を報告できます。
-                  </span>
-                  <span className="mt-0.5 block text-[11px] text-gray-400">
-                    共有中 {myShares.length} 件 ／ 見られるカレンダー{" "}
-                    {sharedWithMe.length} 件
-                  </span>
-                </span>
-                <ChevronRight className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-brand-600" />
+                <Users className="h-4 w-4 text-brand-600 dark:text-brand-400" />
+                <span className="flex-1">学生の予定を確認する</span>
+                <ChevronRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
               </Link>
-
-              <Link
-                href="/lab"
-                className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 transition hover:border-brand-300 hover:bg-brand-50/40"
-              >
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50">
-                  <Users className="h-4 w-4 text-brand-600" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold text-gray-800 group-hover:text-brand-700">
-                    研究室
-                  </span>
-                  <span className="block text-xs text-gray-500">
-                    研究室を作って参加コードを配る／参加コードで参加する。
-                  </span>
-                  <span className="mt-0.5 block text-[11px] text-gray-400">
-                    所属 {myLabs.length} 件
-                  </span>
-                </span>
-                <ChevronRight className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-brand-600" />
-              </Link>
-            </div>
-          </section>
-
-          {/* 完了したToDo（サイドバーでは完了から24時間で非表示） */}
-          <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
-            <div className="mb-3 flex items-center gap-1.5">
-              <ListChecks className="h-4 w-4 text-gray-400" />
-              <h2 className="text-sm font-semibold text-gray-700">
-                完了したToDo
-              </h2>
-              <span className="text-xs text-gray-400">
-                {completedTodos.length}
-              </span>
-            </div>
-            {completedTodos.length === 0 ? (
-              <p className="text-xs text-gray-400">
-                完了したToDoはまだありません。
-              </p>
-            ) : (
-              <ul className="space-y-1.5">
-                {completedTodos.map((todo) => {
-                  const at = todo.completed_at ?? todo.created_at;
-                  const ms = new Date(at).getTime();
-                  return (
-                    <li
-                      key={todo.id}
-                      className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm"
-                    >
-                      <button
-                        onClick={() =>
-                          toggleTodo.mutate({ id: todo.id, done: false })
-                        }
-                        title="未完了に戻す（サイドバーの今日のToDoに再表示されます）"
-                        className="shrink-0 rounded-full text-emerald-500 transition hover:text-gray-400"
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                      </button>
-                      <span className="flex-1 truncate text-gray-500 line-through">
-                        {todo.title}
-                      </span>
-                      <span className="shrink-0 text-xs text-gray-400">
-                        {fmtDate(ms)} {fmtTime(ms)} 完了
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
             )}
           </section>
 
-          {/* 実験モード: モードごとに個別機能をON/OFF */}
-          <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
-            <div className="mb-3 flex items-center gap-1.5">
-              <Settings className="h-4 w-4 text-gray-400" />
-              <h2 className="text-sm font-semibold text-gray-700">実験モード</h2>
-            </div>
-            <p className="mb-4 text-xs text-gray-500">
-              分野ごとに、使いたい機能を個別にオンにできます（分野・機能とも複数選択可）。
-            </p>
-
-            <div className="space-y-5">
-              {/* 一旦: 化学/物理/工学モードは非表示（生物のみ表示） */}
-              {MODES.filter((mode) => mode.key === "bio").map((mode) => {
-                const feats = featuresByMode(mode.key);
-                const onCount = feats.filter((f) => !!features[f.key]).length;
-                const mi = MODE_ICON[mode.key];
-                const allOn = onCount === feats.length && feats.length > 0;
-                return (
-                  <div key={mode.key}>
-                    <div className="mb-2 flex items-center gap-2">
-                      <span
-                        className={`grid h-6 w-6 place-items-center rounded-lg ${mi.iconBg}`}
-                      >
-                        {mi.icon}
-                      </span>
-                      <span className="text-sm font-semibold text-gray-800">
-                        {mode.title}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        {onCount}/{feats.length}
-                      </span>
-                      {feats.length > 1 && (
-                        <button
-                          onClick={() =>
-                            feats.forEach((f) =>
-                              updateFeature.mutate({
-                                key: f.key,
-                                value: !allOn,
-                              }),
-                            )
-                          }
-                          className="ml-auto text-xs text-brand-600 hover:underline"
-                        >
-                          {allOn ? "すべてOFF" : "すべてON"}
-                        </button>
-                      )}
-                    </div>
-                    <div className="space-y-2 pl-1">
-                      {feats.map((f) => (
-                        <FeatureToggle
-                          key={f.key}
-                          icon={mi.icon}
-                          iconBg={mi.iconBg}
-                          title={f.title}
-                          description={f.description}
-                          checked={!!features[f.key]}
-                          onChange={(v) =>
-                            updateFeature.mutate({ key: f.key, value: v })
-                          }
-                        />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          {/* 使用機器の管理 */}
-          <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
-            <div className="mb-3 flex items-center gap-1.5">
-              <Wrench className="h-4 w-4 text-gray-400" />
-              <h2 className="text-sm font-semibold text-gray-700">使用機器</h2>
-              <span className="text-xs text-gray-400">{equipment.length}</span>
-            </div>
-            <p className="mb-3 text-xs text-gray-500">
-              予定に紐づけられる共通機器（遠心機・AKTA など）を登録します。削除しても過去の予定は残ります（機器の紐づけのみ外れます）。
-            </p>
-
-            <div className="mb-3 flex flex-wrap gap-2">
-              {equipment.length === 0 && (
-                <span className="text-xs text-gray-400">
-                  まだ機器が登録されていません。
-                </span>
-              )}
-              {equipment.map((eq) => {
-                const pal = paletteFor(eq.color);
-                return (
-                  <span
-                    key={eq.id}
-                    className="group inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 py-1 pl-2.5 pr-1.5 text-sm"
-                  >
-                    <span className={`h-2 w-2 rounded-full ${pal.dot}`} />
-                    <span className="text-gray-700">{eq.name}</span>
-                    <button
-                      onClick={() => deleteEquipment.mutate(eq.id)}
-                      title="削除"
-                      className="rounded-full p-0.5 text-gray-300 transition hover:bg-gray-200 hover:text-rose-500"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </span>
-                );
-              })}
-            </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                submitEquipment();
-              }}
-              className="flex gap-2"
-            >
-              <input
-                value={newEquip}
-                onChange={(e) => setNewEquip(e.target.value)}
-                placeholder="機器名（例: サーマルサイクラー）"
-                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500"
-              />
-              <button
-                type="submit"
-                className="flex items-center gap-1 rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-600"
-              >
-                <Plus className="h-4 w-4" />
-                追加
-              </button>
-            </form>
-          </section>
-
-          {/* 継代培養（培地）はサイドバー「継代培養を管理」→ /culture ページに集約 */}
-
-          {/* 一旦: 化学/物理/工学モードのツールは非表示 */}
-
-          {/* アーカイブした実験 */}
-          {archivedExperiments.length > 0 && (
-            <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
+          {/* 以下はカレンダー関連の設定。教授・指導者は自分のカレンダーを
+              持たないので、まとめて出さない（値も常に0件になる）。 */}
+          {!isTeacherView && (
+            <>
+            {/* カレンダー設定 */}
+            <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 dark:bg-gray-900 dark:border-gray-800">
               <div className="mb-3 flex items-center gap-1.5">
-                <Archive className="h-4 w-4 text-gray-400" />
-                <h2 className="text-sm font-semibold text-gray-700">
-                  アーカイブした実験
+                <CalendarDays className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                  カレンダー設定
                 </h2>
-                <span className="text-xs text-gray-400">
-                  {archivedExperiments.length}
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  週表示・月表示の週の開始曜日を選べます（既定: 月曜）。
+                </p>
+                <div className="flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-xs dark:bg-gray-800 dark:border-gray-700">
+                  {(
+                    [
+                      [1, "月曜"],
+                      [0, "日曜"],
+                    ] as [0 | 1, string][]
+                  ).map(([value, label]) => (
+                    <button
+                      key={value}
+                      onClick={() =>
+                        updateFeature.mutate({ key: "week_start_day", value })
+                      }
+                      className={`rounded-md px-3 py-1 font-medium transition ${
+                        weekStartDay === value
+                          ? "bg-white text-gray-800 shadow-sm dark:bg-gray-900 dark:text-gray-100"
+                          : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 通常の活動時間 */}
+              <div className="mt-4 flex items-start justify-between gap-3 border-t border-gray-100 pt-4 dark:border-gray-800">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  通常の活動時間（研究をする時間帯）を設定できます。週表示カレンダーの開始・終了時刻に太い横線を引いて、活動時間帯が一目で分かるようにします（既定: 8:00〜20:00）。
+                </p>
+                <div className="flex shrink-0 items-center gap-1.5 text-sm">
+                  <select
+                    value={workStart}
+                    onChange={(e) =>
+                      updateFeature.mutate({
+                        key: "work_start_hour",
+                        value: Number(e.target.value),
+                      })
+                    }
+                    className="rounded-lg border border-gray-300 px-2 py-1.5 outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                  >
+                    {Array.from({ length: 24 }, (_, h) => h).map((h) => (
+                      <option key={h} value={h} disabled={h >= workEnd}>
+                        {h}:00
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-gray-400 dark:text-gray-500">〜</span>
+                  <select
+                    value={workEnd}
+                    onChange={(e) =>
+                      updateFeature.mutate({
+                        key: "work_end_hour",
+                        value: Number(e.target.value),
+                      })
+                    }
+                    className="rounded-lg border border-gray-300 px-2 py-1.5 outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                  >
+                    {Array.from({ length: 24 }, (_, h) => h + 1).map((h) => (
+                      <option key={h} value={h} disabled={h <= workStart}>
+                        {h}:00
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </section>
+
+            {/* 共有・研究室 */}
+            <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 dark:bg-gray-900 dark:border-gray-800">
+              <div className="mb-1 flex items-center gap-1.5">
+                <Share2 className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">共有・研究室</h2>
+              </div>
+              <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+                カレンダーを見せる相手を管理します。相手が予定を編集することはできません。
+              </p>
+
+              <div className="space-y-2">
+                <Link
+                  href="/shared"
+                  className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 transition hover:border-brand-300 hover:bg-brand-50/40 dark:bg-gray-800/40 dark:border-gray-700"
+                >
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50 dark:bg-brand-900/20">
+                    <Share2 className="h-4 w-4 text-brand-600 dark:text-brand-400" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-gray-800 group-hover:text-brand-700 dark:text-gray-100">
+                      カレンダーを共有
+                    </span>
+                    <span className="block text-xs text-gray-500 dark:text-gray-400">
+                      教授・先輩・共同研究者に予定を見せて進捗を報告できます。
+                    </span>
+                    <span className="mt-0.5 block text-[11px] text-gray-400 dark:text-gray-500">
+                      共有中 {myShares.length} 件 ／ 見られるカレンダー{" "}
+                      {sharedWithMe.length} 件
+                    </span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-brand-600 dark:text-gray-500" />
+                </Link>
+
+                <Link
+                  href="/lab"
+                  className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 transition hover:border-brand-300 hover:bg-brand-50/40 dark:bg-gray-800/40 dark:border-gray-700"
+                >
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50 dark:bg-brand-900/20">
+                    <Users className="h-4 w-4 text-brand-600 dark:text-brand-400" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-gray-800 group-hover:text-brand-700 dark:text-gray-100">
+                      研究室
+                    </span>
+                    <span className="block text-xs text-gray-500 dark:text-gray-400">
+                      研究室を作って参加コードを配る／参加コードで参加する。
+                    </span>
+                    <span className="mt-0.5 block text-[11px] text-gray-400 dark:text-gray-500">
+                      所属 {myLabs.length} 件
+                    </span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-brand-600 dark:text-gray-500" />
+                </Link>
+              </div>
+            </section>
+
+            {/* 完了したToDo（サイドバーでは完了から24時間で非表示） */}
+            <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 dark:bg-gray-900 dark:border-gray-800">
+              <div className="mb-3 flex items-center gap-1.5">
+                <ListChecks className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                  完了したToDo
+                </h2>
+                <span className="text-xs text-gray-400 dark:text-gray-500">
+                  {completedTodos.length}
                 </span>
               </div>
-              <p className="mb-3 text-xs text-gray-500">
-                サイドバーの一覧には表示されません。名前をクリックすると、その実験だけの
-                カレンダーを別タブで開いて見返せます（復元はされません）。
-              </p>
-              <div className="space-y-2">
-                {archivedExperiments.map((exp) => {
-                  const pal = paletteFor(exp.color);
-                  return (
-                    <div
-                      key={exp.id}
-                      className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3"
-                    >
-                      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${pal.dot}`} />
-                      <a
-                        href={`/archive/${exp.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="別タブでこの実験のカレンダーを開く"
-                        className="group flex min-w-0 flex-1 items-center gap-1.5 text-left"
+              {completedTodos.length === 0 ? (
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  完了したToDoはまだありません。
+                </p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {completedTodos.map((todo) => {
+                    const at = todo.completed_at ?? todo.created_at;
+                    const ms = new Date(at).getTime();
+                    return (
+                      <li
+                        key={todo.id}
+                        className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm dark:bg-gray-800"
                       >
-                        <span className="min-w-0 truncate text-sm font-medium text-gray-600 group-hover:text-brand-600 group-hover:underline">
-                          {exp.name}
+                        <button
+                          onClick={() =>
+                            toggleTodo.mutate({ id: todo.id, done: false })
+                          }
+                          title="未完了に戻す（サイドバーの今日のToDoに再表示されます）"
+                          className="shrink-0 rounded-full text-emerald-500 transition hover:text-gray-400"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                        </button>
+                        <span className="flex-1 truncate text-gray-500 line-through dark:text-gray-400">
+                          {todo.title}
                         </span>
-                        <ExternalLink className="h-3.5 w-3.5 shrink-0 text-gray-400 group-hover:text-brand-600" />
-                      </a>
-                      <button
-                        onClick={() => restoreExperiment(exp)}
-                        className="flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-600 ring-1 ring-gray-200 hover:bg-gray-100"
-                      >
-                        <ArchiveRestore className="h-3.5 w-3.5" />
-                        復元
-                      </button>
-                      <button
-                        onClick={() => permanentlyDeleteExperiment(exp)}
-                        title="完全に削除"
-                        className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-rose-500"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                        <span className="shrink-0 text-xs text-gray-400 dark:text-gray-500">
+                          {fmtDate(ms)} {fmtTime(ms)} 完了
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+
+            {/* 実験モード: モードごとに個別機能をON/OFF */}
+            <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 dark:bg-gray-900 dark:border-gray-800">
+              <div className="mb-3 flex items-center gap-1.5">
+                <Settings className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">実験モード</h2>
+              </div>
+              <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">
+                分野ごとに、使いたい機能を個別にオンにできます（分野・機能とも複数選択可）。
+              </p>
+
+              <div className="space-y-5">
+                {/* 一旦: 化学/物理/工学モードは非表示（生物のみ表示） */}
+                {MODES.filter((mode) => mode.key === "bio").map((mode) => {
+                  const feats = featuresByMode(mode.key);
+                  const onCount = feats.filter((f) => !!features[f.key]).length;
+                  const mi = MODE_ICON[mode.key];
+                  const allOn = onCount === feats.length && feats.length > 0;
+                  return (
+                    <div key={mode.key}>
+                      <div className="mb-2 flex items-center gap-2">
+                        <span
+                          className={`grid h-6 w-6 place-items-center rounded-lg ${mi.iconBg}`}
+                        >
+                          {mi.icon}
+                        </span>
+                        <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                          {mode.title}
+                        </span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                          {onCount}/{feats.length}
+                        </span>
+                        {feats.length > 1 && (
+                          <button
+                            onClick={() =>
+                              feats.forEach((f) =>
+                                updateFeature.mutate({
+                                  key: f.key,
+                                  value: !allOn,
+                                }),
+                              )
+                            }
+                            className="ml-auto text-xs text-brand-600 hover:underline dark:text-brand-400"
+                          >
+                            {allOn ? "すべてOFF" : "すべてON"}
+                          </button>
+                        )}
+                      </div>
+                      <div className="space-y-2 pl-1">
+                        {feats.map((f) => (
+                          <FeatureToggle
+                            key={f.key}
+                            icon={mi.icon}
+                            iconBg={mi.iconBg}
+                            title={f.title}
+                            description={f.description}
+                            checked={!!features[f.key]}
+                            onChange={(v) =>
+                              updateFeature.mutate({ key: f.key, value: v })
+                            }
+                          />
+                        ))}
+                      </div>
                     </div>
                   );
                 })}
               </div>
             </section>
-          )}
-          </>
-        )}
 
-        {/* お問い合わせ・ご要望（常に最後に配置） */}
-        <FeedbackSection />
-      </main>
+            {/* 使用機器の管理 */}
+            <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 dark:bg-gray-900 dark:border-gray-800">
+              <div className="mb-3 flex items-center gap-1.5">
+                <Wrench className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">使用機器</h2>
+                <span className="text-xs text-gray-400 dark:text-gray-500">{equipment.length}</span>
+              </div>
+              <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+                予定に紐づけられる共通機器（遠心機・AKTA など）を登録します。削除しても過去の予定は残ります（機器の紐づけのみ外れます）。
+              </p>
+
+              <div className="mb-3 flex flex-wrap gap-2">
+                {equipment.length === 0 && (
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    まだ機器が登録されていません。
+                  </span>
+                )}
+                {equipment.map((eq) => {
+                  const pal = paletteFor(eq.color);
+                  return (
+                    <span
+                      key={eq.id}
+                      className="group inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 py-1 pl-2.5 pr-1.5 text-sm dark:bg-gray-800 dark:border-gray-700"
+                    >
+                      <span className={`h-2 w-2 rounded-full ${pal.dot}`} />
+                      <span className="text-gray-700 dark:text-gray-200">{eq.name}</span>
+                      <button
+                        onClick={() => deleteEquipment.mutate(eq.id)}
+                        title="削除"
+                        className="rounded-full p-0.5 text-gray-300 transition hover:bg-gray-200 hover:text-rose-500 dark:hover:bg-gray-700"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  submitEquipment();
+                }}
+                className="flex gap-2"
+              >
+                <input
+                  value={newEquip}
+                  onChange={(e) => setNewEquip(e.target.value)}
+                  placeholder="機器名（例: サーマルサイクラー）"
+                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                />
+                <button
+                  type="submit"
+                  className="flex items-center gap-1 rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+                >
+                  <Plus className="h-4 w-4" />
+                  追加
+                </button>
+              </form>
+            </section>
+
+            {/* 継代培養（培地）はサイドバー「継代培養を管理」→ /culture ページに集約 */}
+
+            {/* 一旦: 化学/物理/工学モードのツールは非表示 */}
+
+            {/* アーカイブした実験 */}
+            {archivedExperiments.length > 0 && (
+              <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 dark:bg-gray-900 dark:border-gray-800">
+                <div className="mb-3 flex items-center gap-1.5">
+                  <Archive className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                    アーカイブした実験
+                  </h2>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    {archivedExperiments.length}
+                  </span>
+                </div>
+                <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+                  サイドバーの一覧には表示されません。名前をクリックすると、その実験だけの
+                  カレンダーを別タブで開いて見返せます（復元はされません）。
+                </p>
+                <div className="space-y-2">
+                  {archivedExperiments.map((exp) => {
+                    const pal = paletteFor(exp.color);
+                    return (
+                      <div
+                        key={exp.id}
+                        className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 dark:bg-gray-800/40 dark:border-gray-700"
+                      >
+                        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${pal.dot}`} />
+                        <a
+                          href={`/archive/${exp.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="別タブでこの実験のカレンダーを開く"
+                          className="group flex min-w-0 flex-1 items-center gap-1.5 text-left"
+                        >
+                          <span className="min-w-0 truncate text-sm font-medium text-gray-600 group-hover:text-brand-600 group-hover:underline dark:text-gray-300">
+                            {exp.name}
+                          </span>
+                          <ExternalLink className="h-3.5 w-3.5 shrink-0 text-gray-400 group-hover:text-brand-600 dark:text-gray-500" />
+                        </a>
+                        <button
+                          onClick={() => restoreExperiment(exp)}
+                          className="flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-600 ring-1 ring-gray-200 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                        >
+                          <ArchiveRestore className="h-3.5 w-3.5" />
+                          復元
+                        </button>
+                        <button
+                          onClick={() => permanentlyDeleteExperiment(exp)}
+                          title="完全に削除"
+                          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-rose-500 dark:text-gray-500 dark:hover:bg-gray-800"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+            </>
+          )}
+
+          {/* お問い合わせ・ご要望（常に最後に配置） */}
+          <FeedbackSection />
+        </main>
+      </div>
     </div>
   );
 }
@@ -824,10 +829,10 @@ function StatCard({
   value: number;
 }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-4">
-      <div className="flex items-center gap-1.5 text-gray-400">{icon}</div>
-      <div className="mt-1 text-2xl font-bold text-gray-800">{value}</div>
-      <div className="text-xs text-gray-500">{label}</div>
+    <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:bg-gray-900 dark:border-gray-800">
+      <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">{icon}</div>
+      <div className="mt-1 text-2xl font-bold text-gray-800 dark:text-gray-100">{value}</div>
+      <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
     </div>
   );
 }
@@ -865,26 +870,26 @@ function FeedbackSection() {
   }
 
   return (
-    <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
+    <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 dark:bg-gray-900 dark:border-gray-800">
       <div className="mb-3 flex items-center gap-1.5">
-        <MessageSquare className="h-4 w-4 text-gray-400" />
-        <h2 className="text-sm font-semibold text-gray-700">
+        <MessageSquare className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
           お問い合わせ・ご要望
         </h2>
       </div>
-      <p className="mb-3 text-xs text-gray-500">
+      <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
         改善してほしい点・欲しい機能・不具合などを開発者へ送れます。いただいた内容は今後の改善の参考にさせていただきます。
       </p>
 
       {sent ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 text-center">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 text-center dark:border-emerald-500/30">
           <CheckCircle2 className="mx-auto mb-1 h-6 w-6 text-emerald-500" />
-          <p className="text-sm font-medium text-emerald-800">
+          <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300">
             送信しました。ありがとうございます！
           </p>
           <button
             onClick={() => setSent(false)}
-            className="mt-2 text-xs text-emerald-700 hover:underline"
+            className="mt-2 text-xs text-emerald-700 hover:underline dark:text-emerald-300"
           >
             続けて送信する
           </button>
@@ -892,7 +897,7 @@ function FeedbackSection() {
       ) : (
         <form onSubmit={submit} className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-500">
+            <label className="mb-1 block text-xs font-semibold text-gray-500 dark:text-gray-400">
               種別
             </label>
             <div className="flex flex-wrap gap-1.5">
@@ -903,8 +908,8 @@ function FeedbackSection() {
                   onClick={() => setCategory(c.key)}
                   className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
                     category === c.key
-                      ? "border-brand-400 bg-brand-50 text-brand-700"
-                      : "border-gray-200 text-gray-600 hover:border-gray-300"
+                      ? "border-brand-400 bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-300"
+                      : "border-gray-200 text-gray-600 hover:border-gray-300 dark:text-gray-300 dark:hover:border-gray-600 dark:border-gray-700"
                   }`}
                 >
                   {c.label}
@@ -913,7 +918,7 @@ function FeedbackSection() {
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-500">
+            <label className="mb-1 block text-xs font-semibold text-gray-500 dark:text-gray-400">
               内容
             </label>
             <textarea
@@ -921,11 +926,11 @@ function FeedbackSection() {
               onChange={(e) => setBody(e.target.value)}
               rows={4}
               placeholder="例: 予定を色分けして印刷できるようにしてほしい"
-              className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500"
+              className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-500">
+            <label className="mb-1 block text-xs font-semibold text-gray-500 dark:text-gray-400">
               返信先メールアドレス（任意）
             </label>
             <input
@@ -933,13 +938,13 @@ function FeedbackSection() {
               value={replyEmail}
               onChange={(e) => setReplyEmail(e.target.value)}
               placeholder="example@email.com"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             />
-            <p className="mt-1 text-[11px] text-gray-400">
+            <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
               返信が欲しい場合はご入力ください。返信は iwase.workslab@gmail.com からいたします。
             </p>
           </div>
-          {error && <p className="text-xs text-rose-500">{error}</p>}
+          {error && <p className="text-xs text-rose-500 dark:text-rose-400">{error}</p>}
           <button
             type="submit"
             disabled={!body.trim() || addFeedback.isPending}
@@ -963,7 +968,7 @@ function ToolField({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block text-[11px] text-gray-500">
+    <label className="block text-[11px] text-gray-500 dark:text-gray-400">
       {label}
       {children}
     </label>
@@ -990,13 +995,13 @@ function ChemTools() {
   return (
     <section className="mb-6 rounded-2xl border border-blue-200 bg-blue-50/40 p-4">
       <div className="mb-3 flex items-center gap-1.5">
-        <FlaskConical className="h-4 w-4 text-blue-600" />
-        <h2 className="text-sm font-semibold text-gray-800">化学ツール</h2>
+        <FlaskConical className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+        <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">化学ツール</h2>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {/* 収率計算 */}
-        <div className="rounded-xl border border-gray-200 bg-white p-3">
-          <div className="mb-2 text-xs font-semibold text-gray-700">
+        <div className="rounded-xl border border-gray-200 bg-white p-3 dark:bg-gray-900 dark:border-gray-800">
+          <div className="mb-2 text-xs font-semibold text-gray-700 dark:text-gray-200">
             収率計算
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -1026,8 +1031,8 @@ function ChemTools() {
         </div>
 
         {/* モル計算 */}
-        <div className="rounded-xl border border-gray-200 bg-white p-3">
-          <div className="mb-2 text-xs font-semibold text-gray-700">
+        <div className="rounded-xl border border-gray-200 bg-white p-3 dark:bg-gray-900 dark:border-gray-800">
+          <div className="mb-2 text-xs font-semibold text-gray-700 dark:text-gray-200">
             モル計算
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -1083,19 +1088,19 @@ function PhysicsTools() {
   const fmt = (v: number | null) => (v === null ? "—" : v.toPrecision(4));
 
   return (
-    <section className="mb-6 rounded-2xl border border-amber-200 bg-amber-50/40 p-4">
+    <section className="mb-6 rounded-2xl border border-amber-200 bg-amber-50/40 p-4 dark:border-amber-500/30">
       <div className="mb-3 flex items-center gap-1.5">
-        <Atom className="h-4 w-4 text-amber-600" />
-        <h2 className="text-sm font-semibold text-gray-800">測定統計</h2>
+        <Atom className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+        <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">測定統計</h2>
       </div>
-      <div className="rounded-xl border border-gray-200 bg-white p-3">
+      <div className="rounded-xl border border-gray-200 bg-white p-3 dark:bg-gray-900 dark:border-gray-800">
         <ToolField label="測定値（カンマ or 空白区切り）">
           <textarea
             value={raw}
             onChange={(e) => setRaw(e.target.value)}
             rows={2}
             placeholder="例: 12.3, 12.5, 12.1, 12.4"
-            className={`${toolInput} resize-none`}
+            className={`${toolInput} resize-none dark:bg-gray-800 dark:text-gray-100`}
           />
         </ToolField>
         <div className="mt-2 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
@@ -1111,9 +1116,9 @@ function PhysicsTools() {
 
 function StatMini({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-amber-50 px-2 py-1.5">
-      <div className="text-[10px] text-gray-500">{label}</div>
-      <div className="font-bold text-amber-700">{value}</div>
+    <div className="rounded-lg bg-amber-50 px-2 py-1.5 dark:bg-amber-500/10">
+      <div className="text-[10px] text-gray-500 dark:text-gray-400">{label}</div>
+      <div className="font-bold text-amber-700 dark:text-amber-300">{value}</div>
     </div>
   );
 }
@@ -1151,10 +1156,10 @@ function EngineeringTools() {
   return (
     <section className="mb-6 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
       <div className="mb-3 flex items-center gap-1.5">
-        <Cog className="h-4 w-4 text-slate-600" />
-        <h2 className="text-sm font-semibold text-gray-800">単位変換</h2>
+        <Cog className="h-4 w-4 text-slate-600 dark:text-slate-300" />
+        <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">単位変換</h2>
       </div>
-      <div className="rounded-xl border border-gray-200 bg-white p-3">
+      <div className="rounded-xl border border-gray-200 bg-white p-3 dark:bg-gray-900 dark:border-gray-800">
         <div className="mb-2 flex gap-1.5">
           {Object.keys(UNIT_GROUPS).map((g) => (
             <button
@@ -1163,7 +1168,7 @@ function EngineeringTools() {
               className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
                 group === g
                   ? "bg-slate-700 text-white"
-                  : "bg-gray-100 text-gray-600"
+                  : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"
               }`}
             >
               {g}
@@ -1182,17 +1187,17 @@ function EngineeringTools() {
           <select
             value={from}
             onChange={(e) => setFrom(e.target.value)}
-            className="mb-0.5 rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
+            className="mb-0.5 rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           >
             {units.map((u) => (
               <option key={u}>{u}</option>
             ))}
           </select>
-          <span className="mb-2 text-gray-400">→</span>
+          <span className="mb-2 text-gray-400 dark:text-gray-500">→</span>
           <select
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            className="mb-0.5 rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500"
+            className="mb-0.5 rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           >
             {units.map((u) => (
               <option key={u}>{u}</option>
@@ -1212,7 +1217,7 @@ function EngineeringTools() {
 
 function FeatureToggle({
   icon,
-  iconBg = "bg-emerald-50",
+  iconBg = "bg-emerald-50 dark:bg-emerald-500/10",
   title,
   description,
   checked,
@@ -1226,15 +1231,15 @@ function FeatureToggle({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-100 p-3 transition hover:bg-gray-50">
+    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-100 p-3 transition hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800">
       <span
         className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg ${iconBg}`}
       >
         {icon}
       </span>
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-semibold text-gray-800">{title}</div>
-        <p className="mt-0.5 text-xs leading-relaxed text-gray-500">
+        <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">{title}</div>
+        <p className="mt-0.5 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
           {description}
         </p>
       </div>
@@ -1245,13 +1250,13 @@ function FeatureToggle({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`relative mt-0.5 h-5 w-9 shrink-0 rounded-full transition ${
-          checked ? "bg-emerald-500" : "bg-gray-300"
+          checked ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"
         }`}
       >
         <span
           className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${
             checked ? "left-4" : "left-0.5"
-          }`}
+          } dark:bg-gray-900`}
         />
       </button>
     </label>
