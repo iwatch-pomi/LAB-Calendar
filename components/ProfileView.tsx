@@ -22,6 +22,8 @@ import {
 import { useMyShares, useSharedWithMe, useMyLabs } from "@/lib/sharedQueries";
 import { resolveTeacherView } from "@/lib/role";
 import { BackHomeLink } from "./BackHomeLink";
+import { ThemeToggle } from "./ThemeToggle";
+import { useThemeAccountSync } from "./useThemeAccountSync";
 import { createClient } from "@/lib/supabase/client";
 import { fmtTime } from "@/lib/calendar";
 import {
@@ -47,6 +49,7 @@ import {
   Beaker,
   CalendarDays,
   Settings,
+  Sun,
   Sprout,
   Plus,
   X,
@@ -104,6 +107,8 @@ export function ProfileView({
   initialIsTeacher: boolean;
 }) {
   const router = useRouter();
+  // /profile を直接開いた場合もアカウント側のテーマを反映する
+  useThemeAccountSync();
   const experimentsQ = useExperiments();
   const tasksQ = useTasks();
   const equipmentQ = useEquipment();
@@ -430,6 +435,29 @@ export function ProfileView({
                 <ChevronRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
               </Link>
             )}
+          </section>
+
+          {/* 表示テーマ。カレンダー固有の設定ではなくアプリ全体の見た目なので、
+              教授・指導者にも出す（教授はこの画面が唯一の設定画面になる）。 */}
+          <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 dark:bg-gray-900 dark:border-gray-800">
+            <div className="mb-3 flex items-center gap-1.5">
+              <Sun className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+              <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                表示テーマ
+              </h2>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                画面の配色を選べます。「システム」は端末の設定に合わせて自動で
+                切り替わります。
+                <br />
+                この設定はアカウントに保存され、別の端末でログインしても
+                同じ配色になります。
+              </p>
+              <div className="shrink-0">
+                <ThemeToggle />
+              </div>
+            </div>
           </section>
 
           {/* 以下はカレンダー関連の設定。教授・指導者は自分のカレンダーを

@@ -223,10 +223,14 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* 配色（ライト/ダーク/システム） */}
-      <div className="px-4 pb-3">
-        <ThemeToggle />
-      </div>
+      {/* 配色（ライト/ダーク/システム）。
+          ログイン中はマイページの「表示テーマ」に集約しているのでここには出さない。
+          ゲストはマイページ（ログイン必須）を開けず、他に変える場所が無いので残す。 */}
+      {isGuest && (
+        <div className="px-4 pb-3">
+          <ThemeToggle />
+        </div>
+      )}
 
       {/* ゲスト: ログイン導線（プロフィール/設定の代わり） */}
       {isGuest && (

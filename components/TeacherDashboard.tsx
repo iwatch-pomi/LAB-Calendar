@@ -13,7 +13,6 @@ import {
 } from "@/lib/sharedQueries";
 import { paletteFor, PALETTE_KEYS } from "@/lib/types";
 import { Logo } from "./Logo";
-import { ThemeToggle } from "./ThemeToggle";
 import { useThemeAccountSync } from "./useThemeAccountSync";
 import {
   CalendarDays,
@@ -86,7 +85,6 @@ export function TeacherDashboard({ userEmail }: { userEmail: string }) {
             <Logo size="sm" />
           </Link>
           <div className="flex items-center gap-2">
-            <ThemeToggle compact />
             <Link
               href="/lab"
               className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
