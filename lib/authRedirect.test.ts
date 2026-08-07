@@ -3,6 +3,7 @@ import {
   resolveNext,
   afterLoginFrom,
   homeFor,
+  destForRole,
   DEFAULT_AFTER_LOGIN,
   TEACHER_HOME,
 } from "./authRedirect";
@@ -72,5 +73,24 @@ describe("homeFor", () => {
 
   it("学生の戻り先はカレンダー", () => {
     expect(homeFor(false)).toBe(DEFAULT_AFTER_LOGIN);
+  });
+});
+
+describe("destForRole", () => {
+  it("学生は指定された行き先のまま", () => {
+    expect(destForRole("/app", false)).toBe("/app");
+    expect(destForRole("/shared", false)).toBe("/shared");
+  });
+
+  it("教授が学生用ホームに行こうとしたら管理画面へ振り替える", () => {
+    expect(destForRole("/app", true)).toBe(TEACHER_HOME);
+    expect(destForRole("/app?view=week", true)).toBe(TEACHER_HOME);
+  });
+
+  it("教授でも明示的な行き先は尊重する", () => {
+    // 保護ページから弾かれて next を持って戻ってきた人を勝手に飛ばさない
+    expect(destForRole("/shared", true)).toBe("/shared");
+    expect(destForRole("/lab", true)).toBe("/lab");
+    expect(destForRole(TEACHER_HOME, true)).toBe(TEACHER_HOME);
   });
 });

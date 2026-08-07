@@ -2,8 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import {
   resolveNext,
+  destForRole,
   DEFAULT_AFTER_LOGIN,
-  TEACHER_HOME,
 } from "@/lib/authRedirect";
 import { isTeacherServer } from "@/lib/supabase/serverFlags";
 
@@ -71,14 +71,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(failure);
   }
 
-  // 行き先を決める。明示の next があればそれを優先し、無ければ役割で振り分ける。
-  // 教授はカレンダーを使わないので、毎回カレンダーに着地させない。
-  let dest = next;
-  if (!dest) {
-    dest = DEFAULT_AFTER_LOGIN;
-    const uid = data.session?.user?.id;
-    if (uid && (await isTeacherServer(supabase, uid))) dest = TEACHER_HOME;
-  }
+  // 行き先を決める。カレンダーのログインフォームからだと next=/app が必ず載るので、
+  // 「next が無いときだけ役割を見る」形にすると教授が学生カレンダーへ着地してしまう。
+  // 役割は常に見て、学生用ホーム宛のときだけ管理画面へ振り替える
+  // （/shared などの明示的な行き先はそのまま尊重する）。
+  const uid = data.session?.user?.id;
+  const teacher = uid ? await isTeacherServer(supabase, uid) : false;
+  const dest = destForRole(next ?? DEFAULT_AFTER_LOGIN, teacher);
 
   const response = NextResponse.redirect(`${base}${dest}`);
   pending.forEach(({ name, value, options }) =>

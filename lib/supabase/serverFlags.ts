@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { FeatureFlags } from "@/lib/types";
+import type { FeatureFlags, UserRole } from "@/lib/types";
 import { isTeacher } from "@/lib/role";
 
 /**
@@ -24,6 +24,19 @@ export async function getServerFeatureFlags(
   return ((data?.features as FeatureFlags) ?? {}) as FeatureFlags;
 }
 
+/** サーバー側で利用形態（専用カラム）を読む。行が無ければ学生。 */
+export async function getServerRole(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<UserRole> {
+  const { data } = await supabase
+    .from("user_settings")
+    .select("role")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data?.role === "teacher" ? "teacher" : "student";
+}
+
 /**
  * サーバー側の教授判定。読み取りに失敗したら必ず false（＝学生）に倒す。
  *
@@ -37,7 +50,7 @@ export async function isTeacherServer(
   userId: string,
 ): Promise<boolean> {
   try {
-    return isTeacher(await getServerFeatureFlags(supabase, userId));
+    return isTeacher(await getServerRole(supabase, userId));
   } catch {
     return false;
   }

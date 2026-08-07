@@ -1,4 +1,4 @@
-import type { FeatureFlags } from "@/lib/types";
+import type { UserRole } from "@/lib/types";
 
 /**
  * 利用形態（学生 / 教授）まわりの判定。
@@ -31,24 +31,24 @@ export function shouldAskRole(s: RoleGateState): boolean {
 }
 
 /** 教授として使う設定になっているか */
-export function isTeacher(settings: FeatureFlags | undefined): boolean {
-  return settings?.is_teacher === true;
+export function isTeacher(role: UserRole | undefined): boolean {
+  return role === "teacher";
 }
 
 /**
  * 画面に出す利用形態。サーバーで解決した値を初期値にし、クライアントの
- * user_settings が「明示的に」true/false を持つときだけそちらを優先する。
+ * user_settings.role が読めているときだけそちらを優先する。
  *
- * `useSettings` は未読込では undefined、読み込みに失敗すると `{}` を返す
- * （エラーを握り潰して isSuccess が立つ）。単純に「読み込めたらクライアント値」に
- * すると、一時的な失敗で教授が学生用の画面に戻ってしまう。逆に常にサーバー値だと
- * 利用形態トグルがリロードするまで反映されない。明示的な boolean のときだけ
- * クライアントを採ることで、その両方を避ける。
+ * `useUserRole` は未読込のあいだ undefined を返す。単純に「読めたらクライアント値」に
+ * すると、読み込み前の一瞬だけ学生扱いになって画面が切り替わってしまう。逆に常に
+ * サーバー値だと利用形態トグルがリロードするまで反映されない。値が確定している
+ * ときだけクライアントを採ることで、その両方を避ける。
  */
 export function resolveTeacherView(
-  clientFlags: FeatureFlags | undefined,
+  clientRole: UserRole | undefined,
   serverIsTeacher: boolean,
 ): boolean {
-  const v = clientFlags?.is_teacher;
-  return typeof v === "boolean" ? v : serverIsTeacher;
+  if (clientRole === "teacher") return true;
+  if (clientRole === "student") return false;
+  return serverIsTeacher;
 }

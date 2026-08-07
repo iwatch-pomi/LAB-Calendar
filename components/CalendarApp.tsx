@@ -9,6 +9,7 @@ import {
   useEquipment,
   useTemplates,
   useSettings,
+  useUserRole,
   useUpdateFeatures,
   useSeedDemoData,
 } from "@/lib/queries";
@@ -71,6 +72,7 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
   const deleteTask = useDeleteTask();
   const placeTemplate = usePlaceTemplateAt();
   const settingsQ = useSettings();
+  const roleQ = useUserRole();
   const updateFeatures = useUpdateFeatures();
   const seedDemo = useSeedDemoData();
   const {
@@ -254,7 +256,7 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
   // 役割選択で「教授」を選んだ直後は、楽観更新でフラグが立つ一方 router.replace が
   // まだ飛行中で、その隙にデモデータ選択やオンボーディングの条件が揃ってしまう。
   // 遷移の途中でそれらが一瞬出るのを防ぐため、ここの判定は残しておく。
-  const isTeacherUser = isTeacher(settingsQ.data);
+  const isTeacherUser = isTeacher(roleQ.data);
 
   // 利用形態の確認中（モーダル自体は RoleGate が出す。ここでは重ねないための判定だけ）
   const showRoleChoice = shouldAskRole({

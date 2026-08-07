@@ -13,6 +13,8 @@ import {
   useToggleTodo,
   useSettings,
   useUpdateFeature,
+  useUserRole,
+  useUpdateRole,
   useProfile,
   useUpdateProfile,
   useAddEquipment,
@@ -123,6 +125,8 @@ export function ProfileView({
   const deleteExp = useDeleteExperiment();
   const toggleTodo = useToggleTodo();
   const updateFeature = useUpdateFeature();
+  const roleQ = useUserRole();
+  const updateRole = useUpdateRole();
   const updateProfile = useUpdateProfile();
   const addEquipment = useAddEquipment();
   const deleteEquipment = useDeleteEquipment();
@@ -157,7 +161,7 @@ export function ProfileView({
   const equipment = equipmentQ.data ?? [];
   const features = settingsQ.data ?? {};
   const weekStartDay: 0 | 1 = features.week_start_day === 0 ? 0 : 1;
-  const isTeacherView = resolveTeacherView(settingsQ.data, initialIsTeacher);
+  const isTeacherView = resolveTeacherView(roleQ.data, initialIsTeacher);
   const workStart =
     typeof features.work_start_hour === "number"
       ? features.work_start_hour
@@ -405,14 +409,13 @@ export function ProfileView({
                     key={label}
                     // 保存が終わる前に移動すると、サーバーがまだ古い役割を読んで
                     // 弾き返してしまう。保存中は押せないようにしておく。
-                    disabled={updateFeature.isPending}
+                    disabled={updateRole.isPending}
                     onClick={() =>
-                      updateFeature.mutate(
-                        { key: "is_teacher", value },
+                      updateRole.mutate(value ? "teacher" : "student", {
                         // サーバーで解決している initialIsTeacher と、教授だった頃に
                         // 貯まった /app のキャッシュを貼り直す
-                        { onSettled: () => router.refresh() },
-                      )
+                        onSettled: () => router.refresh(),
+                      })
                     }
                     className={`rounded-md px-3 py-1 font-medium transition disabled:opacity-60 ${
                       isTeacherView === value

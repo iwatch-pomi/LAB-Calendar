@@ -51,3 +51,17 @@ export function afterLoginFrom(pathname: string): string {
 export function homeFor(isTeacher: boolean): string {
   return isTeacher ? TEACHER_HOME : DEFAULT_AFTER_LOGIN;
 }
+
+/**
+ * 利用形態を踏まえた最終的な着地先。
+ *
+ * 教授はカレンダーを持たないので、行き先が学生用ホーム(/app)なら管理画面へ振り替える。
+ * 一方 `/shared` や `/lab` のように明示的に指定された行き先はそのまま尊重する
+ * （保護ページから弾かれて next を持って戻ってきた人を、勝手に別の場所へ送らない）。
+ */
+export function destForRole(dest: string, isTeacher: boolean): string {
+  if (!isTeacher) return dest;
+  const isStudentHome =
+    dest === DEFAULT_AFTER_LOGIN || dest.startsWith(`${DEFAULT_AFTER_LOGIN}?`);
+  return isStudentHome ? TEACHER_HOME : dest;
+}

@@ -20,6 +20,7 @@ import type {
   TemplateStep,
   Todo,
   UserProfile,
+  UserRole,
 } from "@/lib/types";
 
 const supabase = createClient();
@@ -33,6 +34,7 @@ export const qk = {
   deps: ["deps"] as const,
   todos: ["todos"] as const,
   settings: ["settings"] as const,
+  role: ["role"] as const,
   cultureMedia: ["culture_media"] as const,
   profile: ["profile"] as const,
   feedback: ["feedback"] as const,
@@ -244,6 +246,64 @@ export function useSettings() {
       if (error) return {};
       return ((data?.features as FeatureFlags) ?? {}) as FeatureFlags;
     },
+  });
+}
+
+/**
+ * 利用形態（学生 / 教授）。features(jsonb) とは別の専用カラムから読む。
+ *
+ * ログイン後の行き先を決める土台なので、他の設定の保存に巻き込まれないよう
+ * 完全に分けて扱う。ゲストはアカウントを持たないので常に学生。
+ */
+export function useUserRole() {
+  const { isGuest } = useGuest();
+  return useQuery({
+    queryKey: scoped(qk.role, isGuest),
+    queryFn: async (): Promise<UserRole> => {
+      if (isGuest) return "student";
+      const { data, error } = await supabase
+        .from("user_settings")
+        .select("role")
+        .maybeSingle();
+      // 行が無い/読めない場合は学生として扱う。誤判定の向きを
+      // 「カレンダーが見える（無害）」側に倒し、締め出しを起こさない。
+      if (error) return "student";
+      return data?.role === "teacher" ? "teacher" : "student";
+    },
+  });
+}
+
+/** 利用形態を保存する。role カラムだけを触るので他の設定は巻き込まない。 */
+export function useUpdateRole() {
+  const qc = useQueryClient();
+  const { isGuest, requireLogin } = useGuest();
+  return useMutation({
+    mutationFn: async (role: UserRole) => {
+      if (isGuest) {
+        requireLogin();
+        throw new Error("not authenticated");
+      }
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("not authenticated");
+      const { error } = await supabase.from("user_settings").upsert({
+        user_id: user.id,
+        role,
+        updated_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+    },
+    onMutate: async (role) => {
+      await qc.cancelQueries({ queryKey: scoped(qk.role, isGuest) });
+      const prev = qc.getQueryData<UserRole>(scoped(qk.role, isGuest));
+      qc.setQueryData<UserRole>(scoped(qk.role, isGuest), role);
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(scoped(qk.role, isGuest), ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.role }),
   });
 }
 

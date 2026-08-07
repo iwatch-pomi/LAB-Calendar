@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { resolveNext, afterLoginFrom } from "@/lib/authRedirect";
+import { resolveNext, afterLoginFrom, destForRole } from "@/lib/authRedirect";
 
 type Mode = "signin" | "signup";
 
@@ -22,6 +22,30 @@ function jpError(msg: string): string {
   if (m.includes("redirect") && m.includes("not allowed"))
     return "リダイレクトURLが未許可です（SupabaseのURL設定を確認してください）。";
   return msg;
+}
+
+
+/**
+ * ログイン直後の着地先を決める。
+ *
+ * カレンダーのログインフォームからだと行き先は常に `/app` になるため、
+ * ここで役割を見ないと教授が学生カレンダーに着地してしまう
+ * （その後サーバー側のリダイレクトで管理画面へ送られるが、余計な往復になる）。
+ * 役割の読み取りに失敗しても指定どおりの行き先には進めるようにしておく。
+ */
+async function landingFor(
+  supabase: ReturnType<typeof createClient>,
+  dest: string,
+): Promise<string> {
+  try {
+    const { data } = await supabase
+      .from("user_settings")
+      .select("role")
+      .maybeSingle();
+    return destForRole(dest, data?.role === "teacher");
+  } catch {
+    return dest;
+  }
 }
 
 export function AuthForm() {
@@ -98,7 +122,7 @@ export function AuthForm() {
         setMessage({ type: "error", text: jpError(error.message) });
       } else if (data.session) {
         // メール確認オフ → その場でログイン完了
-        window.location.href = dest ?? "/app";
+        window.location.href = await landingFor(supabase, dest ?? "/app");
         return;
       } else if (data.user && data.user.identities?.length === 0) {
         // 既に登録済みのメール
@@ -120,7 +144,7 @@ export function AuthForm() {
       if (error) {
         setMessage({ type: "error", text: jpError(error.message) });
       } else {
-        window.location.href = dest ?? "/app";
+        window.location.href = await landingFor(supabase, dest ?? "/app");
         return;
       }
     }

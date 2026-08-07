@@ -94,6 +94,15 @@ export interface Todo {
  * 個別機能のキーは lib/features.ts の FEATURES で定義（例: bio_culture_lineage）。
  * 機能追加に強いよう任意の文字列キーを許可する。
  */
+/**
+ * 利用形態。user_settings.role カラム（専用カラム）に保存する。
+ *
+ * ログイン後の行き先（学生カレンダー / 教授の管理画面）を決める土台なので、
+ * 読んで混ぜて書き戻す features(jsonb) とは分けて持つ。features 側の更新に
+ * 巻き込まれて役割が変わる、という事故を構造的に防ぐため。
+ */
+export type UserRole = "student" | "teacher";
+
 export interface FeatureFlags {
   /** 初回オンボーディング（研究分野の選択）完了フラグ */
   onboarded?: boolean;
@@ -101,10 +110,8 @@ export interface FeatureFlags {
   demo_seed_asked?: boolean;
   /** 使い方のチュートリアルを見終えた（またはスキップした）か */
   tutorial_done?: boolean;
-  /** 利用形態を選択済みか（学生 / 教授） */
+  /** 利用形態を選択済みか（学生 / 教授）。役割そのものは user_settings.role */
   role_chosen?: boolean;
-  /** 教授・指導者として使う（自分のカレンダーは持たず、学生の予定を見る） */
-  is_teacher?: boolean;
   /** カレンダーの週の開始曜日（0=日曜, 1=月曜）。既定は月曜。 */
   week_start_day?: 0 | 1;
   /** 通常の活動時間の開始/終了（時, 0〜24）。既定は 8〜20。 */
