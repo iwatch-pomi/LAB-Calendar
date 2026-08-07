@@ -16,7 +16,6 @@ import {
 } from "@/lib/sharedQueries";
 import { paletteFor, PALETTE_KEYS, type LabRole } from "@/lib/types";
 import {
-  ChevronLeft,
   Users,
   Plus,
   LogIn,
@@ -28,6 +27,7 @@ import {
   CalendarDays,
   Trash2,
 } from "lucide-react";
+import { BackHomeLink } from "./BackHomeLink";
 
 /**
  * 失敗の理由を画面に出すための補助。
@@ -53,7 +53,14 @@ const ROLE_LABEL: Record<LabRole, string> = {
  * ・教授（主宰）は研究室を作り、参加コードを配り、メンバーのカレンダーを開ける
  * ・学生は参加コードで参加し、自分のカレンダーを見せるかどうかを切り替えられる
  */
-export function LabManager({ userEmail }: { userEmail: string }) {
+export function LabManager({
+  userEmail,
+  isTeacher,
+}: {
+  userEmail: string;
+  /** 教授は自分のカレンダーを持たないので「戻る」先が変わる */
+  isTeacher: boolean;
+}) {
   const labsQ = useMyLabs();
   const meQ = useMyUserId();
   const profilesQ = useVisibleProfiles();
@@ -150,13 +157,7 @@ export function LabManager({ userEmail }: { userEmail: string }) {
     <div className="min-h-screen bg-[#f6f8fa]">
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-5 py-3">
-          <Link
-            href="/app"
-            className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            カレンダーへ戻る
-          </Link>
+          <BackHomeLink isTeacher={isTeacher} />
           <Link
             href="/shared"
             className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50"

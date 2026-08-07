@@ -38,7 +38,6 @@ import { GuestBanner, MigratedBanner } from "./GuestBanner";
 import { guestStore } from "@/lib/guestStore";
 import { shouldAutoOpenTutorial } from "@/lib/tutorial";
 import { isTeacher, shouldAskRole } from "@/lib/role";
-import { TeacherHint } from "./TeacherHint";
 import { useClaimInvitationsOnce } from "@/lib/sharedQueries";
 
 export type ViewMode = "day" | "week" | "month";
@@ -251,7 +250,10 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
       ? settingsQ.data.work_end_hour
       : DEFAULT_WORK_END_HOUR;
 
-  // 教授は自分のカレンダーを持たないので、カレンダー側の案内は一切出さない。
+  // 教授は自分のカレンダーを持たない。主防御は /app のサーバーリダイレクトだが、
+  // 役割選択で「教授」を選んだ直後は、楽観更新でフラグが立つ一方 router.replace が
+  // まだ飛行中で、その隙にデモデータ選択やオンボーディングの条件が揃ってしまう。
+  // 遷移の途中でそれらが一瞬出るのを防ぐため、ここの判定は残しておく。
   const isTeacherUser = isTeacher(settingsQ.data);
 
   // 利用形態の確認中（モーダル自体は RoleGate が出す。ここでは重ねないための判定だけ）
@@ -432,7 +434,6 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {isGuest && <GuestBanner />}
-        {isTeacherUser && <TeacherHint />}
         {migrated !== null && migrated > 0 && (
           <MigratedBanner count={migrated} onClose={() => setMigrated(null)} />
         )}

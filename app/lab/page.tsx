@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isTeacherServer } from "@/lib/supabase/serverFlags";
 import { LabManager } from "@/components/LabManager";
 
 import type { Metadata } from "next";
@@ -19,5 +20,8 @@ export default async function LabPage() {
 
   if (!user) redirect("/login");
 
-  return <LabManager userEmail={user.email ?? ""} />;
+  // 「戻る」先が利用形態で変わるのでサーバーで解決して渡す
+  const isTeacher = await isTeacherServer(supabase, user.id);
+
+  return <LabManager userEmail={user.email ?? ""} isTeacher={isTeacher} />;
 }

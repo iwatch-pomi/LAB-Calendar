@@ -23,7 +23,6 @@ import type {
 } from "@/lib/types";
 import { paletteFor, PALETTE_KEYS } from "@/lib/types";
 import {
-  ChevronLeft,
   Share2,
   Send,
   Trash2,
@@ -35,13 +34,21 @@ import {
   Check,
   MailPlus,
 } from "lucide-react";
+import { BackHomeLink } from "./BackHomeLink";
 
 /**
  * 共有の管理ページ。
  * ・自分のカレンダーを誰に見せているか（作成・取り消し）
  * ・自分が見られる他人のカレンダー一覧
  */
-export function SharedManager({ userEmail }: { userEmail: string }) {
+export function SharedManager({
+  userEmail,
+  isTeacher,
+}: {
+  userEmail: string;
+  /** 教授は自分のカレンダーを持たないので「戻る」先が変わる */
+  isTeacher: boolean;
+}) {
   const experimentsQ = useExperiments();
   const mySharesQ = useMyShares();
   const incomingQ = useSharedWithMe();
@@ -132,13 +139,7 @@ export function SharedManager({ userEmail }: { userEmail: string }) {
     <div className="min-h-screen bg-[#f6f8fa]">
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-5 py-3">
-          <Link
-            href="/app"
-            className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            カレンダーへ戻る
-          </Link>
+          <BackHomeLink isTeacher={isTeacher} />
           <Link
             href="/lab"
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50"

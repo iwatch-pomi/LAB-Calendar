@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isTeacherServer } from "@/lib/supabase/serverFlags";
 import { ProfileView } from "@/components/ProfileView";
 
 import type { Metadata } from "next";
@@ -18,5 +19,14 @@ export default async function ProfilePage() {
 
   if (!user) redirect("/login");
 
-  return <ProfileView userEmail={user.email ?? ""} />;
+  // 利用形態はサーバーで解決して渡す。クライアントの useSettings を待つと、
+  // 学生向けの設定が一瞬出てから畳まれる（ProfileView はロード状態を持たない）。
+  const initialIsTeacher = await isTeacherServer(supabase, user.id);
+
+  return (
+    <ProfileView
+      userEmail={user.email ?? ""}
+      initialIsTeacher={initialIsTeacher}
+    />
+  );
 }

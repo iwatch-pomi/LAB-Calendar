@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   useExperiments,
   useTasks,
@@ -19,6 +20,8 @@ import {
   useAddFeedback,
 } from "@/lib/queries";
 import { useMyShares, useSharedWithMe, useMyLabs } from "@/lib/sharedQueries";
+import { resolveTeacherView } from "@/lib/role";
+import { BackHomeLink } from "./BackHomeLink";
 import { createClient } from "@/lib/supabase/client";
 import { fmtTime } from "@/lib/calendar";
 import {
@@ -39,7 +42,6 @@ import {
   type FeedbackCategory,
 } from "@/lib/types";
 import {
-  ChevronLeft,
   CheckCircle2,
   FlaskConical,
   Beaker,
@@ -93,7 +95,15 @@ function fmtDate(ms: number): string {
   return `${s.getUTCMonth() + 1}/${s.getUTCDate()}`;
 }
 
-export function ProfileView({ userEmail }: { userEmail: string }) {
+export function ProfileView({
+  userEmail,
+  initialIsTeacher,
+}: {
+  userEmail: string;
+  /** サーバーで解決した利用形態。クライアントに明示値が入るまでの初期値 */
+  initialIsTeacher: boolean;
+}) {
+  const router = useRouter();
   const experimentsQ = useExperiments();
   const tasksQ = useTasks();
   const equipmentQ = useEquipment();
@@ -142,7 +152,7 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
   const equipment = equipmentQ.data ?? [];
   const features = settingsQ.data ?? {};
   const weekStartDay: 0 | 1 = features.week_start_day === 0 ? 0 : 1;
-  const teacherMode = features.is_teacher === true;
+  const isTeacherView = resolveTeacherView(settingsQ.data, initialIsTeacher);
   const workStart =
     typeof features.work_start_hour === "number"
       ? features.work_start_hour
@@ -214,13 +224,7 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
       {/* ヘッダー */}
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-5 py-3">
-          <Link
-            href="/app"
-            className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            カレンダーへ戻る
-          </Link>
+          <BackHomeLink isTeacher={isTeacherView} />
           <button
             onClick={signOut}
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
@@ -349,24 +353,26 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
           )}
         </section>
 
-        {/* 統計 */}
-        <section className="mb-6 grid grid-cols-3 gap-3">
-          <StatCard
-            icon={<FlaskConical className="h-4 w-4" />}
-            label="登録した実験"
-            value={activeExperiments.length}
-          />
-          <StatCard
-            icon={<CheckCircle2 className="h-4 w-4" />}
-            label="完了した実験"
-            value={doneCount}
-          />
-          <StatCard
-            icon={<Beaker className="h-4 w-4" />}
-            label="完了タスク"
-            value={doneTasks}
-          />
-        </section>
+        {/* 統計（教授は自分の実験を持たないので常に0件になる） */}
+        {!isTeacherView && (
+          <section className="mb-6 grid grid-cols-3 gap-3">
+            <StatCard
+              icon={<FlaskConical className="h-4 w-4" />}
+              label="登録した実験"
+              value={activeExperiments.length}
+            />
+            <StatCard
+              icon={<CheckCircle2 className="h-4 w-4" />}
+              label="完了した実験"
+              value={doneCount}
+            />
+            <StatCard
+              icon={<Beaker className="h-4 w-4" />}
+              label="完了タスク"
+              value={doneTasks}
+            />
+          </section>
+        )}
 
         {/* 利用形態（学生 / 教授） */}
         <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
@@ -388,11 +394,19 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
               ).map(([value, label]) => (
                 <button
                   key={label}
+                  // 保存が終わる前に移動すると、サーバーがまだ古い役割を読んで
+                  // 弾き返してしまう。保存中は押せないようにしておく。
+                  disabled={updateFeature.isPending}
                   onClick={() =>
-                    updateFeature.mutate({ key: "is_teacher", value })
+                    updateFeature.mutate(
+                      { key: "is_teacher", value },
+                      // サーバーで解決している initialIsTeacher と、教授だった頃に
+                      // 貯まった /app のキャッシュを貼り直す
+                      { onSettled: () => router.refresh() },
+                    )
                   }
-                  className={`rounded-md px-3 py-1 font-medium transition ${
-                    teacherMode === value
+                  className={`rounded-md px-3 py-1 font-medium transition disabled:opacity-60 ${
+                    isTeacherView === value
                       ? "bg-white text-gray-800 shadow-sm"
                       : "text-gray-500 hover:text-gray-700"
                   }`}
@@ -402,7 +416,7 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
               ))}
             </div>
           </div>
-          {teacherMode && (
+          {isTeacherView && (
             <Link
               href="/teacher"
               className="mt-3 flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/60 p-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
@@ -414,377 +428,383 @@ export function ProfileView({ userEmail }: { userEmail: string }) {
           )}
         </section>
 
-        {/* カレンダー設定 */}
-        <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
-          <div className="mb-3 flex items-center gap-1.5">
-            <CalendarDays className="h-4 w-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-700">
-              カレンダー設定
-            </h2>
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs text-gray-500">
-              週表示・月表示の週の開始曜日を選べます（既定: 月曜）。
-            </p>
-            <div className="flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-xs">
-              {(
-                [
-                  [1, "月曜"],
-                  [0, "日曜"],
-                ] as [0 | 1, string][]
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  onClick={() =>
-                    updateFeature.mutate({ key: "week_start_day", value })
-                  }
-                  className={`rounded-md px-3 py-1 font-medium transition ${
-                    weekStartDay === value
-                      ? "bg-white text-gray-800 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 通常の活動時間 */}
-          <div className="mt-4 flex items-start justify-between gap-3 border-t border-gray-100 pt-4">
-            <p className="text-xs text-gray-500">
-              通常の活動時間（研究をする時間帯）を設定できます。週表示カレンダーの開始・終了時刻に太い横線を引いて、活動時間帯が一目で分かるようにします（既定: 8:00〜20:00）。
-            </p>
-            <div className="flex shrink-0 items-center gap-1.5 text-sm">
-              <select
-                value={workStart}
-                onChange={(e) =>
-                  updateFeature.mutate({
-                    key: "work_start_hour",
-                    value: Number(e.target.value),
-                  })
-                }
-                className="rounded-lg border border-gray-300 px-2 py-1.5 outline-none focus:border-brand-500"
-              >
-                {Array.from({ length: 24 }, (_, h) => h).map((h) => (
-                  <option key={h} value={h} disabled={h >= workEnd}>
-                    {h}:00
-                  </option>
-                ))}
-              </select>
-              <span className="text-gray-400">〜</span>
-              <select
-                value={workEnd}
-                onChange={(e) =>
-                  updateFeature.mutate({
-                    key: "work_end_hour",
-                    value: Number(e.target.value),
-                  })
-                }
-                className="rounded-lg border border-gray-300 px-2 py-1.5 outline-none focus:border-brand-500"
-              >
-                {Array.from({ length: 24 }, (_, h) => h + 1).map((h) => (
-                  <option key={h} value={h} disabled={h <= workStart}>
-                    {h}:00
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </section>
-
-        {/* 共有・研究室 */}
-        <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
-          <div className="mb-1 flex items-center gap-1.5">
-            <Share2 className="h-4 w-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-700">共有・研究室</h2>
-          </div>
-          <p className="mb-3 text-xs text-gray-500">
-            カレンダーを見せる相手を管理します。相手が予定を編集することはできません。
-          </p>
-
-          <div className="space-y-2">
-            <Link
-              href="/shared"
-              className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 transition hover:border-brand-300 hover:bg-brand-50/40"
-            >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50">
-                <Share2 className="h-4 w-4 text-brand-600" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-gray-800 group-hover:text-brand-700">
-                  カレンダーを共有
-                </span>
-                <span className="block text-xs text-gray-500">
-                  教授・先輩・共同研究者に予定を見せて進捗を報告できます。
-                </span>
-                <span className="mt-0.5 block text-[11px] text-gray-400">
-                  共有中 {myShares.length} 件 ／ 見られるカレンダー{" "}
-                  {sharedWithMe.length} 件
-                </span>
-              </span>
-              <ChevronRight className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-brand-600" />
-            </Link>
-
-            <Link
-              href="/lab"
-              className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 transition hover:border-brand-300 hover:bg-brand-50/40"
-            >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50">
-                <Users className="h-4 w-4 text-brand-600" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-gray-800 group-hover:text-brand-700">
-                  研究室
-                </span>
-                <span className="block text-xs text-gray-500">
-                  研究室を作って参加コードを配る／参加コードで参加する。
-                </span>
-                <span className="mt-0.5 block text-[11px] text-gray-400">
-                  所属 {myLabs.length} 件
-                </span>
-              </span>
-              <ChevronRight className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-brand-600" />
-            </Link>
-          </div>
-        </section>
-
-        {/* 完了したToDo（サイドバーでは完了から24時間で非表示） */}
-        <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
-          <div className="mb-3 flex items-center gap-1.5">
-            <ListChecks className="h-4 w-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-700">
-              完了したToDo
-            </h2>
-            <span className="text-xs text-gray-400">
-              {completedTodos.length}
-            </span>
-          </div>
-          {completedTodos.length === 0 ? (
-            <p className="text-xs text-gray-400">
-              完了したToDoはまだありません。
-            </p>
-          ) : (
-            <ul className="space-y-1.5">
-              {completedTodos.map((todo) => {
-                const at = todo.completed_at ?? todo.created_at;
-                const ms = new Date(at).getTime();
-                return (
-                  <li
-                    key={todo.id}
-                    className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm"
-                  >
-                    <button
-                      onClick={() =>
-                        toggleTodo.mutate({ id: todo.id, done: false })
-                      }
-                      title="未完了に戻す（サイドバーの今日のToDoに再表示されます）"
-                      className="shrink-0 rounded-full text-emerald-500 transition hover:text-gray-400"
-                    >
-                      <CheckCircle2 className="h-4 w-4" />
-                    </button>
-                    <span className="flex-1 truncate text-gray-500 line-through">
-                      {todo.title}
-                    </span>
-                    <span className="shrink-0 text-xs text-gray-400">
-                      {fmtDate(ms)} {fmtTime(ms)} 完了
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
-
-        {/* 実験モード: モードごとに個別機能をON/OFF */}
-        <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
-          <div className="mb-3 flex items-center gap-1.5">
-            <Settings className="h-4 w-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-700">実験モード</h2>
-          </div>
-          <p className="mb-4 text-xs text-gray-500">
-            分野ごとに、使いたい機能を個別にオンにできます（分野・機能とも複数選択可）。
-          </p>
-
-          <div className="space-y-5">
-            {/* 一旦: 化学/物理/工学モードは非表示（生物のみ表示） */}
-            {MODES.filter((mode) => mode.key === "bio").map((mode) => {
-              const feats = featuresByMode(mode.key);
-              const onCount = feats.filter((f) => !!features[f.key]).length;
-              const mi = MODE_ICON[mode.key];
-              const allOn = onCount === feats.length && feats.length > 0;
-              return (
-                <div key={mode.key}>
-                  <div className="mb-2 flex items-center gap-2">
-                    <span
-                      className={`grid h-6 w-6 place-items-center rounded-lg ${mi.iconBg}`}
-                    >
-                      {mi.icon}
-                    </span>
-                    <span className="text-sm font-semibold text-gray-800">
-                      {mode.title}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      {onCount}/{feats.length}
-                    </span>
-                    {feats.length > 1 && (
-                      <button
-                        onClick={() =>
-                          feats.forEach((f) =>
-                            updateFeature.mutate({
-                              key: f.key,
-                              value: !allOn,
-                            }),
-                          )
-                        }
-                        className="ml-auto text-xs text-brand-600 hover:underline"
-                      >
-                        {allOn ? "すべてOFF" : "すべてON"}
-                      </button>
-                    )}
-                  </div>
-                  <div className="space-y-2 pl-1">
-                    {feats.map((f) => (
-                      <FeatureToggle
-                        key={f.key}
-                        icon={mi.icon}
-                        iconBg={mi.iconBg}
-                        title={f.title}
-                        description={f.description}
-                        checked={!!features[f.key]}
-                        onChange={(v) =>
-                          updateFeature.mutate({ key: f.key, value: v })
-                        }
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* 使用機器の管理 */}
-        <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
-          <div className="mb-3 flex items-center gap-1.5">
-            <Wrench className="h-4 w-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-700">使用機器</h2>
-            <span className="text-xs text-gray-400">{equipment.length}</span>
-          </div>
-          <p className="mb-3 text-xs text-gray-500">
-            予定に紐づけられる共通機器（遠心機・AKTA など）を登録します。削除しても過去の予定は残ります（機器の紐づけのみ外れます）。
-          </p>
-
-          <div className="mb-3 flex flex-wrap gap-2">
-            {equipment.length === 0 && (
-              <span className="text-xs text-gray-400">
-                まだ機器が登録されていません。
-              </span>
-            )}
-            {equipment.map((eq) => {
-              const pal = paletteFor(eq.color);
-              return (
-                <span
-                  key={eq.id}
-                  className="group inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 py-1 pl-2.5 pr-1.5 text-sm"
-                >
-                  <span className={`h-2 w-2 rounded-full ${pal.dot}`} />
-                  <span className="text-gray-700">{eq.name}</span>
-                  <button
-                    onClick={() => deleteEquipment.mutate(eq.id)}
-                    title="削除"
-                    className="rounded-full p-0.5 text-gray-300 transition hover:bg-gray-200 hover:text-rose-500"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </span>
-              );
-            })}
-          </div>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              submitEquipment();
-            }}
-            className="flex gap-2"
-          >
-            <input
-              value={newEquip}
-              onChange={(e) => setNewEquip(e.target.value)}
-              placeholder="機器名（例: サーマルサイクラー）"
-              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500"
-            />
-            <button
-              type="submit"
-              className="flex items-center gap-1 rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-600"
-            >
-              <Plus className="h-4 w-4" />
-              追加
-            </button>
-          </form>
-        </section>
-
-        {/* 継代培養（培地）はサイドバー「継代培養を管理」→ /culture ページに集約 */}
-
-        {/* 一旦: 化学/物理/工学モードのツールは非表示 */}
-
-        {/* アーカイブした実験 */}
-        {archivedExperiments.length > 0 && (
+        {/* 以下はカレンダー関連の設定。教授・指導者は自分のカレンダーを
+            持たないので、まとめて出さない（値も常に0件になる）。 */}
+        {!isTeacherView && (
+          <>
+          {/* カレンダー設定 */}
           <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
             <div className="mb-3 flex items-center gap-1.5">
-              <Archive className="h-4 w-4 text-gray-400" />
+              <CalendarDays className="h-4 w-4 text-gray-400" />
               <h2 className="text-sm font-semibold text-gray-700">
-                アーカイブした実験
+                カレンダー設定
               </h2>
-              <span className="text-xs text-gray-400">
-                {archivedExperiments.length}
-              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-gray-500">
+                週表示・月表示の週の開始曜日を選べます（既定: 月曜）。
+              </p>
+              <div className="flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-xs">
+                {(
+                  [
+                    [1, "月曜"],
+                    [0, "日曜"],
+                  ] as [0 | 1, string][]
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    onClick={() =>
+                      updateFeature.mutate({ key: "week_start_day", value })
+                    }
+                    className={`rounded-md px-3 py-1 font-medium transition ${
+                      weekStartDay === value
+                        ? "bg-white text-gray-800 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 通常の活動時間 */}
+            <div className="mt-4 flex items-start justify-between gap-3 border-t border-gray-100 pt-4">
+              <p className="text-xs text-gray-500">
+                通常の活動時間（研究をする時間帯）を設定できます。週表示カレンダーの開始・終了時刻に太い横線を引いて、活動時間帯が一目で分かるようにします（既定: 8:00〜20:00）。
+              </p>
+              <div className="flex shrink-0 items-center gap-1.5 text-sm">
+                <select
+                  value={workStart}
+                  onChange={(e) =>
+                    updateFeature.mutate({
+                      key: "work_start_hour",
+                      value: Number(e.target.value),
+                    })
+                  }
+                  className="rounded-lg border border-gray-300 px-2 py-1.5 outline-none focus:border-brand-500"
+                >
+                  {Array.from({ length: 24 }, (_, h) => h).map((h) => (
+                    <option key={h} value={h} disabled={h >= workEnd}>
+                      {h}:00
+                    </option>
+                  ))}
+                </select>
+                <span className="text-gray-400">〜</span>
+                <select
+                  value={workEnd}
+                  onChange={(e) =>
+                    updateFeature.mutate({
+                      key: "work_end_hour",
+                      value: Number(e.target.value),
+                    })
+                  }
+                  className="rounded-lg border border-gray-300 px-2 py-1.5 outline-none focus:border-brand-500"
+                >
+                  {Array.from({ length: 24 }, (_, h) => h + 1).map((h) => (
+                    <option key={h} value={h} disabled={h <= workStart}>
+                      {h}:00
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </section>
+
+          {/* 共有・研究室 */}
+          <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
+            <div className="mb-1 flex items-center gap-1.5">
+              <Share2 className="h-4 w-4 text-gray-400" />
+              <h2 className="text-sm font-semibold text-gray-700">共有・研究室</h2>
             </div>
             <p className="mb-3 text-xs text-gray-500">
-              サイドバーの一覧には表示されません。名前をクリックすると、その実験だけの
-              カレンダーを別タブで開いて見返せます（復元はされません）。
+              カレンダーを見せる相手を管理します。相手が予定を編集することはできません。
             </p>
+
             <div className="space-y-2">
-              {archivedExperiments.map((exp) => {
-                const pal = paletteFor(exp.color);
-                return (
-                  <div
-                    key={exp.id}
-                    className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3"
-                  >
-                    <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${pal.dot}`} />
-                    <a
-                      href={`/archive/${exp.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="別タブでこの実験のカレンダーを開く"
-                      className="group flex min-w-0 flex-1 items-center gap-1.5 text-left"
+              <Link
+                href="/shared"
+                className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 transition hover:border-brand-300 hover:bg-brand-50/40"
+              >
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50">
+                  <Share2 className="h-4 w-4 text-brand-600" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-gray-800 group-hover:text-brand-700">
+                    カレンダーを共有
+                  </span>
+                  <span className="block text-xs text-gray-500">
+                    教授・先輩・共同研究者に予定を見せて進捗を報告できます。
+                  </span>
+                  <span className="mt-0.5 block text-[11px] text-gray-400">
+                    共有中 {myShares.length} 件 ／ 見られるカレンダー{" "}
+                    {sharedWithMe.length} 件
+                  </span>
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-brand-600" />
+              </Link>
+
+              <Link
+                href="/lab"
+                className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 transition hover:border-brand-300 hover:bg-brand-50/40"
+              >
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50">
+                  <Users className="h-4 w-4 text-brand-600" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-gray-800 group-hover:text-brand-700">
+                    研究室
+                  </span>
+                  <span className="block text-xs text-gray-500">
+                    研究室を作って参加コードを配る／参加コードで参加する。
+                  </span>
+                  <span className="mt-0.5 block text-[11px] text-gray-400">
+                    所属 {myLabs.length} 件
+                  </span>
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-brand-600" />
+              </Link>
+            </div>
+          </section>
+
+          {/* 完了したToDo（サイドバーでは完了から24時間で非表示） */}
+          <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
+            <div className="mb-3 flex items-center gap-1.5">
+              <ListChecks className="h-4 w-4 text-gray-400" />
+              <h2 className="text-sm font-semibold text-gray-700">
+                完了したToDo
+              </h2>
+              <span className="text-xs text-gray-400">
+                {completedTodos.length}
+              </span>
+            </div>
+            {completedTodos.length === 0 ? (
+              <p className="text-xs text-gray-400">
+                完了したToDoはまだありません。
+              </p>
+            ) : (
+              <ul className="space-y-1.5">
+                {completedTodos.map((todo) => {
+                  const at = todo.completed_at ?? todo.created_at;
+                  const ms = new Date(at).getTime();
+                  return (
+                    <li
+                      key={todo.id}
+                      className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm"
                     >
-                      <span className="min-w-0 truncate text-sm font-medium text-gray-600 group-hover:text-brand-600 group-hover:underline">
-                        {exp.name}
+                      <button
+                        onClick={() =>
+                          toggleTodo.mutate({ id: todo.id, done: false })
+                        }
+                        title="未完了に戻す（サイドバーの今日のToDoに再表示されます）"
+                        className="shrink-0 rounded-full text-emerald-500 transition hover:text-gray-400"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                      </button>
+                      <span className="flex-1 truncate text-gray-500 line-through">
+                        {todo.title}
                       </span>
-                      <ExternalLink className="h-3.5 w-3.5 shrink-0 text-gray-400 group-hover:text-brand-600" />
-                    </a>
-                    <button
-                      onClick={() => restoreExperiment(exp)}
-                      className="flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-600 ring-1 ring-gray-200 hover:bg-gray-100"
-                    >
-                      <ArchiveRestore className="h-3.5 w-3.5" />
-                      復元
-                    </button>
-                    <button
-                      onClick={() => permanentlyDeleteExperiment(exp)}
-                      title="完全に削除"
-                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-rose-500"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                      <span className="shrink-0 text-xs text-gray-400">
+                        {fmtDate(ms)} {fmtTime(ms)} 完了
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+
+          {/* 実験モード: モードごとに個別機能をON/OFF */}
+          <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
+            <div className="mb-3 flex items-center gap-1.5">
+              <Settings className="h-4 w-4 text-gray-400" />
+              <h2 className="text-sm font-semibold text-gray-700">実験モード</h2>
+            </div>
+            <p className="mb-4 text-xs text-gray-500">
+              分野ごとに、使いたい機能を個別にオンにできます（分野・機能とも複数選択可）。
+            </p>
+
+            <div className="space-y-5">
+              {/* 一旦: 化学/物理/工学モードは非表示（生物のみ表示） */}
+              {MODES.filter((mode) => mode.key === "bio").map((mode) => {
+                const feats = featuresByMode(mode.key);
+                const onCount = feats.filter((f) => !!features[f.key]).length;
+                const mi = MODE_ICON[mode.key];
+                const allOn = onCount === feats.length && feats.length > 0;
+                return (
+                  <div key={mode.key}>
+                    <div className="mb-2 flex items-center gap-2">
+                      <span
+                        className={`grid h-6 w-6 place-items-center rounded-lg ${mi.iconBg}`}
+                      >
+                        {mi.icon}
+                      </span>
+                      <span className="text-sm font-semibold text-gray-800">
+                        {mode.title}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {onCount}/{feats.length}
+                      </span>
+                      {feats.length > 1 && (
+                        <button
+                          onClick={() =>
+                            feats.forEach((f) =>
+                              updateFeature.mutate({
+                                key: f.key,
+                                value: !allOn,
+                              }),
+                            )
+                          }
+                          className="ml-auto text-xs text-brand-600 hover:underline"
+                        >
+                          {allOn ? "すべてOFF" : "すべてON"}
+                        </button>
+                      )}
+                    </div>
+                    <div className="space-y-2 pl-1">
+                      {feats.map((f) => (
+                        <FeatureToggle
+                          key={f.key}
+                          icon={mi.icon}
+                          iconBg={mi.iconBg}
+                          title={f.title}
+                          description={f.description}
+                          checked={!!features[f.key]}
+                          onChange={(v) =>
+                            updateFeature.mutate({ key: f.key, value: v })
+                          }
+                        />
+                      ))}
+                    </div>
                   </div>
                 );
               })}
             </div>
           </section>
+
+          {/* 使用機器の管理 */}
+          <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
+            <div className="mb-3 flex items-center gap-1.5">
+              <Wrench className="h-4 w-4 text-gray-400" />
+              <h2 className="text-sm font-semibold text-gray-700">使用機器</h2>
+              <span className="text-xs text-gray-400">{equipment.length}</span>
+            </div>
+            <p className="mb-3 text-xs text-gray-500">
+              予定に紐づけられる共通機器（遠心機・AKTA など）を登録します。削除しても過去の予定は残ります（機器の紐づけのみ外れます）。
+            </p>
+
+            <div className="mb-3 flex flex-wrap gap-2">
+              {equipment.length === 0 && (
+                <span className="text-xs text-gray-400">
+                  まだ機器が登録されていません。
+                </span>
+              )}
+              {equipment.map((eq) => {
+                const pal = paletteFor(eq.color);
+                return (
+                  <span
+                    key={eq.id}
+                    className="group inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 py-1 pl-2.5 pr-1.5 text-sm"
+                  >
+                    <span className={`h-2 w-2 rounded-full ${pal.dot}`} />
+                    <span className="text-gray-700">{eq.name}</span>
+                    <button
+                      onClick={() => deleteEquipment.mutate(eq.id)}
+                      title="削除"
+                      className="rounded-full p-0.5 text-gray-300 transition hover:bg-gray-200 hover:text-rose-500"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </span>
+                );
+              })}
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                submitEquipment();
+              }}
+              className="flex gap-2"
+            >
+              <input
+                value={newEquip}
+                onChange={(e) => setNewEquip(e.target.value)}
+                placeholder="機器名（例: サーマルサイクラー）"
+                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500"
+              />
+              <button
+                type="submit"
+                className="flex items-center gap-1 rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+              >
+                <Plus className="h-4 w-4" />
+                追加
+              </button>
+            </form>
+          </section>
+
+          {/* 継代培養（培地）はサイドバー「継代培養を管理」→ /culture ページに集約 */}
+
+          {/* 一旦: 化学/物理/工学モードのツールは非表示 */}
+
+          {/* アーカイブした実験 */}
+          {archivedExperiments.length > 0 && (
+            <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
+              <div className="mb-3 flex items-center gap-1.5">
+                <Archive className="h-4 w-4 text-gray-400" />
+                <h2 className="text-sm font-semibold text-gray-700">
+                  アーカイブした実験
+                </h2>
+                <span className="text-xs text-gray-400">
+                  {archivedExperiments.length}
+                </span>
+              </div>
+              <p className="mb-3 text-xs text-gray-500">
+                サイドバーの一覧には表示されません。名前をクリックすると、その実験だけの
+                カレンダーを別タブで開いて見返せます（復元はされません）。
+              </p>
+              <div className="space-y-2">
+                {archivedExperiments.map((exp) => {
+                  const pal = paletteFor(exp.color);
+                  return (
+                    <div
+                      key={exp.id}
+                      className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3"
+                    >
+                      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${pal.dot}`} />
+                      <a
+                        href={`/archive/${exp.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="別タブでこの実験のカレンダーを開く"
+                        className="group flex min-w-0 flex-1 items-center gap-1.5 text-left"
+                      >
+                        <span className="min-w-0 truncate text-sm font-medium text-gray-600 group-hover:text-brand-600 group-hover:underline">
+                          {exp.name}
+                        </span>
+                        <ExternalLink className="h-3.5 w-3.5 shrink-0 text-gray-400 group-hover:text-brand-600" />
+                      </a>
+                      <button
+                        onClick={() => restoreExperiment(exp)}
+                        className="flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-600 ring-1 ring-gray-200 hover:bg-gray-100"
+                      >
+                        <ArchiveRestore className="h-3.5 w-3.5" />
+                        復元
+                      </button>
+                      <button
+                        onClick={() => permanentlyDeleteExperiment(exp)}
+                        title="完全に削除"
+                        className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-rose-500"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+          </>
         )}
 
         {/* お問い合わせ・ご要望（常に最後に配置） */}

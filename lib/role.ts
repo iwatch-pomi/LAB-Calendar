@@ -34,3 +34,21 @@ export function shouldAskRole(s: RoleGateState): boolean {
 export function isTeacher(settings: FeatureFlags | undefined): boolean {
   return settings?.is_teacher === true;
 }
+
+/**
+ * 画面に出す利用形態。サーバーで解決した値を初期値にし、クライアントの
+ * user_settings が「明示的に」true/false を持つときだけそちらを優先する。
+ *
+ * `useSettings` は未読込では undefined、読み込みに失敗すると `{}` を返す
+ * （エラーを握り潰して isSuccess が立つ）。単純に「読み込めたらクライアント値」に
+ * すると、一時的な失敗で教授が学生用の画面に戻ってしまう。逆に常にサーバー値だと
+ * 利用形態トグルがリロードするまで反映されない。明示的な boolean のときだけ
+ * クライアントを採ることで、その両方を避ける。
+ */
+export function resolveTeacherView(
+  clientFlags: FeatureFlags | undefined,
+  serverIsTeacher: boolean,
+): boolean {
+  const v = clientFlags?.is_teacher;
+  return typeof v === "boolean" ? v : serverIsTeacher;
+}

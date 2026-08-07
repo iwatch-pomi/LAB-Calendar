@@ -39,9 +39,20 @@ export function RoleGate() {
       ? "teacher"
       : "student";
 
-  function choose(teacher: boolean) {
-    updateFeatures.mutate({ role_chosen: true, is_teacher: teacher });
+  async function choose(teacher: boolean) {
+    // 遷移先はサーバーが user_settings を読んで判定する（/app は教授を弾く）。
+    // 保存を待たずに遷移すると、サーバーがまだ古い役割を読んで元のページへ
+    // 戻してしまい、しかも選択済み扱いでモーダルも出ないため詰む。必ず待つ。
     setDismissed(true);
+    try {
+      await updateFeatures.mutateAsync({
+        role_chosen: true,
+        is_teacher: teacher,
+      });
+    } catch {
+      // 保存できなかったときは移動しない（行き先の判定が食い違うため）
+      return;
+    }
     // 教授はカレンダーを使わないので管理画面へ、学生はその場に留まる
     if (teacher) router.replace(TEACHER_HOME);
     else if (window.location.pathname.startsWith(TEACHER_HOME))

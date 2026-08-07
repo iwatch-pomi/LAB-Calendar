@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   resolveNext,
   afterLoginFrom,
+  homeFor,
   DEFAULT_AFTER_LOGIN,
   TEACHER_HOME,
 } from "./authRedirect";
@@ -61,5 +62,15 @@ describe("afterLoginFrom", () => {
   it("公式サイトなど、それ以外はカレンダーへ", () => {
     expect(afterLoginFrom("/")).toBe(DEFAULT_AFTER_LOGIN);
     expect(afterLoginFrom("/profile")).toBe(DEFAULT_AFTER_LOGIN);
+  });
+});
+
+describe("homeFor", () => {
+  it("教授の戻り先は管理画面", () => {
+    expect(homeFor(true)).toBe(TEACHER_HOME);
+  });
+
+  it("学生の戻り先はカレンダー", () => {
+    expect(homeFor(false)).toBe(DEFAULT_AFTER_LOGIN);
   });
 });

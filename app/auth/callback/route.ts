@@ -5,6 +5,7 @@ import {
   DEFAULT_AFTER_LOGIN,
   TEACHER_HOME,
 } from "@/lib/authRedirect";
+import { isTeacherServer } from "@/lib/supabase/serverFlags";
 
 // OAuth / メール確認のコールバック。code をセッションに交換する。
 // セッションcookieは「返すリダイレクトレスポンス」に直接書き込む（初回ログインで
@@ -76,15 +77,7 @@ export async function GET(request: NextRequest) {
   if (!dest) {
     dest = DEFAULT_AFTER_LOGIN;
     const uid = data.session?.user?.id;
-    if (uid) {
-      const { data: settings } = await supabase
-        .from("user_settings")
-        .select("features")
-        .eq("user_id", uid)
-        .maybeSingle();
-      const features = (settings?.features ?? {}) as Record<string, unknown>;
-      if (features.is_teacher === true) dest = TEACHER_HOME;
-    }
+    if (uid && (await isTeacherServer(supabase, uid))) dest = TEACHER_HOME;
   }
 
   const response = NextResponse.redirect(`${base}${dest}`);

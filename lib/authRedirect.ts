@@ -42,3 +42,12 @@ export function afterLoginFrom(pathname: string): string {
   if (pathname.startsWith(DEFAULT_AFTER_LOGIN)) return DEFAULT_AFTER_LOGIN;
   return DEFAULT_AFTER_LOGIN;
 }
+
+/**
+ * 利用形態に応じた「戻る」先。教授はカレンダーを持たないので管理画面へ。
+ * 各ページの「カレンダーへ戻る」が一律 `/app` を指していると、教授は押すたびに
+ * リダイレクトで弾き返される（かつ文言も嘘になる）ため、ここで一元化する。
+ */
+export function homeFor(isTeacher: boolean): string {
+  return isTeacher ? TEACHER_HOME : DEFAULT_AFTER_LOGIN;
+}
