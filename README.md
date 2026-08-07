@@ -71,11 +71,22 @@
 **URL Configuration** に STEP 3 の Vercel URL を登録:
 
 - **Site URL**: `https://lab-calendar-xxx.vercel.app`
-- **Redirect URLs** に追加:
+- **Redirect URLs** に追加（**末尾の `/**` を付ける**）:
   ```
-  https://lab-calendar-xxx.vercel.app/auth/callback
-  https://<プロジェクト名>-*.vercel.app/auth/callback   # プレビュー用（任意）
+  https://lab-calendar-xxx.vercel.app/**
+  https://<プロジェクト名>-*.vercel.app/**   # プレビュー用（任意）
   ```
+
+> ⚠️ **ここを間違えるとログインが「無言で失敗」します。**
+> Supabase は戻り先URLがこのリストに一致しないと、エラーを出さずに
+> **Site URL（＝公式サイト `/`）へ戻します。** 公式サイトにはログインを
+> 完了させる処理が無いので、ユーザーから見ると「ログインしたのに
+> トップページに戻され、ログインできていない」という状態になります。
+>
+> ・リストはクエリ文字列まで見るので、`/**` を付けておくのが安全です
+> ・**独自ドメインに変えたら、Site URL と Redirect URLs の両方を更新**してください
+> ・`www.example.com` と `example.com` の両方でアクセスできる場合は、
+>   **両方を登録するか、どちらかに寄せて**ください（別ホスト扱いになります）
 
 ### STEP 5. 確認
 

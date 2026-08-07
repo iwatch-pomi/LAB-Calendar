@@ -4,6 +4,7 @@ import {
   resolveNext,
   destForRole,
   DEFAULT_AFTER_LOGIN,
+  NEXT_COOKIE,
 } from "@/lib/authRedirect";
 import { isTeacherServer } from "@/lib/supabase/serverFlags";
 
@@ -15,9 +16,15 @@ import { isTeacherServer } from "@/lib/supabase/serverFlags";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  // 外部サイトへ飛ばされないよう必ず検証する。next が無い場合は
-  // 下で役割（教授かどうか）を見てから決めるので、ここでは保留にする。
-  const rawNext = searchParams.get("next");
+  // 行き先の取得元は「URLのnext → cookie」の順。
+  // 通常は cookie 側に入っている（戻り先URLにクエリを付けると Supabase の
+  // 許可リストに一致せず、公式サイトへ飛ばされてしまうため）。
+  // URL の next も見るのは、既に送信済みの確認メール内のリンクとの互換のため。
+  //
+  // cookie は利用者が書き換えられるので、どちらの経路でも必ず resolveNext() を
+  // 通して自サイト内の絶対パスだけに絞る（オープンリダイレクト対策）。
+  const rawNext =
+    searchParams.get("next") ?? decodeCookie(request.cookies.get(NEXT_COOKIE)?.value);
   const next = rawNext ? resolveNext(rawNext) : null;
 
   // Vercel のプロキシ配下でも正しい公開ホストへ戻す
@@ -36,7 +43,7 @@ export async function GET(request: NextRequest) {
   const failure = `${base}${next ?? DEFAULT_AFTER_LOGIN}?login=1&error=auth`;
 
   if (!code) {
-    return NextResponse.redirect(failure);
+    return done(NextResponse.redirect(failure));
   }
 
   const pending: {
@@ -68,7 +75,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
-    return NextResponse.redirect(failure);
+    return done(NextResponse.redirect(failure));
   }
 
   // 行き先を決める。カレンダーのログインフォームからだと next=/app が必ず載るので、
@@ -83,5 +90,27 @@ export async function GET(request: NextRequest) {
   pending.forEach(({ name, value, options }) =>
     response.cookies.set(name, value, options),
   );
+  return done(response);
+}
+
+/**
+ * 行き先を預けていた cookie は使い捨て。成功でも失敗でも必ず消す
+ * （残すと、次に別の場所からログインしたとき古い行き先へ飛ばされる）。
+ */
+function done(response: NextResponse): NextResponse {
+  response.cookies.set(NEXT_COOKIE, "", { path: "/", maxAge: 0 });
   return response;
+}
+
+/**
+ * cookie の値を安全に復元する。document.cookie へ入れるときに
+ * encodeURIComponent しているが、壊れた値で例外を投げさせない。
+ */
+function decodeCookie(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return undefined;
+  }
 }

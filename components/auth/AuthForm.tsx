@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { resolveNext, afterLoginFrom, destForRole } from "@/lib/authRedirect";
+import {
+  resolveNext,
+  afterLoginFrom,
+  destForRole,
+  authCallbackUrl,
+  serializeNextCookie,
+  DEFAULT_AFTER_LOGIN,
+} from "@/lib/authRedirect";
 
 type Mode = "signin" | "signup";
 
@@ -90,14 +97,29 @@ export function AuthForm() {
         )
       : undefined;
 
+  // 戻り先にはクエリを付けない。Supabase の Redirect URLs 許可リストと
+  // 完全一致させるため（一致しないと黙って Site URL＝公式サイトへ戻され、
+  // ログインが未完了のまま行き止まりになる）。行き先は cookie で運ぶ。
   const redirectTo =
     typeof window !== "undefined"
-      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(dest!)}`
+      ? authCallbackUrl(window.location.origin)
       : undefined;
+
+  /** 認証へ出る直前に、戻ってきたときの行き先を cookie へ預ける */
+  function rememberDest() {
+    if (typeof document === "undefined") return;
+    // 既定（/app）はコールバック側の既定と同じなので預ける必要がない
+    if (!dest || dest === DEFAULT_AFTER_LOGIN) return;
+    document.cookie = serializeNextCookie(
+      dest,
+      window.location.protocol === "https:",
+    );
+  }
 
   async function oauth(provider: "google" | "apple") {
     setLoading(provider);
     setMessage(null);
+    rememberDest();
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo },
@@ -113,6 +135,8 @@ export function AuthForm() {
     setLoading("email");
     setMessage(null);
     if (mode === "signup") {
+      // 確認メールのリンクも同じ戻り先を通るので、こちらでも預けておく
+      rememberDest();
       const { data, error } = await supabase.auth.signUp({
         email,
         password,

@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { DEFAULT_AFTER_LOGIN } from "@/lib/authRedirect";
+import { DEFAULT_AFTER_LOGIN, AUTH_CALLBACK_PATH } from "@/lib/authRedirect";
 
 /**
  * 認証を見る必要がない公開パス。
@@ -20,7 +20,34 @@ function isPublicPath(pathname: string): boolean {
   );
 }
 
+/**
+ * 認証の戻りが `/auth/callback` 以外に届いてしまったかを判定する。
+ *
+ * Supabase は `redirect_to` が Redirect URLs 許可リストに一致しないと、
+ * 黙って Site URL（このアプリでは公式サイト `/`）へ戻す。公式サイトには
+ * コードを交換する処理が無いので、そのままだと**未ログインのまま行き止まり**になる。
+ * 拾って `/auth/callback` へ渡し直せば、設定がどうであれログインは完了する。
+ *
+ * 判定に使うのは `code` と `error_description` だけ。**素の `error` では判定しない**。
+ * コールバックの失敗時に自分で作る `/app?login=1&error=auth` を拾ってしまい、
+ * `/auth/callback`（code 無し）→ 失敗 → `/app?...error=auth` → … と無限ループする。
+ * `code` / `error_description` はどちらも認証プロバイダ側しか付けない。
+ */
+function isStrayAuthCallback(request: NextRequest): boolean {
+  if (request.nextUrl.pathname === AUTH_CALLBACK_PATH) return false;
+  const sp = request.nextUrl.searchParams;
+  return sp.has("code") || sp.has("error_description");
+}
+
 export async function updateSession(request: NextRequest) {
+  // 公開パスの早期returnより前に置く（`/` に落ちてくるのがまさにこの症状のため）
+  if (isStrayAuthCallback(request)) {
+    const url = request.nextUrl.clone();
+    url.pathname = AUTH_CALLBACK_PATH;
+    // クエリ（code / next / error 系）はそのまま引き継がれる
+    return NextResponse.redirect(url);
+  }
+
   if (isPublicPath(request.nextUrl.pathname)) {
     return NextResponse.next({ request });
   }

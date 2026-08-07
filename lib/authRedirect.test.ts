@@ -4,6 +4,10 @@ import {
   afterLoginFrom,
   homeFor,
   destForRole,
+  authCallbackUrl,
+  serializeNextCookie,
+  AUTH_CALLBACK_PATH,
+  NEXT_COOKIE,
   DEFAULT_AFTER_LOGIN,
   TEACHER_HOME,
 } from "./authRedirect";
@@ -92,5 +96,67 @@ describe("destForRole", () => {
     expect(destForRole("/shared", true)).toBe("/shared");
     expect(destForRole("/lab", true)).toBe("/lab");
     expect(destForRole(TEACHER_HOME, true)).toBe(TEACHER_HOME);
+  });
+});
+
+describe("authCallbackUrl", () => {
+  it("クエリを一切付けない", () => {
+    // Supabase の Redirect URLs 許可リストは既定でクエリまで見るため、
+    // ?next=... を付けると素直な登録（.../auth/callback）に一致せず、
+    // 黙って Site URL（＝公式サイト）へ飛ばされてログインが完了しない。
+    const url = authCallbackUrl("https://labcale.com");
+    expect(url).toBe(`https://labcale.com${AUTH_CALLBACK_PATH}`);
+    expect(url).not.toContain("?");
+  });
+
+  it("origin の末尾スラッシュでパスが二重にならない", () => {
+    expect(authCallbackUrl("https://labcale.com/")).toBe(
+      "https://labcale.com/auth/callback",
+    );
+    expect(authCallbackUrl("https://labcale.com//")).toBe(
+      "https://labcale.com/auth/callback",
+    );
+  });
+
+  it("ローカル開発やプレビューでも今いる origin をそのまま使う", () => {
+    // 本番ドメインに固定すると、プレビュー環境からのログインが本番へ着地してしまう
+    expect(authCallbackUrl("http://localhost:3000")).toBe(
+      "http://localhost:3000/auth/callback",
+    );
+    expect(authCallbackUrl("https://lab-calendar-abc.vercel.app")).toBe(
+      "https://lab-calendar-abc.vercel.app/auth/callback",
+    );
+  });
+});
+
+describe("serializeNextCookie", () => {
+  it("往復に必要な属性が揃っている", () => {
+    const c = serializeNextCookie("/profile", true);
+    expect(c).toContain(`${NEXT_COOKIE}=%2Fprofile`);
+    expect(c).toContain("Path=/");
+    expect(c).toContain("Max-Age=");
+    // OAuth の往復はトップレベルGETなので Lax でも送られる。
+    // None にすると Secure 必須になり、ローカルの http で消える。
+    expect(c).toContain("SameSite=Lax");
+  });
+
+  it("https のときだけ Secure を付ける", () => {
+    expect(serializeNextCookie("/profile", true)).toContain("Secure");
+    // http のローカル開発で Secure を付けるとブラウザに捨てられる
+    expect(serializeNextCookie("/profile", false)).not.toContain("Secure");
+  });
+
+  it("値をエスケープする（クエリ付きの行き先でも壊れない）", () => {
+    const c = serializeNextCookie("/app?view=week", true);
+    expect(c).toContain("%2Fapp%3Fview%3Dweek");
+    // 生の ; が混ざると属性として解釈されてしまう
+    expect(c.split(";")[0]).not.toContain("?");
+  });
+
+  it("cookie 由来の値も resolveNext で外部URLを弾ける", () => {
+    // cookie は利用者が書き換えられるので、読む側の検証が最後の砦になる
+    expect(resolveNext("https://evil.com")).toBe(DEFAULT_AFTER_LOGIN);
+    expect(resolveNext("//evil.com")).toBe(DEFAULT_AFTER_LOGIN);
+    expect(resolveNext("/profile")).toBe("/profile");
   });
 });

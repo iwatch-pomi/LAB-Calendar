@@ -15,6 +15,54 @@ export const DEFAULT_AFTER_LOGIN = "/app";
 /** 教授用の管理画面 */
 export const TEACHER_HOME = "/teacher";
 
+/** 認証プロバイダから戻ってくるパス */
+export const AUTH_CALLBACK_PATH = "/auth/callback";
+
+/**
+ * OAuth から戻ってくる先。**クエリを一切付けない**のが要点。
+ *
+ * Supabase は `redirect_to` を「Redirect URLs 許可リスト」と照合し、
+ * 一致しなければ**黙って Site URL（＝このアプリでは公式サイト `/`）へ戻す**。
+ * そして許可リストは既定でクエリ文字列を考慮するため、`?next=/app` のような
+ * クエリを付けると `https://例/auth/callback` という登録では一致しない
+ * （通すには許可リスト側を `https://例/**` にする必要がある）。
+ *
+ * 実際にこれで「1回目のログインが公式サイトに落ちて未ログインのまま終わる」
+ * 不具合が起きていた。行き先は cookie（NEXT_COOKIE）で運び、URL は常に
+ * 1種類だけにして、素直な登録でも必ず一致するようにする。
+ */
+export function authCallbackUrl(origin: string): string {
+  return `${origin.replace(/\/+$/, "")}${AUTH_CALLBACK_PATH}`;
+}
+
+/**
+ * ログイン後の行き先を一時的に預ける cookie。
+ *
+ * OAuth の往復（自サイト → Google → Supabase → 自サイト）はすべて
+ * トップレベルの GET 遷移なので、SameSite=Lax でも送られる。
+ * 中身は利用者が書き換えられるため、読む側で必ず resolveNext() を通すこと。
+ */
+export const NEXT_COOKIE = "labocale.next";
+
+/** cookie の有効期間（秒）。ログインの往復に必要な分だけ持たせる */
+const NEXT_COOKIE_MAX_AGE = 600;
+
+/**
+ * `document.cookie` に代入する文字列を組み立てる。
+ * DOM に触らない純粋関数にしてテストで固める。
+ */
+export function serializeNextCookie(dest: string, secure: boolean): string {
+  const base = [
+    `${NEXT_COOKIE}=${encodeURIComponent(dest)}`,
+    `Max-Age=${NEXT_COOKIE_MAX_AGE}`,
+    "Path=/",
+    "SameSite=Lax",
+  ];
+  // http のローカル開発で Secure を付けるとブラウザに捨てられる
+  if (secure) base.push("Secure");
+  return base.join("; ");
+}
+
 /**
  * next パラメータを検証して安全な遷移先を返す。
  * - `/app` のような自サイト内の絶対パスだけを通す
