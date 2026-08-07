@@ -25,6 +25,7 @@ export default async function ProfilePage() {
 
   return (
     <ProfileView
+      userId={user.id}
       userEmail={user.email ?? ""}
       initialIsTeacher={initialIsTeacher}
     />

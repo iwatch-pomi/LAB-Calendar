@@ -529,6 +529,10 @@ export type Database = {
         };
         Returns: string;
       };
+      delete_own_account: {
+        Args: Record<string, never>;
+        Returns: undefined;
+      };
       join_lab_by_code: {
         Args: {
           code: string;

@@ -1016,3 +1016,31 @@ export function useRefreshAll() {
     qc.invalidateQueries({ queryKey: qk.todos });
   };
 }
+
+/**
+ * 退会（アカウントの削除）。
+ *
+ * サーバー側の RPC が `auth.users` から自分の行だけを消し、public の各テーブルは
+ * `on delete cascade` で連鎖して消える（実験・予定・ToDo・装置・テンプレート・
+ * 培地・設定・お問い合わせ・研究室・所属・共有・招待・コメント）。
+ *
+ * service_role キーは使っていない。あれば全ユーザーのデータを読み書きできて
+ * しまうため、`auth.uid()` の行しか触れない関数1本に閉じ込めている。
+ *
+ * 削除後はセッションの持ち主が存在しないので、サインアウトが失敗することが
+ * ある。失敗しても呼び出し側は必ず画面を離れさせること（この関数は投げない）。
+ */
+export function useDeleteAccount() {
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("delete_own_account");
+      if (error) throw error;
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // 既にユーザーが消えているのでサーバー側は失敗しうる。
+        // ローカルのセッションは破棄されるので、ここは握って進めてよい。
+      }
+    },
+  });
+}

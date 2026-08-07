@@ -20,6 +20,7 @@ import {
   useAddEquipment,
   useDeleteEquipment,
   useAddFeedback,
+  useDeleteAccount,
 } from "@/lib/queries";
 import { useMyShares, useSharedWithMe, useMyLabs } from "@/lib/sharedQueries";
 import { resolveTeacherView } from "@/lib/role";
@@ -72,9 +73,14 @@ import {
   Send,
   UserCog,
   FileText,
+  AlertTriangle,
 } from "lucide-react";
 import { ThemeRoot } from "./ThemeRoot";
 import { CONTACT_EMAIL, PRIVACY_PATH, TERMS_PATH } from "@/lib/site";
+import {
+  DeleteAccountModal,
+  type DeleteAccountCounts,
+} from "./DeleteAccountModal";
 
 const MODE_ICON: Record<
   ExperimentMode,
@@ -104,9 +110,12 @@ function fmtDate(ms: number): string {
 }
 
 export function ProfileView({
+  userId,
   userEmail,
   initialIsTeacher,
 }: {
+  /** 自分が作成した研究室の判定に使う（退会時の警告） */
+  userId: string;
   userEmail: string;
   /** サーバーで解決した利用形態。クライアントに明示値が入るまでの初期値 */
   initialIsTeacher: boolean;
@@ -847,6 +856,22 @@ export function ProfileView({
 
           {/* 規約・ポリシー。教授・指導者にも必要なので !isTeacherView の外に置く */}
           <LegalLinksSection />
+
+          {/* 退会。取り消せない操作なので、いちばん最後に置く */}
+          <DangerZoneSection
+            userId={userId}
+            email={userEmail}
+            counts={{
+              experiments: experiments.length,
+              tasks: tasks.length,
+              todos: todosQ.data?.length ?? 0,
+              equipment: equipment.length,
+              ownedLabs: (myLabsQ.data ?? [])
+                .filter((l) => l.owner_id === userId)
+                .map((l) => l.name),
+              shares: mySharesQ.data?.length ?? 0,
+            }}
+          />
         </main>
       </div>
     </ThemeRoot>
@@ -868,6 +893,78 @@ function StatCard({
       <div className="mt-1 text-2xl font-bold text-gray-800 dark:text-gray-100">{value}</div>
       <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
     </div>
+  );
+}
+
+/**
+ * 退会（アカウントの削除）。
+ *
+ * 取り消せない操作なので、押しやすい場所には置かない。実行の判断材料と
+ * 確認は DeleteAccountModal 側に集約している。
+ */
+function DangerZoneSection({
+  userId,
+  email,
+  counts,
+}: {
+  userId: string;
+  email: string;
+  counts: DeleteAccountCounts;
+}) {
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const deleteAccount = useDeleteAccount();
+
+  async function confirm() {
+    setError(null);
+    try {
+      await deleteAccount.mutateAsync();
+      // 削除後はセッションの持ち主が居ない。SPA 遷移だと古い状態が残るので
+      // ページごと公式サイトへ移動する。
+      window.location.href = "/";
+    } catch (e) {
+      setError(
+        e instanceof Error && e.message
+          ? `削除できませんでした（${e.message}）`
+          : "削除できませんでした。",
+      );
+    }
+  }
+
+  return (
+    <section className="mb-6 rounded-2xl border border-rose-200 bg-white p-4 dark:border-rose-500/30 dark:bg-gray-900">
+      <div className="mb-3 flex items-center gap-1.5">
+        <AlertTriangle className="h-4 w-4 text-rose-500 dark:text-rose-400" />
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+          アカウントの削除
+        </h2>
+      </div>
+      <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+        アカウントと、保存されている実験・予定・ToDo などをすべて削除します。
+        取り消しはできず、削除したデータは復元できません。
+      </p>
+      <button
+        onClick={() => {
+          setError(null);
+          setOpen(true);
+        }}
+        className="mt-3 rounded-lg border border-rose-300 px-3 py-1.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-400 dark:hover:bg-rose-500/10"
+      >
+        アカウントを削除する
+      </button>
+
+      {open && (
+        <DeleteAccountModal
+          email={email}
+          counts={counts}
+          deleting={deleteAccount.isPending}
+          errorMessage={error}
+          onConfirm={confirm}
+          onClose={() => setOpen(false)}
+          key={userId}
+        />
+      )}
+    </section>
   );
 }
 
@@ -896,7 +993,7 @@ function LegalLinksSection() {
         </Link>
       </div>
       <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-        アカウントの削除をご希望の場合は、上のお問い合わせフォームか{" "}
+        ご不明な点は、上のお問い合わせフォームか{" "}
         <a
           href={`mailto:${CONTACT_EMAIL}`}
           className="text-brand-600 hover:underline dark:text-brand-400"

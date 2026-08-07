@@ -34,7 +34,8 @@ with expected(version, name) as (values
   ('0016', 'user_role'),
   ('0017', 'set_features'),
   ('0018', 'backfill_onboarded'),
-  ('0019', 'revoke_anon_execute')
+  ('0019', 'revoke_anon_execute'),
+  ('0020', 'delete_own_account')
 ),
 
 expected_tables(t) as (values
@@ -253,6 +254,27 @@ rows_ (kubun, komoku, jotai, shosai) as (
     from pg_proc p
     left join policy_fns on policy_fns.proname = p.proname
    where p.pronamespace = 'public'::regnamespace
+
+  -- 退会機能は auth.users の行を消すことで成り立っている。関数があっても
+  -- 所有者に auth.users への DELETE 権限が無ければ実行時に失敗するので、
+  -- 「押したら失敗する退会ボタン」にならないよう権限まで確かめる。
+  union all
+  select '関数', 'delete_own_account',
+         case when p.oid is null then 'NG'
+              when not has_table_privilege(p.proowner::regrole::text, 'auth.users', 'delete')
+              then 'NG' else 'OK' end,
+         case when p.oid is null
+              then 'ありません。マイページの退会が動きません。'
+                   || '20_delete_own_account.sql を実行してください'
+              when not has_table_privilege(p.proowner::regrole::text, 'auth.users', 'delete')
+              then '関数はありますが、所有者（' || p.proowner::regrole::text
+                   || '）に auth.users を削除する権限がありません。退会が実行時に失敗します'
+              else '退会できます（自分の行のみ削除。他のデータは連鎖で消えます）'
+         end
+    from (select 1) _
+    left join pg_proc p
+      on p.pronamespace = 'public'::regnamespace
+     and p.proname = 'delete_own_account'
 
   union all
   select '関数', 'seed_demo_data',
