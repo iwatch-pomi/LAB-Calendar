@@ -1,0 +1,45 @@
+# push と Pull Request のたびに、型・テスト・ビルドを自動で確認します。
+#
+# これが無かった間、vitest は「手元で走らせた人がいるときだけ」動いていました。
+# Vercel は next build を実行するので型エラーはデプロイを止めますが、
+# テストは誰も動かしていない状態でした。
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+# 同じブランチに続けて push したときは、古い実行を止めて最新だけ走らせる
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # package-lock.json の通りに入れる（CI が勝手に依存を上げないようにする）
+      - run: npm ci
+
+      - name: 型チェック
+        run: npm run typecheck
+
+      - name: テスト
+        run: npm run test
+
+      # 本番ビルドは NEXT_PUBLIC_* が無いと失敗する。ここで見たいのは
+      # 「コードがビルドできるか」だけなので、形式だけ整えたダミーを渡す。
+      # 実際の接続先は Vercel の環境変数で決まる（CI からは何にも接続しない）。
+      - name: ビルド
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-dummy-anon-key

@@ -92,7 +92,10 @@ Vercel の URL を開く → ログイン → 写真通りのデモカレンダ�
    （番号は `supabase/sql/` にある一番大きい番号 + 1）
 2. **先に** Supabase の SQL Editor でそのファイルを実行する
 3. `supabase/sql/CHECK.sql` を実行して NG が0件であることを確認する
-4. **そのあとで** コードを push する（Vercel が自動デプロイ）
+4. **型を作り直す**: Supabase の Project Settings → API → **Generating types** に出る
+   TypeScript をコピーして `lib/database.types.ts` を丸ごと置き換え、
+   `npm run typecheck` で赤くなった箇所を直す
+5. **そのあとで** コードを push する（Vercel が自動デプロイ）
 
 > ⚠️ 3 と 4 の順番を逆にしないでください。テーブルや列がまだ無い状態のコードが
 > 本番で動くと、画面には**エラーではなく「データが空」のように見えます**。
@@ -147,11 +150,17 @@ npm run test       # ユニットテスト (vitest)。lib/**/*.test.ts が対象
 > テストの対象は `lib/` だけです（`vitest.config.mts` の `include`）。
 > DB にも DOM にも依存しないロジックは、テストできるように `lib/` へ置いてください。
 
+上の3つは push と Pull Request のたびに GitHub Actions でも自動実行されます
+（`.github/workflows/ci.yml`）。
+
 ## 構成メモ
 
 - コアの自動リスケは `lib/reschedule.ts`（DB 非依存の純粋関数、`lib/reschedule.test.ts` で検証）。
 - テンプレート展開は `lib/expandTemplate.ts`。
 - 時刻計算はブラウザのタイムゾーンに依存せず Asia/Tokyo 固定（`lib/calendar.ts` / `lib/config.ts`）。
 - データ取得は `lib/queries.ts`、複合的な書き込み（テンプレ展開・リスケ確定）は `lib/mutations.ts`。
+- Supabase クライアントは `lib/database.types.ts`（DBから自動生成）で型付けしてあるので、
+  テーブル名・列名・RPC の引数がビルド時に検査されます。`text + check(...)` の列を
+  UI 側のユニオン型へ絞る変換は `lib/dbRows.ts`。
 - 認証コールバックは `app/auth/callback/route.ts`（`x-forwarded-host` 対応で Vercel の
   本番・プレビュー両ドメインに追従）。

@@ -22,6 +22,7 @@ import type {
   UserProfile,
   UserRole,
 } from "@/lib/types";
+import { toExperiment, toTask } from "@/lib/dbRows";
 
 const supabase = createClient();
 
@@ -141,7 +142,7 @@ export function useExperiments() {
         .eq("user_id", uid)
         .order("created_at");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).map(toExperiment);
     },
   });
 }
@@ -160,7 +161,7 @@ export function useTasks() {
         .eq("user_id", uid)
         .order("start_time");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).map(toTask);
     },
   });
 }

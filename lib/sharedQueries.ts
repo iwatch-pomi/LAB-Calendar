@@ -17,6 +17,13 @@ import type {
   TaskDependency,
   VisibleProfile,
 } from "@/lib/types";
+import {
+  toCalendarShare,
+  toExperiment,
+  toLabMember,
+  toShareInvitation,
+  toTask,
+} from "@/lib/dbRows";
 
 const supabase = createClient();
 
@@ -93,7 +100,7 @@ export function useLabMembers(labId: string | null) {
         .eq("lab_id", labId)
         .order("joined_at");
       if (error) return [];
-      return data ?? [];
+      return (data ?? []).map(toLabMember);
     },
   });
 }
@@ -221,7 +228,7 @@ export function useMyShares() {
         .eq("owner_id", me)
         .order("created_at", { ascending: false });
       if (error) return [];
-      return data ?? [];
+      return (data ?? []).map(toCalendarShare);
     },
   });
 }
@@ -255,7 +262,9 @@ export function useShareByEmail() {
       const { data, error } = await supabase.rpc("share_calendar_by_email", {
         target_email: args.email,
         p_scope: args.scope,
-        p_experiment: args.experimentId,
+        // 「アカウント全体」の共有では実験を指定しない。この引数は SQL 側が
+        // `uuid default null` なので、省略すれば DB 側で null になる。
+        p_experiment: args.experimentId ?? undefined,
         p_permission: args.permission,
       });
       if (error) throw error;
@@ -281,7 +290,7 @@ export function usePendingInvitations() {
         .is("accepted_at", null)
         .order("created_at", { ascending: false });
       if (error) return [];
-      return data ?? [];
+      return (data ?? []).map(toShareInvitation);
     },
   });
 }
@@ -362,7 +371,7 @@ export function useSharedExperiments(ownerId: string) {
         .eq("user_id", ownerId)
         .order("created_at");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).map(toExperiment);
     },
   });
 }
@@ -378,7 +387,7 @@ export function useSharedTasks(ownerId: string) {
         .eq("user_id", ownerId)
         .order("start_time");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).map(toTask);
     },
   });
 }

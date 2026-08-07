@@ -24,9 +24,23 @@ Supabase CLI は使いません。**ダッシュボード → SQL Editor に貼�
 1. `_TEMPLATE.sql` をコピーして `17_なにか.sql` を作る（番号は既存の最大 + 1）
 2. **SQL Editor で実行する**
 3. `CHECK.sql` で確認する
-4. **そのあとで**アプリのコードを push する
+4. **型を作り直す**（下記）
+5. **そのあとで**アプリのコードを push する
 
 順番が大事です。逆にすると、テーブルがまだ無い状態のコードが本番で動きます。
+
+### 4 の「型を作り直す」
+
+Supabase ダッシュボード → **Project Settings → API → Generating types** に出る
+TypeScript をコピーして、`lib/database.types.ts` を**丸ごと置き換え**ます。
+SQL と同じ「貼り付けるだけ」の運用です。
+
+これをやると、**列名を変えたのにコードを直し忘れた場合に `npm run build` が止まります。**
+以前は Supabase クライアントが `any` だったので、ビルドは通って本番で初めて落ちていました。
+
+置き換えたあと `npm run typecheck` を走らせて、赤くなった箇所を直してください。
+`text + check(...)` の列（`tasks.status` など）は生成された型では `string` になります。
+UI 側のユニオン型へは `lib/dbRows.ts` で変換しているので、列が増えたらそこにも足します。
 
 ---
 
