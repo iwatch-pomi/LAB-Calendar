@@ -18,6 +18,9 @@ export const TEACHER_HOME = "/teacher";
 /** 認証プロバイダから戻ってくるパス */
 export const AUTH_CALLBACK_PATH = "/auth/callback";
 
+/** パスワードの再設定ページ。再設定メールのリンクから最終的にここへ着地させる */
+export const RESET_PASSWORD_PATH = "/reset-password";
+
 /**
  * OAuth から戻ってくる先。**クエリを一切付けない**のが要点。
  *
@@ -44,17 +47,27 @@ export function authCallbackUrl(origin: string): string {
  */
 export const NEXT_COOKIE = "labocale.next";
 
-/** cookie の有効期間（秒）。ログインの往復に必要な分だけ持たせる */
-const NEXT_COOKIE_MAX_AGE = 600;
+/** cookie の既定の有効期間（秒）。ログインの往復に必要な分だけ持たせる */
+export const NEXT_COOKIE_MAX_AGE = 600;
+
+/**
+ * メールの往復を挟む場合の有効期間（秒）。
+ * パスワード再設定はメールを開くまでに間があるので長めにする。
+ */
+export const NEXT_COOKIE_MAX_AGE_EMAIL = 1800;
 
 /**
  * `document.cookie` に代入する文字列を組み立てる。
  * DOM に触らない純粋関数にしてテストで固める。
  */
-export function serializeNextCookie(dest: string, secure: boolean): string {
+export function serializeNextCookie(
+  dest: string,
+  secure: boolean,
+  maxAgeSeconds: number = NEXT_COOKIE_MAX_AGE,
+): string {
   const base = [
     `${NEXT_COOKIE}=${encodeURIComponent(dest)}`,
-    `Max-Age=${NEXT_COOKIE_MAX_AGE}`,
+    `Max-Age=${maxAgeSeconds}`,
     "Path=/",
     "SameSite=Lax",
   ];

@@ -57,6 +57,7 @@ export const PRIVATE_PATHS = [
   "/archive",
   "/auth",
   "/login",
+  "/reset-password",
 ];
 
 /** よくある質問。画面にも出し、同じ内容を FAQPage の構造化データにも使う */

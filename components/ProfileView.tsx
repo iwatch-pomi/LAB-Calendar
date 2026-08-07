@@ -77,6 +77,7 @@ import {
 } from "lucide-react";
 import { ThemeRoot } from "./ThemeRoot";
 import { CONTACT_EMAIL, PRIVACY_PATH, TERMS_PATH } from "@/lib/site";
+import { RESET_PASSWORD_PATH } from "@/lib/authRedirect";
 import {
   DeleteAccountModal,
   type DeleteAccountCounts,
@@ -990,6 +991,13 @@ function LegalLinksSection() {
           className="font-medium text-brand-600 hover:underline dark:text-brand-400"
         >
           プライバシーポリシー
+        </Link>
+        {/* 再設定メールから来た人が /app に着地してしまった場合の受け皿も兼ねる */}
+        <Link
+          href={RESET_PASSWORD_PATH}
+          className="font-medium text-brand-600 hover:underline dark:text-brand-400"
+        >
+          パスワードの変更
         </Link>
       </div>
       <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">

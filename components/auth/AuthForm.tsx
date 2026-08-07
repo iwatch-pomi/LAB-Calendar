@@ -11,9 +11,11 @@ import {
   authCallbackUrl,
   serializeNextCookie,
   DEFAULT_AFTER_LOGIN,
+  RESET_PASSWORD_PATH,
+  NEXT_COOKIE_MAX_AGE_EMAIL,
 } from "@/lib/authRedirect";
 
-type Mode = "signin" | "signup";
+type Mode = "signin" | "signup" | "reset";
 
 /** Supabase の英語エラーを分かりやすい日本語に */
 function jpError(msg: string): string {
@@ -107,15 +109,52 @@ export function AuthForm() {
       ? authCallbackUrl(window.location.origin)
       : undefined;
 
+  /** 戻ってきたときの行き先を cookie へ預ける */
+  function rememberPath(path: string, maxAge?: number) {
+    if (typeof document === "undefined") return;
+    document.cookie = serializeNextCookie(
+      path,
+      window.location.protocol === "https:",
+      maxAge,
+    );
+  }
+
   /** 認証へ出る直前に、戻ってきたときの行き先を cookie へ預ける */
   function rememberDest() {
-    if (typeof document === "undefined") return;
     // 既定（/app）はコールバック側の既定と同じなので預ける必要がない
     if (!dest || dest === DEFAULT_AFTER_LOGIN) return;
-    document.cookie = serializeNextCookie(
-      dest,
-      window.location.protocol === "https:",
-    );
+    rememberPath(dest);
+  }
+
+  /**
+   * パスワード再設定メールを送る。
+   *
+   * 戻り先は OAuth と同じ `/auth/callback`（クエリ無し）にしている。
+   * Supabase の Redirect URLs に新しいURLを足さなくても動かすため。
+   * 「再設定ページへ行く」という行き先は cookie で運ぶ。メールを開くまでに
+   * 間が空くので、有効期間は長めのものを使う。
+   */
+  async function sendReset(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading("reset");
+    setMessage(null);
+    rememberPath(RESET_PASSWORD_PATH, NEXT_COOKIE_MAX_AGE_EMAIL);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    });
+    if (error) {
+      setMessage({ type: "error", text: jpError(error.message) });
+    } else {
+      // 登録の有無は答えない（アカウントの存在を外から確かめられてしまうため）
+      setMessage({
+        type: "info",
+        text:
+          "パスワード再設定用のメールを送信しました（登録がある場合）。" +
+          "メール内のリンクは、このブラウザで開いてください。" +
+          "別のブラウザで開くとリンクが無効になります。",
+      });
+    }
+    setLoading(null);
   }
 
   async function oauth(provider: "google" | "apple") {
@@ -205,8 +244,16 @@ export function AuthForm() {
         <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
       </div>
 
-      {/* Email / Password */}
-      <form onSubmit={emailAuth} className="space-y-3">
+      {/* Email / Password（再設定モードではメールアドレスだけ） */}
+      <form
+        onSubmit={mode === "reset" ? sendReset : emailAuth}
+        className="space-y-3"
+      >
+        {mode === "reset" && (
+          <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+            ご登録のメールアドレスに、パスワードを再設定するためのリンクをお送りします。
+          </p>
+        )}
         <input
           type="email"
           required
@@ -215,26 +262,42 @@ export function AuthForm() {
           onChange={(e) => setEmail(e.target.value)}
           className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-brand-900/40"
         />
-        <input
-          type="password"
-          required
-          minLength={6}
-          placeholder="パスワード（6文字以上）"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-brand-900/40"
-        />
+        {mode !== "reset" && (
+          <input
+            type="password"
+            required
+            minLength={6}
+            placeholder="パスワード（6文字以上）"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-brand-900/40"
+          />
+        )}
         <button
           type="submit"
           disabled={loading !== null}
           className="w-full rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-60"
         >
-          {loading === "email"
+          {loading !== null
             ? "処理中…"
             : mode === "signin"
               ? "ログイン"
-              : "新規登録"}
+              : mode === "signup"
+                ? "新規登録"
+                : "再設定用のメールを送る"}
         </button>
+        {mode === "signin" && (
+          <button
+            type="button"
+            onClick={() => {
+              setMode("reset");
+              setMessage(null);
+            }}
+            className="w-full text-center text-xs text-gray-500 transition hover:text-brand-600 dark:text-gray-400 dark:hover:text-brand-400"
+          >
+            パスワードをお忘れですか？
+          </button>
+        )}
       </form>
 
       {/* 同意の意思表示。ここに置かないと規約が実際には効力を持ちにくい。
@@ -270,16 +333,32 @@ export function AuthForm() {
       )}
 
       <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-        {mode === "signin" ? "アカウントがありませんか？" : "既に登録済みですか？"}{" "}
-        <button
-          onClick={() => {
-            setMode(mode === "signin" ? "signup" : "signin");
-            setMessage(null);
-          }}
-          className="font-semibold text-brand-600 hover:underline dark:text-brand-400"
-        >
-          {mode === "signin" ? "新規登録" : "ログイン"}
-        </button>
+        {mode === "reset" ? (
+          <button
+            onClick={() => {
+              setMode("signin");
+              setMessage(null);
+            }}
+            className="font-semibold text-brand-600 hover:underline dark:text-brand-400"
+          >
+            ログインに戻る
+          </button>
+        ) : (
+          <>
+            {mode === "signin"
+              ? "アカウントがありませんか？"
+              : "既に登録済みですか？"}{" "}
+            <button
+              onClick={() => {
+                setMode(mode === "signin" ? "signup" : "signin");
+                setMessage(null);
+              }}
+              className="font-semibold text-brand-600 hover:underline dark:text-brand-400"
+            >
+              {mode === "signin" ? "新規登録" : "ログイン"}
+            </button>
+          </>
+        )}
       </p>
     </div>
   );
