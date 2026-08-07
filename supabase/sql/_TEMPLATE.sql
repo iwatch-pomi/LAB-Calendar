@@ -23,6 +23,16 @@
 --     using (auth.uid() = user_id) with check (auth.uid() = user_id);
 --   create or replace function public.xxx() ...;
 --
+-- 関数を作ったら権限を必ず2行セットで書きます（片方だけだと穴になります）:
+--
+--   revoke execute on function public.xxx(...) from public, anon;
+--   grant  execute on function public.xxx(...) to authenticated;
+--
+--   ※ `from public` だけでは足りません。Supabase の既定権限が anon へ
+--      明示的に EXECUTE を付けるためです（規約5）。
+--   ※ RLSポリシーの中から呼ぶ関数なら、anon にも grant が要ります。
+--      落とすと anon の SELECT がエラーになります。
+--
 -- 制約の追加だけは if not exists が使えないので存在チェックで囲みます:
 --
 --   do $$

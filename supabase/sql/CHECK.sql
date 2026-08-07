@@ -33,7 +33,8 @@ with expected(version, name) as (values
   ('0015', 'fix_create_lab'),
   ('0016', 'user_role'),
   ('0017', 'set_features'),
-  ('0018', 'backfill_onboarded')
+  ('0018', 'backfill_onboarded'),
+  ('0019', 'revoke_anon_execute')
 ),
 
 expected_tables(t) as (values
@@ -52,6 +53,20 @@ expected_policies(pol, needle, why) as (values
   ('deps_all',          'tasks',               '依存関係の前後どちらのタスクも自分のものか'),
   ('todos_all',         'tasks',               '紐づけるタスクが自分のものか'),
   ('culture_media_all', 'owns_culture_medium', '継代元の培地・紐づく培養タスクが自分のものか')
+),
+
+-- RLSポリシーの式（using / with check）の中から呼ばれている public の関数。
+-- これらは anon にも実行権が必要（無いとポリシーを評価できずエラーになる）。
+policy_fns as (
+  select distinct p.proname
+    from pg_proc p
+   where p.pronamespace = 'public'::regnamespace
+     and exists (
+       select 1 from pg_policies pol
+        where pol.schemaname = 'public'
+          and (coalesce(pol.qual, '') || ' ' || coalesce(pol.with_check, ''))
+              like '%' || p.proname || '(%'
+     )
 ),
 
 rows_ (kubun, komoku, jotai, shosai) as (
@@ -213,18 +228,39 @@ rows_ (kubun, komoku, jotai, shosai) as (
   ----------------------------------------------------------------
   -- 権限
   ----------------------------------------------------------------
+  -- 関数は1本ずつ見る。以前は seed_demo_data だけを見ていたが、実際には
+  -- public の全関数が同じ状態だった（Supabase の既定権限が anon へ明示的に
+  -- EXECUTE を付けるため）。1本だけ見ていると過少報告になる。
+  --
+  -- ただし RLSポリシーの式から呼ばれる関数は anon にも実行権が要る。
+  -- 落とすと anon の SELECT が「0件」ではなく「permission denied」になる。
+  -- そこで「ポリシーが呼んでいるか」で判定を分ける。こう書いておけば、
+  -- 関数を足したときに一覧を更新しなくても正しく判定できる。
   union all
-  select '権限', 'seed_demo_data の実行権',
-         case when to_regprocedure('public.seed_demo_data()') is null then 'NG'
-              when to_regrole('anon') is null then '情報'
-              when has_function_privilege('anon', 'public.seed_demo_data()', 'execute')
+  select '権限', p.proname || '() の anon 実行権',
+         case when to_regrole('anon') is null then '情報'
+              when not has_function_privilege('anon', p.oid, 'execute') then 'OK'
+              when policy_fns.proname is not null then 'OK'
+              else 'NG' end,
+         case when to_regrole('anon') is null
+              then 'anon ロールがありません（ローカル検証環境）'
+              when not has_function_privilege('anon', p.oid, 'execute')
+              then 'ログイン済み(authenticated)だけが呼べます'
+              when policy_fns.proname is not null
+              then 'RLSポリシーから呼ばれるため anon にも必要（中で auth.uid() を見るので空が返る）'
+              else '未ログインからも直接呼べます。19_revoke_anon_execute.sql を実行してください'
+         end
+    from pg_proc p
+    left join policy_fns on policy_fns.proname = p.proname
+   where p.pronamespace = 'public'::regnamespace
+
+  union all
+  select '関数', 'seed_demo_data',
+         case when to_regprocedure('public.seed_demo_data()') is null
               then 'NG' else 'OK' end,
-         case when to_regprocedure('public.seed_demo_data()') is null then 'ありません'
-              when to_regrole('anon') is null then 'anon ロールがありません（ローカル検証環境）'
-              when has_function_privilege('anon', 'public.seed_demo_data()', 'execute')
-              then '未ログイン(anon)からも呼べます。関数の中で auth.uid() を検査しているので '
-                   || '実害はありませんが、00_baseline.sql を流すと revoke されます'
-              else 'ログイン済み(authenticated)だけが呼べます'
+         case when to_regprocedure('public.seed_demo_data()') is null
+              then 'ありません。初回ログイン時のデモデータ投入ができません'
+              else '存在します'
          end
 
   ----------------------------------------------------------------

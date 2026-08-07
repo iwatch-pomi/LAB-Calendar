@@ -29,10 +29,16 @@
 
 ### STEP 2. データベースを作る（SQL エディター）
 
-左メニューの **SQL Editor** を開き、次の2つを貼り付けて Run するだけです。
+左メニューの **SQL Editor** を開き、次を順に貼り付けて Run します。
 
-1. **`supabase/sql/00_baseline.sql`** … これ1本でテーブル・RLS・関数が全て揃います
-2. **`supabase/sql/CHECK.sql`** … 確認用。**NG の行が0件**なら成功です
+1. **`supabase/sql/00_baseline.sql`** … テーブル・RLS・関数の土台
+2. **`supabase/sql/` の 17 以降を、番号順に全て**
+   （`17_set_features.sql` → `18_backfill_onboarded.sql` → `19_…` → …）
+3. **`supabase/sql/CHECK.sql`** … 確認用。**NG の行が0件**なら成功です
+
+> ⚠️ **2 を飛ばさないでください。** `00_baseline.sql` は「01〜16 をまとめたもの」で
+> あって「最新の全部」ではありません。飛ばすと、たとえば設定を保存するたびに
+> 他の設定が消えるといった不具合が出ます。飛ばしたかどうかは 3 が検出します。
 
 > `supabase/sql/archive/` にある 01〜16 は履歴なので**実行しないでください**
 > （`00_baseline.sql` に統合済みです。順番を間違えると修正が巻き戻ります）。

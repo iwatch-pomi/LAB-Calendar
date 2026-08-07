@@ -15,9 +15,16 @@ Supabase CLI は使いません。**ダッシュボード → SQL Editor に貼�
 ## 新規セットアップ
 
 1. SQL Editor に `00_baseline.sql` を全文貼り付けて Run
-2. `CHECK.sql` を全文貼り付けて Run し、**NG が0件**であることを確認
+2. **`00_baseline.sql` より後の番号付きファイルを、番号順に全て** Run
+   （`17_set_features.sql` → `18_backfill_onboarded.sql` → `19_…` → …）
+3. `CHECK.sql` を全文貼り付けて Run し、**NG が0件**であることを確認
 
-以上です。`archive/` の 01〜16 は流す必要がありません（`00_baseline.sql` に統合済みです）。
+`archive/` の 01〜16 は流す必要がありません（`00_baseline.sql` に統合済みです）。
+
+> ⚠️ **2 を飛ばさないでください。** `00_baseline.sql` は「01〜16 をまとめたもの」で
+> あって「最新の全部」ではありません。17 以降を流さないと、たとえば
+> `set_features` が無いまま動き、**表示設定を保存するたびに他の設定が消えます**。
+> 飛ばしたかどうかは 3 の `CHECK.sql` が台帳で検出します（未適用の番号が NG で出ます）。
 
 ## DBを変えたくなったら
 
@@ -86,11 +93,34 @@ UI 側のユニオン型へは `lib/dbRows.ts` で変換しているので、列
 台帳（`schema_migrations`）を見て一度だけ流してください。
 `00_baseline.sql` にデータを変える文が1つも無いのは、この規約のためです。
 
-### 5. 関数には `revoke … from public` と `grant … to authenticated` を必ず両方書く
+### 5. 関数の権限は `from public, anon` を revoke してから grant する
 
-`grant` だけだと、PostgreSQL の既定で PUBLIC に付いている EXECUTE が残ります。
-`archive/03_seed_function.sql` は `grant` しか書いていなかったため、
-**未ログイン(anon)からも `seed_demo_data()` を呼べる状態**でした。
+```sql
+revoke execute on function public.xxx(...) from public, anon;
+grant  execute on function public.xxx(...) to authenticated;
+```
+
+**`from public` だけでは足りません。** Supabase は `public` スキーマの既定権限として、
+新しく作られた関数の EXECUTE を `anon` / `authenticated` / `service_role` へ
+**明示的に**付与します。`from public` は PUBLIC 擬似ロールの分しか外さないので、
+anon への付与が残ります:
+
+```
+postgres=X/postgres
+anon=X/postgres           ← from public では消えない
+authenticated=X/postgres
+service_role=X/postgres
+```
+
+`archive/03_seed_function.sql` は `grant` しか書いていなかったうえ、
+`00_baseline.sql` で足した revoke も `from public` だけだったため、
+**未ログイン(anon)からも全ての関数を呼べる状態**が残っていました
+（`19_revoke_anon_execute.sql` で解消）。
+
+> ⚠️ **RLSポリシーの中から呼ぶ関数は anon にも grant が要ります。**
+> 落とすと anon の SELECT が「0件」ではなく `permission denied for function …`
+> というエラーになります（ポリシーの式を評価できなくなるため）。
+> 該当するかは `CHECK.sql` が自動で判定します。
 
 ### 6. `returns table(...)` の列を増やすときは `create or replace` が使えない
 
