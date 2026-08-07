@@ -1,3 +1,4 @@
+-- ⚠ 実行しないでください。これは履歴です。現行版は supabase/sql/00_baseline.sql（理由は archive/README.md）
 -- =============================================================
 -- ラボカレ  12_share_rls_hardening.sql
 -- 11_sharing.sql で「他人の行が SELECT できる」ようになったことに伴う

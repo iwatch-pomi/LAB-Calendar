@@ -29,11 +29,14 @@
 
 ### STEP 2. データベースを作る（SQL エディター）
 
-左メニューの **SQL Editor** を開き、リポジトリの以下を **この順番で** 貼り付けて Run:
+左メニューの **SQL Editor** を開き、次の2つを貼り付けて Run するだけです。
 
-1. `supabase/sql/01_schema.sql` … テーブル・インデックス
-2. `supabase/sql/02_rls.sql` … Row Level Security（ユーザーごとのデータ隔離）
-3. `supabase/sql/03_seed_function.sql` … デモデータ投入用 `seed_demo_data()` 関数
+1. **`supabase/sql/00_baseline.sql`** … これ1本でテーブル・RLS・関数が全て揃います
+2. **`supabase/sql/CHECK.sql`** … 確認用。**NG の行が0件**なら成功です
+
+> `supabase/sql/archive/` にある 01〜16 は履歴なので**実行しないでください**
+> （`00_baseline.sql` に統合済みです。順番を間違えると修正が巻き戻ります）。
+> 詳しくは [`supabase/sql/README.md`](supabase/sql/README.md)。
 
 > デモデータは初回ログイン時にアプリが自動で `seed_demo_data()` を呼び出し、
 > **その週（月曜始まり）** を基準にスクリーンショットと同じ実験・予定・ToDo を投入します。
@@ -41,14 +44,15 @@
 ### STEP 3. Vercel にデプロイ
 
 1. [vercel.com](https://vercel.com) に GitHub でログイン → **Add New… → Project**。
-2. このリポジトリをインポートし、ブランチ `claude/labocale-research-scheduler-czuqub`
-   を選択（Framework は Next.js が自動検出）。
+2. このリポジトリをインポートし、**デフォルトブランチ**を選択
+   （Framework は Next.js が自動検出）。
 3. **Environment Variables** に STEP 1 の値を登録（**デプロイ前に必ず設定**）:
 
-   | Name | Value |
-   | --- | --- |
-   | `NEXT_PUBLIC_SUPABASE_URL` | `https://xxxx.supabase.co` |
-   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJhbGci...` |
+   | Name | 必須 | Value |
+   | --- | --- | --- |
+   | `NEXT_PUBLIC_SUPABASE_URL` | ○ | `https://xxxx.supabase.co` |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ○ | `eyJhbGci...` |
+   | `NEXT_PUBLIC_SITE_URL` | 任意 | `https://labocale.com`（独自ドメインを使う場合） |
 
 4. **Deploy**。発行される URL（例 `https://lab-calendar-xxx.vercel.app`）を控える。
 
@@ -77,6 +81,31 @@
 
 Vercel の URL を開く → ログイン → 写真通りのデモカレンダーが表示されます。
 コードを GitHub に push するたび Vercel が自動で再デプロイします。
+
+---
+
+## 更新のしかた（DB を変えるとき）
+
+コードだけの変更なら push すれば終わりです。**DB の形を変えるときだけ**順番があります。
+
+1. `supabase/sql/_TEMPLATE.sql` をコピーして `supabase/sql/17_なにか.sql` を作る
+   （番号は `supabase/sql/` にある一番大きい番号 + 1）
+2. **先に** Supabase の SQL Editor でそのファイルを実行する
+3. `supabase/sql/CHECK.sql` を実行して NG が0件であることを確認する
+4. **そのあとで** コードを push する（Vercel が自動デプロイ）
+
+> ⚠️ 3 と 4 の順番を逆にしないでください。テーブルや列がまだ無い状態のコードが
+> 本番で動くと、画面には**エラーではなく「データが空」のように見えます**。
+>
+> ⚠️ `NEXT_PUBLIC_*` はビルド時にコードへ埋め込まれます。Vercel で値を変えても
+> **Redeploy するまで反映されません**（Deployments → 最新 → Redeploy）。
+
+書き方の規約は [`supabase/sql/README.md`](supabase/sql/README.md) にまとめてあります
+（それぞれ実際に起きた事故に対応しています）。
+
+既存のプロジェクトが正しい形になっているか不安なときは、
+`supabase/sql/00_baseline.sql` をもう一度流して構いません。データには一切触れず、
+足りない列や古いポリシーだけが直ります。
 
 ---
 
@@ -112,8 +141,11 @@ npm run dev                        # http://localhost:3000
 npm run dev        # 開発サーバー
 npm run build      # 本番ビルド
 npm run typecheck  # 型チェック
-npm run test       # 自動リスケのユニットテスト (vitest)
+npm run test       # ユニットテスト (vitest)。lib/**/*.test.ts が対象
 ```
+
+> テストの対象は `lib/` だけです（`vitest.config.mts` の `include`）。
+> DB にも DOM にも依存しないロジックは、テストできるように `lib/` へ置いてください。
 
 ## 構成メモ
 

@@ -1,0 +1,47 @@
+-- =============================================================
+-- ラボカレ  NN_短い英語名.sql
+-- （このファイルをコピーして使ってください。ファイル名の NN は
+--   supabase/sql/ にある一番大きい番号 + 1 です。17 から始まります）
+--
+-- 何のために変えるのかを日本語で1〜3行。「何をするか」ではなく
+-- 「どの画面のどの困りごとを解決するか」を書きます。
+--
+-- ・変更点を箇条書き
+-- ・複数のテーブルに触るなら、それぞれ1行ずつ
+--
+-- 00_baseline.sql の後に実行してください。何度実行しても安全です。
+-- =============================================================
+
+-- ここに DDL を書きます。規約は supabase/sql/README.md を読んでください。
+-- よく使う冪等な書き方:
+--
+--   create table if not exists public.xxx ( ... );
+--   alter table public.xxx add column if not exists yyy text;
+--   create index if not exists idx_xxx_yyy on public.xxx(yyy);
+--   drop policy if exists xxx_all on public.xxx;
+--   create policy xxx_all on public.xxx for all
+--     using (auth.uid() = user_id) with check (auth.uid() = user_id);
+--   create or replace function public.xxx() ...;
+--
+-- 制約の追加だけは if not exists が使えないので存在チェックで囲みます:
+--
+--   do $$
+--   begin
+--     if not exists (
+--       select 1 from pg_constraint where conname = 'xxx_yyy_check'
+--     ) then
+--       alter table public.xxx add constraint xxx_yyy_check check (yyy in ('a','b'));
+--     end if;
+--   end $$;
+--
+-- 新しいテーブルを作ったら RLS を忘れずに:
+--
+--   alter table public.xxx enable row level security;
+
+-- -------------------------------------------------------------
+-- 最後に台帳へ記録する（CHECK.sql がここを読みます）
+-- あわせて CHECK.sql の expected にも同じ行を足してください。
+-- -------------------------------------------------------------
+insert into public.schema_migrations(version, name)
+values ('00NN', '短い英語名')
+on conflict (version) do nothing;
