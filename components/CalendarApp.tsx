@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import {
   useTasks,
   useExperiments,
@@ -37,6 +38,7 @@ import { TutorialModal } from "./TutorialModal";
 import { AuthModal } from "./auth/AuthModal";
 import { GuestBanner, MigratedBanner } from "./GuestBanner";
 import { guestStore } from "@/lib/guestStore";
+import { migrateGuestData } from "@/lib/guestMigration";
 import { shouldAutoOpenTutorial } from "@/lib/tutorial";
 import { isTeacher, shouldAskRole } from "@/lib/role";
 import { useClaimInvitationsOnce } from "@/lib/sharedQueries";
@@ -89,7 +91,12 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
 
   const [view, setViewState] = useState<ViewMode>("week");
   // ログイン直後、ゲスト中に作った予定/ToDoを引き継いだ件数
-  const [migrated, setMigrated] = useState<number | null>(null);
+  // ゲストからの引継ぎ結果。失敗が1件でもあれば、成功0件でもバーを出す
+  // （黙って消えたように見えるのがいちばん困る）。
+  const [migrated, setMigrated] = useState<{
+    saved: number;
+    failed: number;
+  } | null>(null);
   const [refMs, setRefMs] = useState<number>(() => nowMs());
   const [selectedExperiment, setSelectedExperiment] = useState<string | null>(
     null,
@@ -239,6 +246,12 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
   const loading =
     tasksQ.isLoading || experimentsQ.isLoading || depsQ.isLoading;
 
+  // 読み込みに失敗しても `data` は undefined のままなので、上の `?? []` で
+  // 「予定が0件のカレンダー」が普通に描画されてしまう。作成ボタンも押せるため、
+  // ユーザーには**本当にデータが消えたのと区別が付かない**。必ず理由を出す。
+  const loadFailed =
+    tasksQ.isError || experimentsQ.isError || depsQ.isError || todosQ.isError;
+
   // 表示日数: 日表示は常に1日、週表示は画面幅に応じて3/7日、月表示は無関係
   const activeDays = view === "day" ? 1 : visibleDays;
 
@@ -356,45 +369,32 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
   const migrateRan = useRef(false);
   useEffect(() => {
     if (isGuest || migrateRan.current) return;
+    // 「引き継ぐものが無い」経路より前に立てる。後ろに置くと、その場合だけ
+    // ガードが立たないまま依存配列の再評価のたびにここを通り続ける。
+    migrateRan.current = true;
     const { tasks: gTasks, todos: gTodos } = guestStore.exportForMigration();
     if (gTasks.length === 0 && gTodos.length === 0) {
       // 引き継ぐものが無ければゲストデータは破棄しておく
       guestStore.clear();
       return;
     }
-    migrateRan.current = true;
     (async () => {
-      let n = 0;
-      for (const t of gTasks) {
-        try {
-          await createTask.mutateAsync({
-            title: t.title,
-            start_time: t.start_time,
-            end_time: t.end_time,
-            // ゲストの実験idはサーバーに存在しないため単発の予定として保存
-            experiment_id: null,
-            subtitle: t.subtitle,
-            is_wait: t.is_wait,
-          });
-          n++;
-        } catch {
-          // 1件失敗しても残りは続行
-        }
-      }
-      for (const [i, td] of gTodos.entries()) {
-        try {
-          await addTodo.mutateAsync({
-            title: td.title,
-            sort_order: 1000 + i,
-            due_at: td.due_at,
-          });
-          n++;
-        } catch {
-          // 同上
-        }
-      }
-      guestStore.clear();
-      setMigrated(n);
+      const r = await migrateGuestData(
+        { tasks: gTasks, todos: gTodos },
+        {
+          createTask: (a) => createTask.mutateAsync(a),
+          addTodo: (a) => addTodo.mutateAsync(a),
+        },
+      );
+      // 保存できた分だけを消す。全件失敗したときに clear() すると、
+      // ブラウザにあった予定が「サーバーにも無い・ブラウザにも無い」状態で
+      // 消滅する（以前はここが無条件の clear() だった）。
+      if (r.failed === 0) guestStore.clear();
+      else guestStore.dropMigrated(r.okTaskIds, r.okTodoIds);
+      setMigrated({
+        saved: r.okTaskIds.length + r.okTodoIds.length,
+        failed: r.failed,
+      });
     })();
   }, [isGuest, createTask, addTodo]);
 
@@ -436,8 +436,35 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {isGuest && <GuestBanner />}
-        {migrated !== null && migrated > 0 && (
-          <MigratedBanner count={migrated} onClose={() => setMigrated(null)} />
+        {loadFailed && (
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm dark:border-amber-500/20 dark:bg-amber-500/10">
+            <span className="flex min-w-0 items-center gap-1.5 text-amber-900 dark:text-amber-300">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <span className="min-w-0">
+                データを読み込めませんでした。
+                <span className="font-semibold">予定が消えたわけではありません。</span>
+                通信状況を確かめて再読み込みしてください。
+              </span>
+            </span>
+            <button
+              onClick={() => {
+                tasksQ.refetch();
+                experimentsQ.refetch();
+                depsQ.refetch();
+                todosQ.refetch();
+              }}
+              className="shrink-0 rounded-lg border border-amber-300 bg-white px-3 py-1 text-xs font-medium text-amber-800 transition hover:bg-amber-100 dark:border-amber-500/30 dark:bg-gray-900 dark:text-amber-300 dark:hover:bg-amber-500/10"
+            >
+              再読み込み
+            </button>
+          </div>
+        )}
+        {migrated !== null && (migrated.saved > 0 || migrated.failed > 0) && (
+          <MigratedBanner
+            saved={migrated.saved}
+            failed={migrated.failed}
+            onClose={() => setMigrated(null)}
+          />
         )}
         <CalendarHeader
           view={view}

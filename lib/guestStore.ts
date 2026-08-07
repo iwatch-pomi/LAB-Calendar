@@ -105,9 +105,18 @@ function load(): GuestState {
     }
   }
 
-  const reanchored = reanchorIfStale(cache, Date.now());
-  if (reanchored !== cache) {
-    cache = reanchored;
+  // 保存内容が想定外の形（古い版・手で書き換えられた・別アプリと衝突）だと
+  // reanchorIfStale が例外を投げる。ここは load() の中なので、そのまま外に
+  // 出すとゲスト画面が真っ白になり、リロードしても直らない状態になる。
+  // 読めない保存内容は捨てて作り直す（JSON.parse 失敗時と同じ扱い）。
+  try {
+    const reanchored = reanchorIfStale(cache, Date.now());
+    if (reanchored !== cache) {
+      cache = reanchored;
+      save();
+    }
+  } catch {
+    cache = fresh();
     save();
   }
   return cache;
@@ -279,6 +288,45 @@ export const guestStore = {
     } catch {
       return { tasks: [], todos: [] };
     }
+  },
+
+  /**
+   * 引継ぎに**成功した分だけ**を localStorage から取り除く。
+   *
+   * 全件成功なら clear() で消せばよいが、一部が失敗したときに clear() すると
+   * 保存できなかった予定・ToDo が消えてしまう。失敗分はブラウザに残して
+   * ユーザーに知らせる必要があるため、成功した id だけを落とす。
+   *
+   * 削除の中身は deleteTask / deleteTodo と同じ扱い（deps の連鎖削除、
+   * touched から除外、元デモの id は deletedDemo に積んで再アンカーで
+   * 復活させない）。保存は最後に1回だけ行う。
+   */
+  dropMigrated(taskIds: string[], todoIds: string[]) {
+    if (taskIds.length === 0 && todoIds.length === 0) return;
+    const s = load();
+    const tasks = new Set(taskIds);
+    const todos = new Set(todoIds);
+
+    s.tasks = s.tasks.filter((t) => !tasks.has(t.id));
+    s.deps = s.deps.filter(
+      (d) => !tasks.has(d.predecessor_id) && !tasks.has(d.successor_id),
+    );
+    s.touchedTaskIds = s.touchedTaskIds.filter((x) => !tasks.has(x));
+    for (const id of taskIds) {
+      if (id.startsWith("guest-task-") && !s.deletedDemoTaskIds.includes(id)) {
+        s.deletedDemoTaskIds.push(id);
+      }
+    }
+
+    s.todos = s.todos.filter((t) => !todos.has(t.id));
+    s.touchedTodoIds = s.touchedTodoIds.filter((x) => !todos.has(x));
+    for (const id of todoIds) {
+      if (id.startsWith("guest-todo-") && !s.deletedDemoTodoIds.includes(id)) {
+        s.deletedDemoTodoIds.push(id);
+      }
+    }
+
+    save();
   },
 
   /** localStorage のゲストデータを完全に消す（引継ぎ完了時 / ログイン後） */

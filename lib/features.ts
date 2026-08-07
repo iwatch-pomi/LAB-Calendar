@@ -1,6 +1,8 @@
 // 実験モードと、その中の個別機能の定義（レジストリ）。
 // 機能を増やすときは FEATURES に1行追加し、対応するパネルを描画すればよい。
 
+import type { FeatureFlagKey } from "@/lib/types";
+
 export type ExperimentMode = "bio" | "chem" | "physics" | "engineering";
 
 export interface ModeDef {
@@ -11,8 +13,12 @@ export interface ModeDef {
 }
 
 export interface FeatureDef {
-  /** user_settings.features に保存するフラグキー */
-  key: string;
+  /**
+   * user_settings.features に保存するフラグキー。
+   * FeatureFlags の実在するキーだけを許す（綴り違いを型検査で止めるため）。
+   * 機能を増やすときは lib/types.ts の FeatureFlags にも1行足す。
+   */
+  key: FeatureFlagKey;
   mode: ExperimentMode;
   title: string;
   description: string;

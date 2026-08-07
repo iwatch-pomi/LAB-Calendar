@@ -1,8 +1,11 @@
 // ゲスト（未ログイン）向けのデモデータ。
 // supabase/sql/03_seed_function.sql の内容を TypeScript へ移植したもの。
 // ログイン後の初回表示と同じ見た目になるよう、内容・時刻を揃えている。
-// seed_demo_data() は匿名ユーザーでは実行できない（anon に EXECUTE 権限が無く、
-// uid が null だと例外を投げる）ため、ゲストにはこちらを使う。
+// seed_demo_data() は匿名ユーザーでは使えない。auth.uid() が null のときに
+// 例外を投げるうえ、そもそも投入先が DB なのでログインしていない人には行き先が
+// 無い。ゲストにはこちらを使い、localStorage に置く。
+// （権限については 00_baseline.sql で anon から revoke 済み。以前は
+//  「anon に EXECUTE 権限が無い」と書いていたが、これは事実ではなかった）
 
 import { weekStartMs, DAY } from "@/lib/calendar";
 import type {

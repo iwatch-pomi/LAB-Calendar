@@ -90,11 +90,6 @@ export interface Todo {
 }
 
 /**
- * ユーザーごとの機能フラグ（プロフィールの設定で切替）。
- * 個別機能のキーは lib/features.ts の FEATURES で定義（例: bio_culture_lineage）。
- * 機能追加に強いよう任意の文字列キーを許可する。
- */
-/**
  * 利用形態。user_settings.role カラム（専用カラム）に保存する。
  *
  * ログイン後の行き先（学生カレンダー / 教授の管理画面）を決める土台なので、
@@ -103,6 +98,21 @@ export interface Todo {
  */
 export type UserRole = "student" | "teacher";
 
+/**
+ * ユーザーごとの機能フラグ（プロフィールの設定で切替）。user_settings.features
+ * (jsonb) に保存する。
+ *
+ * **添字シグネチャ（`[key: string]: ...`）は置かない。** 置くと
+ * `keyof FeatureFlags` が `string` に潰れ、綴りを間違えたキーが型検査を
+ * すり抜けて jsonb に書かれる。書き込みは成功するので何のエラーも出ず、
+ * 以後そのフラグはずっと `undefined`（＝機能オフ）のままになる。
+ *
+ * 機能を増やすときは lib/features.ts の FEATURES と、ここの両方に足す。
+ * （FeatureDef.key の型がこの union なので、片方だけだと型検査で止まる）
+ *
+ * なお、キーの綴りは縛れるが**値の型までは縛れない**（`useUpdateFeature` の
+ * value は `boolean | number | string` の広い型）。
+ */
 export interface FeatureFlags {
   /** 初回オンボーディング（研究分野の選択）完了フラグ */
   onboarded?: boolean;
@@ -119,8 +129,20 @@ export interface FeatureFlags {
   work_end_hour?: number;
   /** 配色（ライト / ダーク / システム設定と同期）。未設定は「システム」扱い */
   theme?: "light" | "dark" | "system";
-  [key: string]: boolean | number | string | undefined;
+
+  // ---- 実験モードの個別機能（lib/features.ts の FEATURES と 1:1） ----
+  /** 継代培養の記録（培養時間の予定 + 培地管理ページ） */
+  bio_culture_lineage?: boolean;
+  /** 収率・モル計算 */
+  chem_calc?: boolean;
+  /** 測定統計 */
+  physics_stats?: boolean;
+  /** 単位変換 */
+  engineering_unit?: boolean;
 }
+
+/** FeatureFlags のキー。綴り違いを型検査で止めるために使う */
+export type FeatureFlagKey = keyof FeatureFlags;
 
 export interface UserSettings {
   user_id: string;
