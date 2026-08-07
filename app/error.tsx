@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { AlertTriangle, RotateCw } from "lucide-react";
+import { ThemeRoot } from "@/components/ThemeRoot";
 
 /**
  * 想定外の例外で画面が真っ白になるのを防ぐ受け皿。App Router が自動で拾う。
@@ -22,7 +23,7 @@ export default function Error({
   }, [error]);
 
   return (
-    <div data-theme-root>
+    <ThemeRoot>
       <div className="flex min-h-screen items-center justify-center bg-[#f6f8fa] p-6 dark:bg-gray-950">
         <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-500/10">
@@ -49,6 +50,6 @@ export default function Error({
           )}
         </div>
       </div>
-    </div>
+    </ThemeRoot>
   );
 }

@@ -1,9 +1,19 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useSettings } from "@/lib/queries";
 import { isValidTheme } from "@/lib/theme";
 import { useTheme } from "./ThemeProvider";
+
+/**
+ * 適用済みフラグ。**モジュールスコープ＝ページ読み込みごとに1回**。
+ *
+ * useRef だとコンポーネントのインスタンスごとになり、画面遷移で新しく
+ * マウントされるたびに再適用されていた（このフックは Sidebar / ProfileView /
+ * TeacherDashboard の3箇所が呼ぶ）。アカウント側の値が古いと、ユーザーが
+ * その場で切り替えた設定を遷移した瞬間に巻き戻してしまう。
+ */
+let appliedThisPageLoad = false;
 
 /**
  * ログイン済みアカウントに保存されているテーマを、初回だけ適用する。
@@ -22,11 +32,10 @@ import { useTheme } from "./ThemeProvider";
 export function useThemeAccountSync() {
   const settingsQ = useSettings();
   const { theme, setTheme } = useTheme();
-  const applied = useRef(false);
 
   useEffect(() => {
-    if (applied.current || !settingsQ.isSuccess) return;
-    applied.current = true;
+    if (appliedThisPageLoad || !settingsQ.isSuccess) return;
+    appliedThisPageLoad = true;
     const accountTheme = settingsQ.data?.theme;
     if (isValidTheme(accountTheme) && accountTheme !== theme) {
       setTheme(accountTheme);

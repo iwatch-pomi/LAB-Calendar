@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { AuthForm } from "@/components/auth/AuthForm";
+import { ThemeRoot } from "./ThemeRoot";
 
 /**
  * 教授・指導者向けの入口(/teacher)で、未ログイン時に表示する独立したログイン画面。
@@ -10,7 +11,7 @@ import { AuthForm } from "@/components/auth/AuthForm";
  */
 export function TeacherLoginScreen() {
   return (
-    <div data-theme-root suppressHydrationWarning>
+    <ThemeRoot>
       <div className="grid min-h-screen place-items-center bg-[#f6f8fa] p-4 dark:bg-gray-950">
         <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-sm dark:bg-gray-900">
           <Link href="/" className="inline-block transition hover:opacity-80">
@@ -38,6 +39,6 @@ export function TeacherLoginScreen() {
           </p>
         </div>
       </div>
-    </div>
+    </ThemeRoot>
   );
 }

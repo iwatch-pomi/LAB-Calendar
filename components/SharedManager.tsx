@@ -35,6 +35,7 @@ import {
   MailPlus,
 } from "lucide-react";
 import { BackHomeLink } from "./BackHomeLink";
+import { ThemeRoot } from "./ThemeRoot";
 
 /**
  * 共有の管理ページ。
@@ -136,10 +137,7 @@ export function SharedManager({
   }
 
   return (
-    // Tailwind の dark: は「.dark を祖先に持つ要素」にしか効かず、同じ要素に
-    // .dark と dark:bg-... を両方付けても背景色が付かない。目印(data-theme-root)
-    // だけを持つ外枠を1枚足し、実際のスタイルは内側の div に持たせる。
-    <div data-theme-root suppressHydrationWarning>
+    <ThemeRoot>
       <div className="min-h-screen bg-[#f6f8fa] dark:bg-gray-950">
         <header className="border-b border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-800">
           <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-5 py-3">
@@ -398,7 +396,7 @@ export function SharedManager({
 
         </main>
       </div>
-    </div>
+    </ThemeRoot>
   );
 }
 

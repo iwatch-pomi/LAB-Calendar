@@ -35,6 +35,7 @@ import {
   X,
   Eye,
 } from "lucide-react";
+import { ThemeRoot } from "./ThemeRoot";
 
 const STATUS_LABEL: Record<string, string> = {
   planning: "未着手",
@@ -141,7 +142,7 @@ export function ArchivedExperimentView({
 
   if (!loading && !experiment) {
     return (
-      <div data-theme-root suppressHydrationWarning>
+      <ThemeRoot>
       <div className="grid min-h-screen place-items-center bg-[#f6f8fa] p-6 dark:bg-gray-950">
         <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center dark:bg-gray-900 dark:border-gray-800">
           <p className="text-sm text-gray-600 dark:text-gray-300">
@@ -155,17 +156,14 @@ export function ArchivedExperimentView({
           </Link>
         </div>
       </div>
-      </div>
+      </ThemeRoot>
     );
   }
 
   const pal = paletteFor(experiment?.color ?? "teal");
 
   return (
-    // Tailwind の dark: は「.dark を祖先に持つ要素」にしか効かず、同じ要素に
-    // .dark と dark:bg-... を両方付けても背景色が付かない。目印(data-theme-root)
-    // だけを持つ外枠を1枚足し、実際のスタイルは内側の div に持たせる。
-    <div data-theme-root suppressHydrationWarning>
+    <ThemeRoot>
       <div className="flex h-screen flex-col overflow-hidden bg-[#f6f8fa] dark:bg-gray-950">
         {/* 見出し */}
         <header className="border-b border-gray-200 bg-white px-4 py-3 dark:bg-gray-900 dark:border-gray-800">
@@ -310,7 +308,7 @@ export function ArchivedExperimentView({
           />
         )}
       </div>
-    </div>
+    </ThemeRoot>
   );
 }
 

@@ -40,6 +40,7 @@ import {
   AlertTriangle,
   CircleAlert,
 } from "lucide-react";
+import { ThemeRoot } from "./ThemeRoot";
 
 const TZ = 540 * 60 * 1000;
 
@@ -134,10 +135,7 @@ export function CultureManager({ userEmail }: { userEmail: string }) {
   const avatarPal = paletteFor(profile?.avatar_color ?? "teal");
 
   return (
-    // Tailwind の dark: は「.dark を祖先に持つ要素」にしか効かず、同じ要素に
-    // .dark と dark:bg-... を両方付けても背景色が付かない。目印(data-theme-root)
-    // だけを持つ外枠を1枚足し、実際のスタイルは内側の div に持たせる。
-    <div data-theme-root suppressHydrationWarning>
+    <ThemeRoot>
       <div className="min-h-screen bg-[#f6f8fa] dark:bg-gray-950">
         {/* ヘッダー */}
         <header className="border-b border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-800">
@@ -332,7 +330,7 @@ export function CultureManager({ userEmail }: { userEmail: string }) {
           )}
         </main>
       </div>
-    </div>
+    </ThemeRoot>
   );
 }
 

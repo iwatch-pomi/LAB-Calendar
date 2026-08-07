@@ -49,15 +49,16 @@ function systemPrefersDark(): boolean {
 }
 
 /**
- * ダークモードの適用先を示す目印。CalendarApp（/app）と TeacherDashboard
- * （/teacher）の一番外側の div だけに付ける。
+ * ダークモードの適用先を示す目印。付けるのは `ThemeRoot` コンポーネントだけで、
+ * 手書きしないこと（components/ThemeRoot.tsx）。
  *
- * ダークモードの対象は「カレンダー画面と教授の管理画面」に限定されている。
- * .dark クラスを <html> に付けると Tailwind の dark: は祖先に .dark が
- * あるだけで効いてしまうため、ロゴなど複数画面で共有するコンポーネントに
+ * ここに定数として置いてあるのは、`app/layout.tsx` のインラインスクリプトが
+ * ハイドレーション前に `querySelectorAll` で拾うため。
+ *
+ * .dark クラスを <html> に付けないのは、Tailwind の dark: が祖先に .dark が
+ * あるだけで効いてしまうから。ロゴなど複数画面で共有するコンポーネントに
  * dark: を足した瞬間、常にライト固定であるべき公式サイト（/）にまで
- * ダーク配色が漏れてしまう。それを避けるため、.dark は <html> ではなく
- * この目印を持つ要素にだけ付け外しする。
+ * ダーク配色が漏れてしまう。
  */
 export const THEME_ROOT_ATTR = "data-theme-root";
 
@@ -90,14 +91,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const resolvedTheme = resolveTheme(theme, prefersDark);
 
-  // [data-theme-root] の .dark クラスへ反映（/app /teacher の外枠のみ。
-  // <html> には触れない＝公式サイトは常にライトのまま）
-  useEffect(() => {
-    const roots = document.querySelectorAll(`[${THEME_ROOT_ATTR}]`);
-    roots.forEach((el) =>
-      el.classList.toggle("dark", resolvedTheme === "dark"),
-    );
-  }, [resolvedTheme]);
+  // .dark クラスの付け外しはここでは行わない。以前は querySelectorAll で
+  // まとめて塗っていたが、この Provider は app/layout.tsx にあって画面遷移で
+  // 再マウントされない一方、目印の要素はページ側にあって遷移のたびに作り直される。
+  // そのため遷移でダークが外れる不具合になっていた。適用は要素自身の責任
+  // （ThemeRoot）に移してある。
 
   const setTheme = useCallback((next: Theme) => {
     setThemeState(next);

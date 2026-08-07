@@ -41,6 +41,7 @@ import {
   CircleDot,
   AlertTriangle,
 } from "lucide-react";
+import { ThemeRoot } from "./ThemeRoot";
 
 function fmtDate(ms: number): string {
   const d = new Date(ms + 540 * 60000);
@@ -123,10 +124,7 @@ export function SharedCalendarView({ ownerId }: { ownerId: string }) {
   const pal = paletteFor(PALETTE_KEYS[0]);
 
   return (
-    // Tailwind の dark: は「.dark を祖先に持つ要素」にしか効かず、同じ要素に
-    // .dark と dark:bg-... を両方付けても背景色が付かない。目印(data-theme-root)
-    // だけを持つ外枠を1枚足し、実際のスタイルは内側の div に持たせる。
-    <div data-theme-root suppressHydrationWarning>
+    <ThemeRoot>
       <div className="flex h-screen flex-col overflow-hidden bg-[#f6f8fa] dark:bg-gray-950">
         <header className="border-b border-gray-200 bg-white px-4 py-3 dark:bg-gray-900 dark:border-gray-800">
           <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -272,7 +270,7 @@ export function SharedCalendarView({ ownerId }: { ownerId: string }) {
           />
         )}
       </div>
-    </div>
+    </ThemeRoot>
   );
 }
 

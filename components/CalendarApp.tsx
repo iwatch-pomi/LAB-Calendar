@@ -42,6 +42,7 @@ import { migrateGuestData } from "@/lib/guestMigration";
 import { shouldAutoOpenTutorial } from "@/lib/tutorial";
 import { isTeacher, shouldAskRole } from "@/lib/role";
 import { useClaimInvitationsOnce } from "@/lib/sharedQueries";
+import { ThemeRoot } from "./ThemeRoot";
 
 export type ViewMode = "day" | "week" | "month";
 
@@ -406,10 +407,7 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
   }, [isGuest, createTask, addTodo]);
 
   return (
-    // Tailwind の dark: は「.dark を祖先に持つ要素」にしか効かず、同じ要素に
-    // .dark と dark:bg-... を両方付けても背景色が付かない。目印(data-theme-root)
-    // だけを持つ外枠を1枚足し、実際のスタイルは内側の div に持たせる。
-    <div data-theme-root suppressHydrationWarning>
+    <ThemeRoot>
     <div className="flex h-screen overflow-hidden bg-[#f6f8fa] dark:bg-gray-950">
       {showDemoChoice && (
         <DemoDataChoiceModal
@@ -586,6 +584,6 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
 
       {authOpen && <AuthModal onClose={closeAuth} />}
     </div>
-    </div>
+    </ThemeRoot>
   );
 }
