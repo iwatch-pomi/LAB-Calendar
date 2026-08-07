@@ -24,6 +24,7 @@ import {
   Check,
 } from "lucide-react";
 import { ThemeRoot } from "./ThemeRoot";
+import { PendingDeletionBanner } from "./PendingDeletionBanner";
 
 /**
  * 教授・指導者向けの管理画面。
@@ -100,6 +101,8 @@ export function TeacherDashboard({ userEmail }: { userEmail: string }) {
           </div>
         </div>
       </header>
+
+      <PendingDeletionBanner />
 
       <main className="mx-auto max-w-3xl px-5 py-6">
         <div className="mb-5">

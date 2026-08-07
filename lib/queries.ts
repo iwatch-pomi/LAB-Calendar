@@ -40,6 +40,7 @@ export const qk = {
   cultureMedia: ["culture_media"] as const,
   profile: ["profile"] as const,
   feedback: ["feedback"] as const,
+  deletion: ["deletion_schedule"] as const,
 };
 
 /**
@@ -1018,29 +1019,56 @@ export function useRefreshAll() {
 }
 
 /**
- * 退会（アカウントの削除）。
+ * 退会の予約状況（削除予定日時）。null なら予約していない。
  *
- * サーバー側の RPC が `auth.users` から自分の行だけを消し、public の各テーブルは
- * `on delete cascade` で連鎖して消える（実験・予定・ToDo・装置・テンプレート・
- * 培地・設定・お問い合わせ・研究室・所属・共有・招待・コメント）。
- *
- * service_role キーは使っていない。あれば全ユーザーのデータを読み書きできて
- * しまうため、`auth.uid()` の行しか触れない関数1本に閉じ込めている。
- *
- * 削除後はセッションの持ち主が存在しないので、サインアウトが失敗することが
- * ある。失敗しても呼び出し側は必ず画面を離れさせること（この関数は投げない）。
+ * カレンダーとマイページの両方で予告バナーを出すため、共通のフックにしている。
  */
-export function useDeleteAccount() {
+export function useDeletionSchedule() {
+  const { isGuest } = useGuest();
+  return useQuery({
+    queryKey: scoped(qk.deletion, isGuest),
+    queryFn: async (): Promise<string | null> => {
+      if (isGuest) return null;
+      const uid = await currentUserId();
+      if (!uid) throw new Error("useDeletionSchedule: セッションがまだありません");
+      const { data, error } = await supabase
+        .from("user_settings")
+        .select("deletion_scheduled_at")
+        .eq("user_id", uid)
+        .maybeSingle();
+      // 読めないときに「予約なし」と答えると予告バナーが消えてしまう。投げる。
+      if (error) throw error;
+      return data?.deletion_scheduled_at ?? null;
+    },
+  });
+}
+
+/**
+ * 退会の予約。7日後の削除予定日時（DB が計算したもの）を返す。
+ *
+ * 猶予の日数はDB側だけが持つ。画面はここで返ってきた日時を表示するだけにして、
+ * 同じ日数をアプリとDBの2箇所に書かないようにしている。
+ */
+export function useRequestAccountDeletion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (): Promise<string> => {
+      const { data, error } = await supabase.rpc("request_account_deletion");
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.deletion }),
+  });
+}
+
+/** 退会の予約を取り消す */
+export function useCancelAccountDeletion() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.rpc("delete_own_account");
+      const { error } = await supabase.rpc("cancel_account_deletion");
       if (error) throw error;
-      try {
-        await supabase.auth.signOut();
-      } catch {
-        // 既にユーザーが消えているのでサーバー側は失敗しうる。
-        // ローカルのセッションは破棄されるので、ここは握って進めてよい。
-      }
     },
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.deletion }),
   });
 }

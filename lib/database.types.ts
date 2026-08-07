@@ -495,6 +495,7 @@ export type Database = {
           avatar_emoji: string | null;
           avatar_color: string | null;
           role: string;
+          deletion_scheduled_at: string | null;
         };
         Insert: {
           user_id: string;
@@ -504,6 +505,7 @@ export type Database = {
           avatar_emoji?: string | null;
           avatar_color?: string | null;
           role?: string;
+          deletion_scheduled_at?: string | null;
         };
         Update: {
           user_id?: string;
@@ -513,12 +515,17 @@ export type Database = {
           avatar_emoji?: string | null;
           avatar_color?: string | null;
           role?: string;
+          deletion_scheduled_at?: string | null;
         };
         Relationships: [];
       };
     };
     Views: Record<string, never>;
     Functions: {
+      cancel_account_deletion: {
+        Args: Record<string, never>;
+        Returns: undefined;
+      };
       claim_share_invitations: {
         Args: Record<string, never>;
         Returns: number;
@@ -537,6 +544,10 @@ export type Database = {
         Args: {
           code: string;
         };
+        Returns: string;
+      };
+      request_account_deletion: {
+        Args: Record<string, never>;
         Returns: string;
       };
       seed_demo_data: {

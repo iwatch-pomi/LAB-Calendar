@@ -20,7 +20,8 @@ import {
   useAddEquipment,
   useDeleteEquipment,
   useAddFeedback,
-  useDeleteAccount,
+  useDeletionSchedule,
+  useRequestAccountDeletion,
 } from "@/lib/queries";
 import { useMyShares, useSharedWithMe, useMyLabs } from "@/lib/sharedQueries";
 import { resolveTeacherView } from "@/lib/role";
@@ -78,6 +79,11 @@ import {
 import { ThemeRoot } from "./ThemeRoot";
 import { CONTACT_EMAIL, PRIVACY_PATH, TERMS_PATH } from "@/lib/site";
 import { RESET_PASSWORD_PATH } from "@/lib/authRedirect";
+import { PendingDeletionBanner } from "./PendingDeletionBanner";
+import {
+  DELETION_GRACE_DAYS,
+  formatDeletionDate,
+} from "@/lib/accountDeletion";
 import {
   DeleteAccountModal,
   type DeleteAccountCounts,
@@ -257,6 +263,8 @@ export function ProfileView({
             </button>
           </div>
         </header>
+
+        <PendingDeletionBanner />
 
         <main className="mx-auto max-w-3xl px-5 py-6">
           {/* プロフィール */}
@@ -914,20 +922,21 @@ function DangerZoneSection({
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const deleteAccount = useDeleteAccount();
+  const scheduleQ = useDeletionSchedule();
+  const request = useRequestAccountDeletion();
+
+  const scheduledAt = scheduleQ.data ?? null;
 
   async function confirm() {
     setError(null);
     try {
-      await deleteAccount.mutateAsync();
-      // 削除後はセッションの持ち主が居ない。SPA 遷移だと古い状態が残るので
-      // ページごと公式サイトへ移動する。
-      window.location.href = "/";
+      await request.mutateAsync();
+      setOpen(false);
     } catch (e) {
       setError(
         e instanceof Error && e.message
-          ? `削除できませんでした（${e.message}）`
-          : "削除できませんでした。",
+          ? `受け付けられませんでした（${e.message}）`
+          : "受け付けられませんでした。",
       );
     }
   }
@@ -940,25 +949,40 @@ function DangerZoneSection({
           アカウントの削除
         </h2>
       </div>
-      <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-        アカウントと、保存されている実験・予定・ToDo などをすべて削除します。
-        取り消しはできず、削除したデータは復元できません。
-      </p>
-      <button
-        onClick={() => {
-          setError(null);
-          setOpen(true);
-        }}
-        className="mt-3 rounded-lg border border-rose-300 px-3 py-1.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-400 dark:hover:bg-rose-500/10"
-      >
-        アカウントを削除する
-      </button>
+
+      {scheduledAt ? (
+        // 予約中。取り消しの導線は上部のバナーが持っているので、ここでは状況だけ。
+        <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+          <span className="font-semibold text-rose-600 dark:text-rose-400">
+            {formatDeletionDate(scheduledAt)}
+          </span>{" "}
+          に削除される予定です。取り消す場合は、画面上部の
+          「削除を取り消す」を押してください。
+        </p>
+      ) : (
+        <>
+          <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+            アカウントと、保存されている実験・予定・ToDo などをすべて削除します。
+            削除は{DELETION_GRACE_DAYS}日後に実行され、それまでは取り消せます。
+            実行後は復元できません。
+          </p>
+          <button
+            onClick={() => {
+              setError(null);
+              setOpen(true);
+            }}
+            className="mt-3 rounded-lg border border-rose-300 px-3 py-1.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-400 dark:hover:bg-rose-500/10"
+          >
+            アカウントを削除する
+          </button>
+        </>
+      )}
 
       {open && (
         <DeleteAccountModal
           email={email}
           counts={counts}
-          deleting={deleteAccount.isPending}
+          deleting={request.isPending}
           errorMessage={error}
           onConfirm={confirm}
           onClose={() => setOpen(false)}

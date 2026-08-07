@@ -43,6 +43,7 @@ import { shouldAutoOpenTutorial } from "@/lib/tutorial";
 import { isTeacher, shouldAskRole } from "@/lib/role";
 import { useClaimInvitationsOnce } from "@/lib/sharedQueries";
 import { ThemeRoot } from "./ThemeRoot";
+import { PendingDeletionBanner } from "./PendingDeletionBanner";
 
 export type ViewMode = "day" | "week" | "month";
 
@@ -441,6 +442,8 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {isGuest && <GuestBanner />}
+        {/* 退会を予約している間の予告。予約が無ければ何も描画しない */}
+        {!isGuest && <PendingDeletionBanner />}
         {loadFailed && (
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm dark:border-amber-500/20 dark:bg-amber-500/10">
             <span className="flex min-w-0 items-center gap-1.5 text-amber-900 dark:text-amber-300">

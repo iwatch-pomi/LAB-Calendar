@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AlertTriangle, X } from "lucide-react";
 import { CONTACT_EMAIL } from "@/lib/site";
+import { DELETION_GRACE_DAYS } from "@/lib/accountDeletion";
 
 /** 実行のために入力してもらう文字列。短すぎると誤操作と区別が付かない */
 export const DELETE_CONFIRM_PHRASE = "アカウントを削除";
@@ -79,8 +80,12 @@ export function DeleteAccountModal({
             {email}
           </span>{" "}
           のアカウントと、保存されているデータをすべて削除します。
-          <span className="font-semibold text-rose-600 dark:text-rose-400">
-            この操作は取り消せません。
+        </p>
+        <p className="mt-2 rounded-xl bg-brand-50 px-3 py-2 text-xs leading-relaxed text-brand-800 dark:bg-brand-900/20 dark:text-brand-300">
+          削除は<span className="font-semibold">{DELETION_GRACE_DAYS}日後</span>
+          に実行されます。それまではマイページからいつでも取り消せます。
+          <span className="font-semibold">
+            実行後は復元できません。
           </span>
         </p>
 
@@ -154,7 +159,7 @@ export function DeleteAccountModal({
             disabled={!ready}
             className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {deleting ? "削除しています…" : "完全に削除する"}
+            {deleting ? "受け付けています…" : "削除を予約する"}
           </button>
         </div>
       </div>

@@ -35,7 +35,9 @@ with expected(version, name) as (values
   ('0017', 'set_features'),
   ('0018', 'backfill_onboarded'),
   ('0019', 'revoke_anon_execute'),
-  ('0020', 'delete_own_account')
+  ('0020', 'delete_own_account'),
+  ('0021', 'account_deletion_grace'),
+  ('0022', 'schedule_purge')
 ),
 
 expected_tables(t) as (values
@@ -68,6 +70,48 @@ policy_fns as (
           and (coalesce(pol.qual, '') || ' ' || coalesce(pol.with_check, ''))
               like '%' || p.proname || '(%'
      )
+),
+
+-- 「まだ適用していないSQLが作るもの」を見に行くための逃げ道。
+--
+-- CHECK.sql は1本の SELECT なので、存在しない列や関数の名前を素で書くと
+-- PostgreSQL が**実行前の解析で落ち**、台帳の行すら1つも出ません。
+-- 「未適用を知らせる」ための CHECK.sql が「未適用だと動かない」のでは
+-- 意味がないので、問い合わせを**文字列として組み立て**、対象が実在する
+-- ときだけ中身のあるSQLにして query_to_xml で実行します。
+-- （query_to_xml は引数の text をその場で実行するので、解析時に名前を
+--   解決しません。無ければ 'select null' 側を渡すだけで済みます）
+--
+-- 新しい列や関数を CHECK.sql から見たくなったら、ここに1行足してください。
+dyn(key, val) as (
+  select q.key,
+         (xpath('/row/v/text()', query_to_xml(q.sql, false, true, '')))[1]::text
+    from (values
+      -- 21/22 … 退会の定期実行が登録されているか
+      ('purge_job',
+       case when to_regprocedure('public.purge_job_scheduled()') is null
+            then 'select null as v'
+            else 'select public.purge_job_scheduled()::text as v' end),
+      -- 21 … 削除待ちのアカウント数
+      ('pending',
+       case when not exists (
+              select 1 from information_schema.columns
+               where table_schema = 'public' and table_name = 'user_settings'
+                 and column_name = 'deletion_scheduled_at')
+            then 'select null as v'
+            else 'select count(*)::text as v from public.user_settings'
+                 || ' where deletion_scheduled_at is not null' end),
+      -- 21 … そのうち期限を過ぎたのに残っているもの（＝定期実行が動いていない証拠）
+      ('overdue',
+       case when not exists (
+              select 1 from information_schema.columns
+               where table_schema = 'public' and table_name = 'user_settings'
+                 and column_name = 'deletion_scheduled_at')
+            then 'select null as v'
+            else 'select count(*)::text as v from public.user_settings'
+                 || ' where deletion_scheduled_at is not null'
+                 || '   and deletion_scheduled_at <= now()' end)
+    ) q(key, sql)
 ),
 
 rows_ (kubun, komoku, jotai, shosai) as (
@@ -275,6 +319,30 @@ rows_ (kubun, komoku, jotai, shosai) as (
     left join pg_proc p
       on p.pronamespace = 'public'::regnamespace
      and p.proname = 'delete_own_account'
+
+  -- 退会の予約を実際に実行する仕組み。これが動いていないと、画面で
+  -- 「7日後に削除します」と約束しておいて実際には消えない状態になる。
+  union all
+  select '退会', '期限切れアカウントの自動削除',
+         case when j.val = 'true' then 'OK' else 'NG' end,
+         case when j.val is null
+              then '猶予つき退会がまだ入っていません。'
+                   || '21_account_deletion_grace.sql を実行してください'
+              when j.val = 'true'
+              then '毎日実行されます（pg_cron: labocale-purge-expired-accounts）'
+              else '定期実行が登録されていません。退会を予約しても実際には削除されません。'
+                   || 'pg_cron を有効化して 22_schedule_purge.sql を実行してください'
+         end
+    from (select val from dyn where key = 'purge_job') j
+
+  union all
+  select '退会', '削除待ちのアカウント', '情報',
+         p.val || ' 件'
+         || case when o.val in ('0', '') or o.val is null then ''
+                 else ' / うち期限切れ ' || o.val || ' 件（未削除）' end
+    from (select val from dyn where key = 'pending') p,
+         (select val from dyn where key = 'overdue') o
+   where p.val is not null
 
   union all
   select '関数', 'seed_demo_data',
