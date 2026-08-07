@@ -31,7 +31,9 @@ with expected(version, name) as (values
   ('0013', 'shared_profiles'),
   ('0014', 'invitation_dedup'),
   ('0015', 'fix_create_lab'),
-  ('0016', 'user_role')
+  ('0016', 'user_role'),
+  ('0017', 'set_features'),
+  ('0018', 'backfill_onboarded')
 ),
 
 expected_tables(t) as (values
@@ -60,7 +62,13 @@ rows_ (kubun, komoku, jotai, shosai) as (
   select '台帳', e.version || '_' || e.name,
          case when m.version is null then 'NG' else 'OK' end,
          case when m.version is null
-              then '未適用です。00_baseline.sql を実行してください'
+              -- 0000〜0016 はベースラインに統合済み。0017 以降は個別ファイル。
+              then case when e.version <= '0016'
+                        then '未適用です。00_baseline.sql を実行してください'
+                        else '未適用です。'
+                             || ltrim(e.version, '0') || '_' || e.name
+                             || '.sql を実行してください'
+                   end
               else to_char(m.applied_at, 'YYYY-MM-DD HH24:MI') || ' 適用（' || m.applied_by || '）'
          end
     from expected e
@@ -172,6 +180,16 @@ rows_ (kubun, komoku, jotai, shosai) as (
            where pronamespace = 'public'::regnamespace
              and proname = 'share_calendar_by_email' limit 1) p
    right join (select 1) _ on true
+
+  union all
+  select '関数', 'set_features',
+         case when to_regprocedure('public.set_features(jsonb)') is null
+              then 'NG' else 'OK' end,
+         case when to_regprocedure('public.set_features(jsonb)') is null
+              then 'ありません。表示設定を保存すると他の設定（研究分野の選択済み・'
+                   || '利用形態・配色）が消えます。17_set_features.sql を実行してください'
+              else '表示設定を1つ変えても他のフラグを消しません'
+         end
 
   union all
   select '関数', 'visible_profiles',

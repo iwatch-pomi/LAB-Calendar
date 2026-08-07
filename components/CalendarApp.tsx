@@ -250,7 +250,14 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
   // 「予定が0件のカレンダー」が普通に描画されてしまう。作成ボタンも押せるため、
   // ユーザーには**本当にデータが消えたのと区別が付かない**。必ず理由を出す。
   const loadFailed =
-    tasksQ.isError || experimentsQ.isError || depsQ.isError || todosQ.isError;
+    tasksQ.isError ||
+    experimentsQ.isError ||
+    depsQ.isError ||
+    todosQ.isError ||
+    // 設定が読めないときも黙らない。読めない間はオンボーディングなどの
+    // モーダルを出さない作りなので、何も言わないと「設定が効いていない」
+    // 理由が分からなくなる。
+    settingsQ.isError;
 
   // 表示日数: 日表示は常に1日、週表示は画面幅に応じて3/7日、月表示は無関係
   const activeDays = view === "day" ? 1 : visibleDays;
@@ -452,6 +459,7 @@ function CalendarAppInner({ userEmail }: { userEmail: string }) {
                 experimentsQ.refetch();
                 depsQ.refetch();
                 todosQ.refetch();
+                settingsQ.refetch();
               }}
               className="shrink-0 rounded-lg border border-amber-300 bg-white px-3 py-1 text-xs font-medium text-amber-800 transition hover:bg-amber-100 dark:border-amber-500/30 dark:bg-gray-900 dark:text-amber-300 dark:hover:bg-amber-500/10"
             >

@@ -112,8 +112,12 @@ export type UserRole = "student" | "teacher";
  *
  * なお、キーの綴りは縛れるが**値の型までは縛れない**（`useUpdateFeature` の
  * value は `boolean | number | string` の広い型）。
+ *
+ * `interface` ではなく `type` にしているのは、そのまま jsonb（Json 型）として
+ * 送れるようにするため。TypeScript は interface に暗黙の添字シグネチャを
+ * 与えないので、interface のままだと set_features RPC の引数に渡せない。
  */
-export interface FeatureFlags {
+export type FeatureFlags = {
   /** 初回オンボーディング（研究分野の選択）完了フラグ */
   onboarded?: boolean;
   /** 新規登録時のデモデータ案内（残す/空で始める）に回答済みか */
@@ -139,7 +143,7 @@ export interface FeatureFlags {
   physics_stats?: boolean;
   /** 単位変換 */
   engineering_unit?: boolean;
-}
+};
 
 /** FeatureFlags のキー。綴り違いを型検査で止めるために使う */
 export type FeatureFlagKey = keyof FeatureFlags;

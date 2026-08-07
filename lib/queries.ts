@@ -13,6 +13,7 @@ import type {
   Equipment,
   Experiment,
   FeatureFlags,
+  FeatureFlagKey,
   FeedbackCategory,
   Task,
   TaskDependency,
@@ -239,12 +240,21 @@ export function useSettings() {
       // ゲストは設定を保存できないので既定値。onboarded を立てて
       // オンボーディング（保存にログインが要り、閉じられない）を抑止する。
       if (isGuest) return { onboarded: true };
+      // 「読めなかった」を空の設定として返してはいけない。
+      // 空 = onboarded も role_chosen も未設定 = 新規ユーザー、と解釈されて
+      // 既にお使いの方にオンボーディングと利用形態の確認が出てしまう。
+      // セッションが載る前に投げると RLS で「成功して0件」になるので必ず待つ。
+      const uid = await currentUserId();
+      if (!uid) throw new Error("useSettings: セッションがまだありません");
       const { data, error } = await supabase
         .from("user_settings")
         .select("features")
+        .eq("user_id", uid)
         .maybeSingle();
-      // テーブル未作成でもクラッシュさせず既定（全機能オフ）を返す
-      if (error) return {};
+      // 握り潰さない。投げれば isSuccess にならず、モーダルの判定も動かない
+      // （呼び出し側は settingsLoaded を条件にしている）。
+      if (error) throw error;
+      // 行が本当に無い場合だけが「新規ユーザー」。ここは {} で正しい。
       return ((data?.features as FeatureFlags) ?? {}) as FeatureFlags;
     },
   });
@@ -262,13 +272,19 @@ export function useUserRole() {
     queryKey: scoped(qk.role, isGuest),
     queryFn: async (): Promise<UserRole> => {
       if (isGuest) return "student";
+      // useSettings と同じ理由でセッションを待つ（RLS 下の匿名SELECTは
+      // 「成功して0件」になり、教授が学生扱いされる）。
+      const uid = await currentUserId();
+      if (!uid) throw new Error("useUserRole: セッションがまだありません");
       const { data, error } = await supabase
         .from("user_settings")
         .select("role")
+        .eq("user_id", uid)
         .maybeSingle();
-      // 行が無い/読めない場合は学生として扱う。誤判定の向きを
-      // 「カレンダーが見える（無害）」側に倒し、締め出しを起こさない。
-      if (error) return "student";
+      // 読めなかったときは投げる。未確定（undefined）のままにしておけば
+      // resolveTeacherView がサーバー側で解決した値を使う。
+      if (error) throw error;
+      // 行が無いのは新規ユーザー。学生として扱う（締め出しを起こさない向き）。
       return data?.role === "teacher" ? "teacher" : "student";
     },
   });
@@ -783,19 +799,15 @@ export function useUpdateFeature() {
   const { isGuest } = useGuest();
   return useMutation({
     mutationFn: async (args: {
-      key: keyof FeatureFlags;
+      key: FeatureFlagKey;
       value: boolean | number | string;
     }) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("not authenticated");
-      const current = qc.getQueryData<FeatureFlags>(scoped(qk.settings, isGuest)) ?? {};
-      const features = { ...current, [args.key]: args.value };
-      const { error } = await supabase.from("user_settings").upsert({
-        user_id: user.id,
-        features,
-        updated_at: new Date().toISOString(),
+      // 変えるキーだけを送り、マージは DB 側でやる（set_features）。
+      // 以前はキャッシュを土台に features 全体を組み立てて上書きしていたため、
+      // キャッシュが空のときに他のフラグ（onboarded / role_chosen / theme）が
+      // まとめて消えていた。
+      const { error } = await supabase.rpc("set_features", {
+        patch: { [args.key]: args.value },
       });
       if (error) throw error;
     },
@@ -822,17 +834,8 @@ export function useUpdateFeatures() {
   return useMutation({
     mutationFn: async (partial: FeatureFlags) => {
       if (isGuest) return requireLogin();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("not authenticated");
-      const current = qc.getQueryData<FeatureFlags>(scoped(qk.settings, isGuest)) ?? {};
-      const features = { ...current, ...partial };
-      const { error } = await supabase.from("user_settings").upsert({
-        user_id: user.id,
-        features,
-        updated_at: new Date().toISOString(),
-      });
+      // 単発の更新と同じく、渡された分だけを送って DB 側でマージする
+      const { error } = await supabase.rpc("set_features", { patch: partial });
       if (error) throw error;
     },
     onMutate: async (partial) => {

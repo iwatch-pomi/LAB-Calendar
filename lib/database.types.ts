@@ -539,6 +539,12 @@ export type Database = {
         Args: Record<string, never>;
         Returns: undefined;
       };
+      set_features: {
+        Args: {
+          patch: Json;
+        };
+        Returns: Json;
+      };
       share_calendar_by_email: {
         Args: {
           target_email: string;

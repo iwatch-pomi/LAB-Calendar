@@ -36,6 +36,25 @@ describe("shouldAskRole", () => {
     // 未読込を未選択とみなすと、設定が届くまでの一瞬だけ開いてしまう
     expect(shouldAskRole({ ...newAccount, settingsLoaded: false })).toBe(false);
   });
+
+  it("設定が読めていない間は、他が何であっても絶対に聞かない", () => {
+    // useSettings が読み取り失敗を {} で握り潰していたため、既にお使いの方に
+    // 「学生か教授か」と「研究分野の選択」が再表示される不具合が起きていた。
+    // 読めなかったときは throw して isSuccess にしない（＝ここが false のまま）
+    // ことが対策の要なので、その前提を固定しておく。
+    for (const roleChosen of [true, false]) {
+      for (const onboarded of [true, false]) {
+        expect(
+          shouldAskRole({
+            isGuest: false,
+            settingsLoaded: false,
+            roleChosen,
+            onboarded,
+          }),
+        ).toBe(false);
+      }
+    }
+  });
 });
 
 describe("isTeacher", () => {
