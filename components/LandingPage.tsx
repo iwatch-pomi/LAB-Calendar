@@ -282,7 +282,8 @@ export function LandingPage() {
                   そして教授や先輩への進捗共有まで。
                 </p>
                 <p className="mt-5 text-sm text-gray-500">
-                  すべて無料です。学生の方は登録しなくてもそのまま試せます。
+                  すべて<strong className="font-semibold text-gray-700">無料</strong>
+                  です。学生の方は登録しなくてもそのまま試せます。
                 </p>
               </div>
             </div>
