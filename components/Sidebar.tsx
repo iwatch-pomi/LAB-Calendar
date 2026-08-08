@@ -23,7 +23,7 @@ import {
 import { useCreateEmptyExperiment } from "@/lib/mutations";
 import { TOUR_ANCHORS, tourAttr } from "@/lib/tourAnchors";
 import { useGuest } from "./GuestProvider";
-import { fmtTime, jstInputToISO, isoToJstInput } from "@/lib/calendar";
+import { fmtTime, jstInputToISO, isoToJstInput, nowMs } from "@/lib/calendar";
 import {
   Plus,
   Check,
@@ -175,13 +175,23 @@ export function Sidebar({
     setAdding(false);
   }
 
+  // 完了から24時間経過したToDoを隠す判定は、これに依存させて再計算させる。
+  // タブを開いたままにしていると、データが変わらない限り再レンダーが起きず
+  // 「1日経っても消えない」ように見える（実際はDateを直接呼んでいるだけで
+  // フィルタ自体は正しい）。1分ごとに更新して、開きっぱなしでも隠れるようにする。
+  const [now, setNow] = useState(() => nowMs());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(nowMs()), 60 * 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   // アーカイブした実験はサイドバーから隠す（マイページで確認・復元できる）
   const visibleExperiments = experiments.filter((e) => !e.archived);
 
   // 完了から24時間経過したToDoはサイドバーから隠す（マイページの完了履歴で確認可能）
   const visibleTodos = todos.filter((t) => {
     if (!t.done || !t.completed_at) return true;
-    const elapsed = Date.now() - new Date(t.completed_at).getTime();
+    const elapsed = now - new Date(t.completed_at).getTime();
     return elapsed < 24 * 60 * 60 * 1000;
   });
   const doneCount = visibleTodos.filter((t) => t.done).length;
