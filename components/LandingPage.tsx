@@ -312,11 +312,7 @@ export function LandingPage() {
               </div>
 
               <ul className="mt-auto space-y-1.5">
-                {[
-                  "実験ごとに色分け",
-                  "ドラッグで日程を変更",
-                  "依存関係から後工程を自動でずらす",
-                ].map((t) => (
+                {["実験ごとに色分け", "ドラッグで日程を変更"].map((t) => (
                   <li
                     key={t}
                     className="flex items-center gap-2 text-sm text-gray-600"
