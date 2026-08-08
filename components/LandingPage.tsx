@@ -249,10 +249,10 @@ export function LandingPage() {
           <div className="mx-auto max-w-6xl">
             <div className="grid gap-8 lg:grid-cols-[1.15fr_1fr] lg:items-start lg:gap-14">
               <div>
-                <h1 className="text-4xl font-bold leading-[1.15] tracking-tight text-gray-900 sm:text-5xl lg:text-6xl xl:text-[68px]">
-                  5分ではじめて、
+                <h1 className="text-[26px] font-bold leading-[1.3] tracking-tight text-gray-900 sm:text-4xl lg:text-[42px] xl:text-[44px]">
+                  卒業研究に最適化された、
                   <br />
-                  <span className="text-brand-500">卒業まで使う</span>
+                  <span className="text-brand-500">研究カレンダー</span>
                 </h1>
 
                 <div className="mt-8 flex flex-wrap items-center gap-3">
