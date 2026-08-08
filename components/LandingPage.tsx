@@ -205,7 +205,9 @@ export function LandingPage() {
       {/* ヘッダー。スクロールしても入口が常に見えるよう固定する */}
       <header className="sticky top-0 z-40 border-b border-gray-200/80 bg-white/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-6 px-5 py-3">
-          <Logo size="sm" themed={false} />
+          <Link href="/" className="rounded-lg">
+            <Logo size="sm" themed={false} />
+          </Link>
 
           <nav className="hidden flex-1 items-center gap-1 md:flex">
             {[
