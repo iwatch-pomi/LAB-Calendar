@@ -7,11 +7,15 @@ import type { Metadata } from "next";
 
 // ログインが要る画面なので検索結果には出さない
 export const metadata: Metadata = {
-  title: "カレンダーの共有",
+  title: "共有・研究室",
   robots: { index: false, follow: false },
 };
 
-/** 共有の管理（共有する / 共有中の一覧 / 自分が見られるカレンダー） */
+/**
+ * 共有・研究室。タブで切り替える。
+ * ・共有: 共有する / 共有中の一覧 / 自分が見られるカレンダー
+ * ・研究室: /lab と同じ中身（LabPanel）
+ */
 export default async function SharedPage() {
   const supabase = await createClient();
   const {

@@ -571,53 +571,31 @@ export function ProfileView({
                 <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">共有・研究室</h2>
               </div>
               <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
-                カレンダーを見せる相手を管理します。相手が予定を編集することはできません。
+                カレンダーを見せる相手と、研究室への参加を管理します。相手が予定を編集することはできません。
               </p>
 
-              <div className="space-y-2">
-                <Link
-                  href="/shared"
-                  className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 transition hover:border-brand-300 hover:bg-brand-50/40 dark:bg-gray-800/40 dark:border-gray-700"
-                >
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50 dark:bg-brand-900/20">
-                    <Share2 className="h-4 w-4 text-brand-600 dark:text-brand-400" />
+              {/* 共有と研究室は同じページのタブになったので、入口も1つにしている */}
+              <Link
+                href="/shared"
+                className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 transition hover:border-brand-300 hover:bg-brand-50/40 dark:bg-gray-800/40 dark:border-gray-700"
+              >
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50 dark:bg-brand-900/20">
+                  <Share2 className="h-4 w-4 text-brand-600 dark:text-brand-400" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-gray-800 group-hover:text-brand-700 dark:text-gray-100">
+                    共有・研究室を管理
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold text-gray-800 group-hover:text-brand-700 dark:text-gray-100">
-                      カレンダーを共有
-                    </span>
-                    <span className="block text-xs text-gray-500 dark:text-gray-400">
-                      教授・先輩・共同研究者に予定を見せて進捗を報告できます。
-                    </span>
-                    <span className="mt-0.5 block text-[11px] text-gray-400 dark:text-gray-500">
-                      共有中 {myShares.length} 件 ／ 見られるカレンダー{" "}
-                      {sharedWithMe.length} 件
-                    </span>
+                  <span className="block text-xs text-gray-500 dark:text-gray-400">
+                    教授・先輩に予定を見せる。研究室を作る／参加コードで参加する。
                   </span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-brand-600 dark:text-gray-500" />
-                </Link>
-
-                <Link
-                  href="/lab"
-                  className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 transition hover:border-brand-300 hover:bg-brand-50/40 dark:bg-gray-800/40 dark:border-gray-700"
-                >
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50 dark:bg-brand-900/20">
-                    <Users className="h-4 w-4 text-brand-600 dark:text-brand-400" />
+                  <span className="mt-0.5 block text-[11px] leading-relaxed text-gray-400 dark:text-gray-500">
+                    共有中 {myShares.length} 件 ／ 見られるカレンダー{" "}
+                    {sharedWithMe.length} 件 ／ 所属研究室 {myLabs.length} 件
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold text-gray-800 group-hover:text-brand-700 dark:text-gray-100">
-                      研究室
-                    </span>
-                    <span className="block text-xs text-gray-500 dark:text-gray-400">
-                      研究室を作って参加コードを配る／参加コードで参加する。
-                    </span>
-                    <span className="mt-0.5 block text-[11px] text-gray-400 dark:text-gray-500">
-                      所属 {myLabs.length} 件
-                    </span>
-                  </span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-brand-600 dark:text-gray-500" />
-                </Link>
-              </div>
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-brand-600 dark:text-gray-500" />
+              </Link>
             </section>
 
             {/* 完了したToDo（サイドバーでは完了から24時間で非表示） */}

@@ -41,6 +41,7 @@ import {
   CircleAlert,
 } from "lucide-react";
 import { ThemeRoot } from "./ThemeRoot";
+import { TabButton } from "./TabButton";
 
 const TZ = 540 * 60 * 1000;
 
@@ -353,32 +354,6 @@ function StatCard({
       </div>
       <div className={`mt-1 text-3xl font-bold ${valueClass}`}>{value}</div>
     </div>
-  );
-}
-
-function TabButton({
-  active,
-  onClick,
-  icon,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 font-medium transition ${
-        active
-          ? "bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-300"
-          : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-      }`}
-    >
-      {icon}
-      {children}
-    </button>
   );
 }
 
