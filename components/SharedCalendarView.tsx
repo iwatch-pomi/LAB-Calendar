@@ -275,7 +275,11 @@ export function SharedCalendarView({ ownerId }: { ownerId: string }) {
 }
 
 /** 予定の詳細＋コメント（編集はできない） */
-function SharedTaskDetail({
+/**
+ * 予定の詳細とコメント欄。
+ * このページ（1人ぶんのカレンダー）と、研究室タイムラインの両方から使う。
+ */
+export function SharedTaskDetail({
   task,
   equipmentName,
   myId,

@@ -25,6 +25,7 @@ import {
   EyeOff,
   UserMinus,
   CalendarDays,
+  CalendarRange,
   Trash2,
 } from "lucide-react";
 
@@ -271,6 +272,15 @@ export function LabPanel({
               <span className="text-xs text-gray-400 dark:text-gray-500">{members.length}人</span>
             </div>
             <div className="flex items-center gap-2">
+              {iManage && (
+                <Link
+                  href={`/lab/timeline?lab=${lab.id}`}
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                >
+                  <CalendarRange className="h-3.5 w-3.5" />
+                  全員の予定
+                </Link>
+              )}
               {iManage && (
                 <button
                   onClick={copyCode}

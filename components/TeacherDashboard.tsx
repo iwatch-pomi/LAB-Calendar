@@ -16,6 +16,7 @@ import { Logo } from "./Logo";
 import { useThemeAccountSync } from "./useThemeAccountSync";
 import {
   CalendarDays,
+  CalendarRange,
   Inbox,
   Users,
   Settings,
@@ -179,20 +180,29 @@ export function TeacherDashboard({ userEmail }: { userEmail: string }) {
               )}
             </div>
             {lab && (
-              <button
-                onClick={copyCode}
-                className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-              >
-                {copied ? (
-                  <Check className="h-3.5 w-3.5 text-brand-600 dark:text-brand-400" />
-                ) : (
-                  <Copy className="h-3.5 w-3.5" />
-                )}
-                参加コード:{" "}
-                <span className="font-mono tracking-widest">
-                  {lab.invite_code}
-                </span>
-              </button>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/lab/timeline?lab=${lab.id}`}
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                >
+                  <CalendarRange className="h-3.5 w-3.5" />
+                  全員の予定
+                </Link>
+                <button
+                  onClick={copyCode}
+                  className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                >
+                  {copied ? (
+                    <Check className="h-3.5 w-3.5 text-brand-600 dark:text-brand-400" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                  参加コード:{" "}
+                  <span className="font-mono tracking-widest">
+                    {lab.invite_code}
+                  </span>
+                </button>
+              </div>
             )}
           </div>
 

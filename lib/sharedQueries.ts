@@ -50,6 +50,21 @@ export const sqk = {
   deps: (ownerId: string) => ["shared", "deps", ownerId] as const,
   equipment: (ownerId: string) => ["shared", "equipment", ownerId] as const,
   comments: (taskId: string) => ["shared", "comments", taskId] as const,
+  /**
+   * 研究室タイムライン用。1人用の tasks(ownerId) とは別のキーにしてある。
+   * 対象者が変わればキーも変わるよう、id を並べ替えて連結して持つ
+   * （メンバーが増減したときに古い結果を再利用してしまわないように）。
+   */
+  labTimelineTasks: (ownerIds: string[], fromMs: number, toMs: number) =>
+    [
+      "shared",
+      "lab_timeline_tasks",
+      [...ownerIds].sort().join(","),
+      fromMs,
+      toMs,
+    ] as const,
+  labTimelineExperiments: (ownerIds: string[]) =>
+    ["shared", "lab_timeline_experiments", [...ownerIds].sort().join(",")] as const,
 };
 
 // ---------------- 名前の解決 ----------------
@@ -388,6 +403,64 @@ export function useSharedTasks(ownerId: string) {
         .order("start_time");
       if (error) throw error;
       return (data ?? []).map(toTask);
+    },
+  });
+}
+
+// ---------------- 研究室タイムライン（複数人まとめて・閲覧専用） ----------------
+
+/**
+ * 研究室のメンバー全員の予定を、表示期間ぶんだけ1回で取る。
+ *
+ * ■ なぜ1クエリで済むか
+ * RLS の tasks_shared_select は `user_id in (select shared_owner_ids())` で、
+ * 集合を返す関数は行ごとではなくクエリ全体で1回だけ評価される
+ * （supabase/sql/00_baseline.sql の注記）。つまり `.in("user_id", ids)` は
+ * 「渡した id のうち自分に見えるもの」に自然に絞られる。人数ぶん往復する必要はない。
+ * 索引 idx_tasks_user_start(user_id, start_time) がそのまま効く。
+ *
+ * ■ 期間は「重なり」で絞る
+ * 開始日だけで絞ると、**表示期間より前に始まって期間内に続いている予定**が
+ * 消えてしまう。培養のように何日もまたがる工程では普通に起きるので、
+ * start < to かつ end > from で判定する。
+ */
+export function useLabTimelineTasks(
+  ownerIds: string[],
+  fromMs: number,
+  toMs: number,
+) {
+  return useQuery({
+    queryKey: sqk.labTimelineTasks(ownerIds, fromMs, toMs),
+    enabled: ownerIds.length > 0 && toMs > fromMs,
+    queryFn: async (): Promise<Task[]> => {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .in("user_id", ownerIds)
+        .lt("start_time", new Date(toMs).toISOString())
+        .gt("end_time", new Date(fromMs).toISOString())
+        .order("start_time");
+      if (error) throw error;
+      return (data ?? []).map(toTask);
+    },
+  });
+}
+
+/**
+ * タイムラインのバーを実験の色で塗るための実験一覧。
+ * 色を引くためだけなので期間では絞らない（数が少なく、予定より変化しない）。
+ */
+export function useLabTimelineExperiments(ownerIds: string[]) {
+  return useQuery({
+    queryKey: sqk.labTimelineExperiments(ownerIds),
+    enabled: ownerIds.length > 0,
+    queryFn: async (): Promise<Experiment[]> => {
+      const { data, error } = await supabase
+        .from("experiments")
+        .select("*")
+        .in("user_id", ownerIds);
+      if (error) throw error;
+      return (data ?? []).map(toExperiment);
     },
   });
 }
