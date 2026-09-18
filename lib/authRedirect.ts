@@ -126,3 +126,66 @@ export function destForRole(dest: string, isTeacher: boolean): string {
     dest === DEFAULT_AFTER_LOGIN || dest.startsWith(`${DEFAULT_AFTER_LOGIN}?`);
   return isStudentHome ? TEACHER_HOME : dest;
 }
+
+/** URL 文字列からホスト名を取り出す。ホストだけが渡ってきても受け付ける */
+function hostOf(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const raw = value.trim();
+  if (!raw) return null;
+  try {
+    return new URL(raw.includes("://") ? raw : `https://${raw}`).host.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 認証コールバックが「自分のURL」を組み立てるときの土台を決める。
+ *
+ * ■ なぜ検証が要るか
+ * リバースプロキシ配下では、公開ホストを知る手段が `x-forwarded-host` しかない。
+ * しかしこのヘッダは**リクエスト側が自由に名乗れる**ので、そのまま信じて
+ * `https://<名乗られたホスト>/app` へリダイレクトすると、ホストヘッダ注入に
+ * よるオープンリダイレクトになる。認証直後の遷移先なので、外部サイトへ
+ * 飛ばされると利用者は「ログインできた」と思ったまま偽サイトに着地する。
+ *
+ * ■ 方針
+ * 名乗られたホストが**自分たちのホストと一致したときだけ**採用し、
+ * それ以外は origin に落とす。落とした結果が最悪でも自サイト内なので、
+ * 外部へ飛ぶ経路が構造的に無くなる。
+ *
+ * 許可するのは、設定した公開URL・Vercel の本番URL・そのデプロイのURL・
+ * リクエスト自身の origin のホスト。プレビュー環境も通るようにしてある。
+ */
+export function resolveRedirectBase(args: {
+  /** new URL(request.url).origin */
+  origin: string;
+  forwardedHost?: string | null;
+  forwardedProto?: string | null;
+  /** NEXT_PUBLIC_SITE_URL */
+  siteUrl?: string | null;
+  /** VERCEL_PROJECT_PRODUCTION_URL */
+  productionUrl?: string | null;
+  /** VERCEL_URL（デプロイごとのURL） */
+  deploymentUrl?: string | null;
+}): string {
+  const { origin, forwardedHost, forwardedProto } = args;
+  if (!forwardedHost) return origin;
+
+  // 複数のプロキシを経ると "a.example, b.example" のように連結される。
+  // 最初の1つ（＝利用者に一番近い公開ホスト）だけを見る。
+  const candidate = hostOf(forwardedHost.split(",")[0]);
+  if (!candidate) return origin;
+
+  const allowed = new Set(
+    [args.siteUrl, args.productionUrl, args.deploymentUrl, origin]
+      .map(hostOf)
+      .filter((h): h is string => h !== null),
+  );
+  if (!allowed.has(candidate)) return origin;
+
+  // プロトコルも名乗られた値なので、http/https 以外は受け付けない
+  const proto = forwardedProto?.split(",")[0]?.trim().toLowerCase();
+  const scheme = proto === "http" || proto === "https" ? proto : "https";
+  return `${scheme}://${candidate}`;
+}

@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import {
   resolveNext,
   destForRole,
+  resolveRedirectBase,
   DEFAULT_AFTER_LOGIN,
   NEXT_COOKIE,
 } from "@/lib/authRedirect";
@@ -27,15 +28,20 @@ export async function GET(request: NextRequest) {
     searchParams.get("next") ?? decodeCookie(request.cookies.get(NEXT_COOKIE)?.value);
   const next = rawNext ? resolveNext(rawNext) : null;
 
-  // Vercel のプロキシ配下でも正しい公開ホストへ戻す
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
+  // Vercel のプロキシ配下でも正しい公開ホストへ戻す。
+  // x-forwarded-host は名乗られた値なので、自分たちのホストと一致したときだけ
+  // 採用する（一致しなければ origin に落ちる）。詳細は resolveRedirectBase を参照。
   const base =
     process.env.NODE_ENV === "development"
       ? origin
-      : forwardedHost
-        ? `${forwardedProto}://${forwardedHost}`
-        : origin;
+      : resolveRedirectBase({
+          origin,
+          forwardedHost: request.headers.get("x-forwarded-host"),
+          forwardedProto: request.headers.get("x-forwarded-proto"),
+          siteUrl: process.env.NEXT_PUBLIC_SITE_URL,
+          productionUrl: process.env.VERCEL_PROJECT_PRODUCTION_URL,
+          deploymentUrl: process.env.VERCEL_URL,
+        });
 
   // 失敗時は元々ログインしようとしていた場所へ戻す（`next` が無ければカレンダーへ。
   // `/` は公式サイトでモーダルが無いため使わない）。教授が /teacher から失敗した場合に

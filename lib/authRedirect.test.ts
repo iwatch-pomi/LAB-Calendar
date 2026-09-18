@@ -6,6 +6,7 @@ import {
   destForRole,
   authCallbackUrl,
   serializeNextCookie,
+  resolveRedirectBase,
   AUTH_CALLBACK_PATH,
   NEXT_COOKIE,
   DEFAULT_AFTER_LOGIN,
@@ -158,5 +159,103 @@ describe("serializeNextCookie", () => {
     expect(resolveNext("https://evil.com")).toBe(DEFAULT_AFTER_LOGIN);
     expect(resolveNext("//evil.com")).toBe(DEFAULT_AFTER_LOGIN);
     expect(resolveNext("/profile")).toBe("/profile");
+  });
+});
+
+describe("resolveRedirectBase（ホストヘッダ注入の防止）", () => {
+  const ORIGIN = "https://labcale.com";
+  const SITE = "https://labcale.com";
+
+  it("名乗られたホストが設定した公開URLと一致すれば採用する", () => {
+    expect(
+      resolveRedirectBase({
+        origin: "https://internal.local",
+        forwardedHost: "labcale.com",
+        forwardedProto: "https",
+        siteUrl: SITE,
+      }),
+    ).toBe("https://labcale.com");
+  });
+
+  it("知らないホストを名乗られたら origin に落とす（外部へ飛ばさない）", () => {
+    // これが本丸。x-forwarded-host は誰でも名乗れるので、
+    // 信じると認証直後に偽サイトへ着地させられる
+    expect(
+      resolveRedirectBase({
+        origin: ORIGIN,
+        forwardedHost: "evil.com",
+        forwardedProto: "https",
+        siteUrl: SITE,
+      }),
+    ).toBe(ORIGIN);
+  });
+
+  it("プロキシが連結した値でも、先頭が知らないホストなら弾く", () => {
+    expect(
+      resolveRedirectBase({
+        origin: ORIGIN,
+        forwardedHost: "evil.com, labcale.com",
+        siteUrl: SITE,
+      }),
+    ).toBe(ORIGIN);
+  });
+
+  it("ヘッダが無ければ origin をそのまま使う", () => {
+    expect(resolveRedirectBase({ origin: ORIGIN, siteUrl: SITE })).toBe(ORIGIN);
+  });
+
+  it("Vercel の本番URL・デプロイURLも許可する（プレビューを壊さない）", () => {
+    expect(
+      resolveRedirectBase({
+        origin: "https://internal.local",
+        forwardedHost: "labocale-abc123.vercel.app",
+        deploymentUrl: "labocale-abc123.vercel.app",
+      }),
+    ).toBe("https://labocale-abc123.vercel.app");
+    expect(
+      resolveRedirectBase({
+        origin: "https://internal.local",
+        forwardedHost: "labcale.com",
+        productionUrl: "labcale.com",
+      }),
+    ).toBe("https://labcale.com");
+  });
+
+  it("origin 自身のホストは常に許可する", () => {
+    expect(
+      resolveRedirectBase({
+        origin: ORIGIN,
+        forwardedHost: "labcale.com",
+      }),
+    ).toBe("https://labcale.com");
+  });
+
+  it("http/https 以外のスキームを名乗られても https に倒す", () => {
+    expect(
+      resolveRedirectBase({
+        origin: ORIGIN,
+        forwardedHost: "labcale.com",
+        forwardedProto: "javascript",
+        siteUrl: SITE,
+      }),
+    ).toBe("https://labcale.com");
+  });
+
+  it("壊れた値でも例外を投げず origin に落ちる", () => {
+    for (const bad of ["", "   ", "http://", "://", "a b c"]) {
+      expect(
+        resolveRedirectBase({ origin: ORIGIN, forwardedHost: bad, siteUrl: SITE }),
+      ).toBe(ORIGIN);
+    }
+  });
+
+  it("大文字で名乗られても一致させる（ホスト名は大小を区別しない）", () => {
+    expect(
+      resolveRedirectBase({
+        origin: ORIGIN,
+        forwardedHost: "LabCale.COM",
+        siteUrl: SITE,
+      }),
+    ).toBe("https://labcale.com");
   });
 });
