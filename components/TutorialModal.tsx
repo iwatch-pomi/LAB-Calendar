@@ -193,6 +193,17 @@ export function TutorialModal({
   const next = useCallback(() => setPage((p) => Math.min(p + 1, last)), [last]);
   const prev = useCallback(() => setPage((p) => Math.max(p - 1, 0)), []);
 
+  // 「次へ」に初期フォーカスを置く（キーボードで読み進められるように）。
+  //
+  // autoFocus 属性は使わない。iOS/iPadOS はフォーカス時に対象を見せようとして
+  // ビジュアルビューポートを勝手にずらすことがあり、そうなると「見えている位置」と
+  // 「タップの当たり判定」がずれて、押しても別の要素に吸われる。
+  // preventScroll を付けて、フォーカスだけを移す。
+  const nextRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    nextRef.current?.focus({ preventScroll: true });
+  }, []);
+
   // 読み物なので矢印キーで送れるようにする。Esc はスキップ扱い。
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -306,9 +317,10 @@ export function TutorialModal({
             </p>
           </div>
           <button
+            type="button"
             onClick={onFinish}
             title="スキップ"
-            className="shrink-0 rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            className="shrink-0 touch-manipulation rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
           >
             <X className="h-4 w-4" />
           </button>
@@ -340,7 +352,7 @@ export function TutorialModal({
               title={s.title}
               aria-label={`${i + 1}ページ目へ`}
               aria-current={i === page}
-              className={`h-1.5 rounded-full transition-all ${
+              className={`h-1.5 touch-manipulation rounded-full transition-all ${
                 i === page ? "w-5 bg-brand-500" : "w-1.5 bg-gray-300 dark:bg-gray-700"
               }`}
             />
@@ -350,25 +362,28 @@ export function TutorialModal({
         <div className="flex items-center gap-2">
           {page > 0 ? (
             <button
+              type="button"
               onClick={prev}
-              className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="flex touch-manipulation select-none items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
             >
               <ChevronLeft className="h-4 w-4" />
               戻る
             </button>
           ) : (
             <button
+              type="button"
               onClick={onFinish}
-              className="rounded-lg px-3 py-2 text-sm font-medium text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+              className="touch-manipulation select-none rounded-lg px-3 py-2 text-sm font-medium text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
             >
               スキップ
             </button>
           )}
 
           <button
-            autoFocus
+            ref={nextRef}
+            type="button"
             onClick={isLast ? onFinish : next}
-            className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-600"
+            className="flex flex-1 touch-manipulation select-none items-center justify-center gap-1 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-600"
           >
             {isLast ? (
               "はじめる"
