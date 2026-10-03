@@ -28,6 +28,7 @@ import {
   CalendarRange,
   Trash2,
 } from "lucide-react";
+import { SensitiveDataNotice } from "./SensitiveDataNotice";
 
 /**
  * 研究室機能の説明文。
@@ -178,6 +179,15 @@ export function LabPanel({
         <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-400 dark:bg-gray-900 dark:text-gray-500 dark:border-gray-800">
           読み込み中…
         </div>
+      )}
+
+      {/* 研究室は複数人が同じ予定を見る場所なので、作る側・参加する側の
+          どちらにも先に目安を見せる。 */}
+      {!labsQ.isLoading && (
+        <SensitiveDataNotice>
+          研究室では、主宰・スタッフが各メンバーの予定を閲覧できます。
+          何をどこまで書くかは、研究室の決まりとして先に揃えておくと迷いません。
+        </SensitiveDataNotice>
       )}
 
       {/* 研究室が無いとき: 作る / 参加する */}

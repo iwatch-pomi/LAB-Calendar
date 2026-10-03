@@ -38,6 +38,7 @@ import { BackHomeLink } from "./BackHomeLink";
 import { ThemeRoot } from "./ThemeRoot";
 import { TabButton } from "./TabButton";
 import { LabPanel, LAB_PANEL_DESCRIPTION } from "./LabPanel";
+import { SensitiveDataNotice } from "./SensitiveDataNotice";
 
 type Tab = "share" | "lab";
 
@@ -245,6 +246,10 @@ export function SharedManager({
                   <Share2 className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">共有する</h2>
                 </div>
+
+                <SensitiveDataNotice>
+                  共有すると、実験名・予定の内容・ToDo が相手の画面にも表示されます。
+                </SensitiveDataNotice>
 
                 <form onSubmit={submit} className="space-y-3">
                   <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300">

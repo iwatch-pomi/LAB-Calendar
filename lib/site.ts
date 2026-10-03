@@ -32,6 +32,8 @@ export const CONTACT_EMAIL = "iwase.workslab@gmail.com";
 /** 法務関連ページのパス。リンクを張る側はこれを使う */
 export const TERMS_PATH = "/terms";
 export const PRIVACY_PATH = "/privacy";
+/** データの取り扱いガイドライン。規約より先に読んでほしいので別ページにしている */
+export const DATA_POLICY_PATH = "/data-policy";
 
 export const SITE_TITLE =
   "ラボカレ｜卒業研究のスケジュール管理アプリ（実験の予定・進捗共有）";
@@ -44,7 +46,7 @@ export const SITE_DESCRIPTION =
  * 「毎回変わるサイト」と見なされて信用されないので、内容を実際に更新した
  * ときだけ手で書き換える。
  */
-export const SITE_LAST_MODIFIED = new Date("2026-08-04");
+export const SITE_LAST_MODIFIED = new Date("2026-10-03");
 
 /** 検索エンジンに見せない（ログインが要る）パス */
 export const PRIVATE_PATHS = [
@@ -81,6 +83,10 @@ export const FAQ: { q: string; a: string }[] = [
   {
     q: "生物系以外でも使えますか？",
     a: "使えます。継代培養の記録など分野ごとのツールはマイページの「実験モード」からON / OFFを切り替えられるので、必要な機能だけを表示できます。",
+  },
+  {
+    q: "研究データを入れても大丈夫ですか？",
+    a: "ラボカレは「いつ・何をするか」を管理する道具なので、測定値や未公開の結果、被験者の個人情報などは入力しないでください。予定名は「実験A-3」のような符号にして、数値や詳細は研究室の保管場所に置くことをおすすめしています。詳しくは「データの取り扱いガイドライン」をご覧ください。",
   },
   {
     q: "スマートフォンでも使えますか？",

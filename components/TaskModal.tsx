@@ -28,6 +28,7 @@ import {
   ArrowUpRight,
   Pencil,
 } from "lucide-react";
+import { SensitiveDataNotice } from "./SensitiveDataNotice";
 
 export function TaskModal({
   task,
@@ -186,6 +187,9 @@ export function TaskModal({
               />
               <Pencil className="h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" />
             </div>
+            {/* 作りはじめのときだけ出す。既存の予定を開くたびに出すと、
+                1日に何度も読まされて誰も読まなくなる。 */}
+            {isDraft && <SensitiveDataNotice variant="inline" />}
           </div>
 
           {/* 日時（手動編集・日をまたぐ変更も可） */}

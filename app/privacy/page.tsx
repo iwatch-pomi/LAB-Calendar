@@ -7,6 +7,7 @@ import {
 } from "@/components/LegalPage";
 import {
   CONTACT_EMAIL,
+  DATA_POLICY_PATH,
   OPERATOR_NAME,
   SITE_NAME,
   TERMS_PATH,
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
 };
 
 /** 内容を変えたら必ずここも更新する */
-const UPDATED_AT = "2026年8月7日";
+const UPDATED_AT = "2026年10月3日";
 
 export default function PrivacyPage() {
   return (
@@ -110,7 +111,7 @@ export default function PrivacyPage() {
           >
             利用規約
           </Link>
-          第6条のとおり、相手の同意を得たうえで実施してください。
+          第7条のとおり、相手の同意を得たうえで実施してください。
         </p>
       </LegalSection>
 
@@ -221,16 +222,63 @@ export default function PrivacyPage() {
           インターネットを通じた通信および保管について、完全な安全性を保証するものでは
           ありません。
         </p>
+        <p>
+          <strong>
+            当運営は、本サービスに登録された情報の漏えいまたは消失について、
+            当運営の故意または重大な過失による場合を除き、責任を負いません。
+          </strong>
+          研究の成果に関わる重要な情報は、本サービスの外にも控えを残してください。
+          詳しくは
+          <Link
+            href={TERMS_PATH}
+            className="font-medium text-brand-600 hover:underline dark:text-brand-400"
+          >
+            利用規約
+          </Link>
+          第5条・第11条をご覧ください。
+        </p>
       </LegalSection>
 
-      <LegalSection heading="11. 未成年者の利用">
+      <LegalSection heading="11. 入力をお控えいただきたい情報">
+        <p>
+          本サービスが取り扱うのは「いつ、何をするか」という予定の情報です。
+          研究データそのものを保管する場所としては設計していないため、
+          次の情報は入力しないでください。
+        </p>
+        <LegalList
+          items={[
+            "測定値や解析結果そのもの、未公開の知見",
+            "特許出願前の発明の内容",
+            "被験者・患者その他の第三者の個人情報",
+            "秘密保持契約などにより開示が制限されている情報",
+            "パスワード、APIキーその他の認証情報",
+          ]}
+        />
+        <p>
+          <strong>
+            どのような情報を入力するかは、利用者ご自身および所属する研究室の
+            判断と責任で決めていただくものです。
+          </strong>
+          当運営は、入力された内容を点検したり、機密情報に該当するかどうかを
+          判断したりすることはありません。具体的な目安は
+          <Link
+            href={DATA_POLICY_PATH}
+            className="font-medium text-brand-600 hover:underline dark:text-brand-400"
+          >
+            データの取り扱いガイドライン
+          </Link>
+          に記載しています。
+        </p>
+      </LegalSection>
+
+      <LegalSection heading="12. 未成年者の利用">
         <p>
           未成年の方が本サービスをご利用になる場合は、親権者など法定代理人の同意を
           得たうえでご利用ください。
         </p>
       </LegalSection>
 
-      <LegalSection heading="12. 本ポリシーの変更">
+      <LegalSection heading="13. 本ポリシーの変更">
         <p>
           当運営は、必要に応じて本ポリシーを変更することがあります。変更後の内容は、
           本ページに掲載した時点から適用されます。取得する情報や利用目的に重要な

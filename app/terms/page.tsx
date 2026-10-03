@@ -5,7 +5,12 @@ import {
   LegalSection,
   LegalList,
 } from "@/components/LegalPage";
-import { OPERATOR_NAME, PRIVACY_PATH, SITE_NAME } from "@/lib/site";
+import {
+  DATA_POLICY_PATH,
+  OPERATOR_NAME,
+  PRIVACY_PATH,
+  SITE_NAME,
+} from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "利用規約",
@@ -14,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 /** 内容を変えたら必ずここも更新する */
-const UPDATED_AT = "2026年8月7日";
+const UPDATED_AT = "2026年10月3日";
 
 export default function TermsPage() {
   return (
@@ -40,8 +45,14 @@ export default function TermsPage() {
       <LegalSection heading="第2条（本サービスの内容）">
         <p>
           本サービスは、研究の実験計画とスケジュールを管理するためのカレンダーアプリです。
-          実験テンプレートからの予定の一括登録、予定の依存関係にもとづく再配置、
+          実験テンプレートからの予定の一括登録、ToDo の管理、継代培養の記録、
           カレンダーの共有などの機能を提供します。
+        </p>
+        <p>
+          本サービスが取り扱うのは「いつ、何をするか」という予定の情報です。
+          <strong>
+            研究データそのものを保管・保全するためのサービスではありません。
+          </strong>
         </p>
         <p>
           本サービスは<strong>無料</strong>で提供しています。現在、利用料金が発生する
@@ -92,11 +103,59 @@ export default function TermsPage() {
             データが常に保持されることを保証するものではありません。
           </strong>
           研究に関わる重要な情報については、利用者ご自身でも記録を残すなど、
-          本サービスの外にバックアップを取ることを強くおすすめします。
+          本サービスの外にバックアップを取ってください。
+        </p>
+        <p>
+          <strong>
+            研究の成果に関わる重要なデータの保全は、利用者ご自身の責任で行って
+            いただくものとします。
+          </strong>
+          当運営は、データが消失した場合に復元する手段を持たず、復元の義務も
+          負いません。
         </p>
       </LegalSection>
 
-      <LegalSection heading="第6条（共有機能）">
+      <LegalSection heading="第6条（登録する情報についての利用者の責任）">
+        <p>
+          本サービスは、研究の<strong>予定</strong>を管理するためのものであり、
+          研究の成果や機密情報を保管する場所として提供するものではありません。
+          利用者は、次の情報を本サービスに登録しないでください。
+        </p>
+        <LegalList
+          items={[
+            "測定値や解析結果そのもの、未公開の知見（配列・構造・独自の条件設定など）",
+            "特許出願前の発明の内容",
+            "被験者・患者その他の第三者の個人情報",
+            "秘密保持契約などにより開示が制限されている情報",
+            "パスワード、APIキーその他の認証情報",
+          ]}
+        />
+        <p>
+          <strong>
+            本サービスにどのような情報を登録するかは、利用者ご自身および利用者が
+            所属する研究室の判断と責任で決定していただくものです。
+          </strong>
+          当運営は、登録された内容を点検せず、それが機密情報に該当するかどうかの
+          判断も行いません。
+        </p>
+        <p>
+          所属する機関の情報セキュリティ規程、研究倫理に関する審査の条件、
+          共同研究に関する契約、法令等に、本サービスの利用または情報の保存場所に
+          関する定めがある場合は、それらが優先します。
+        </p>
+        <p>
+          具体的な目安は
+          <Link
+            href={DATA_POLICY_PATH}
+            className="font-medium text-brand-600 hover:underline dark:text-brand-400"
+          >
+            データの取り扱いガイドライン
+          </Link>
+          に記載しています。あわせてご確認ください。
+        </p>
+      </LegalSection>
+
+      <LegalSection heading="第7条（共有機能）">
         <p>
           本サービスには、カレンダーを他の利用者に共有する機能および研究室単位で
           まとめて確認する機能があります。共有にあたっては次の点にご注意ください。
@@ -125,7 +184,7 @@ export default function TermsPage() {
         />
       </LegalSection>
 
-      <LegalSection heading="第7条（禁止事項）">
+      <LegalSection heading="第8条（禁止事項）">
         <p>利用者は、本サービスの利用にあたり、次の行為をしてはなりません。</p>
         <LegalList
           items={[
@@ -141,7 +200,7 @@ export default function TermsPage() {
         />
       </LegalSection>
 
-      <LegalSection heading="第8条（利用の停止）">
+      <LegalSection heading="第9条（利用の停止）">
         <p>
           当運営は、利用者が本規約に違反したと合理的に判断した場合、
           事前の通知なく、本サービスの全部または一部の利用を停止し、
@@ -149,7 +208,7 @@ export default function TermsPage() {
         </p>
       </LegalSection>
 
-      <LegalSection heading="第9条（サービスの変更・中断・終了）">
+      <LegalSection heading="第10条（サービスの変更・中断・終了）">
         <LegalList
           items={[
             "当運営は、本サービスの内容を変更し、また提供を終了することがあります。",
@@ -159,7 +218,7 @@ export default function TermsPage() {
         />
       </LegalSection>
 
-      <LegalSection heading="第10条（免責）">
+      <LegalSection heading="第11条（免責）">
         <p>
           本サービスは、無料で提供される性質上、現状有姿で提供されます。当運営は、
           本サービスに事実上または法律上の瑕疵（安全性、正確性、確実性、
@@ -168,10 +227,20 @@ export default function TermsPage() {
         <p>
           当運営は、本サービスの利用または利用できなかったことによって利用者に生じた
           損害（予定の誤りや通知の不達に起因する実験の失敗、研究の遅延、
-          データの消失を含みます）について、
+          データの消失、登録された情報の漏えいまたは第三者による閲覧、
+          およびこれらに起因する研究上・経済上の損害を含みます）について、
           <strong>
             当運営の故意または重大な過失による場合を除き、責任を負いません。
           </strong>
+        </p>
+        <p>
+          <strong>
+            研究データその他の重要な情報を本サービスに登録するかどうかの判断、
+            およびその情報の管理は、利用者ご自身の責任で行っていただくものとします。
+          </strong>
+          当運営は、第6条のとおり登録された内容を点検しておらず、機密情報が
+          登録されていることを知る立場にありません。当運営は、利用者が登録した情報の
+          内容について責任を負いません。
         </p>
         <p>
           当運営に責任がある場合であっても、当運営が負う損害賠償の範囲は、
@@ -183,7 +252,7 @@ export default function TermsPage() {
         </p>
       </LegalSection>
 
-      <LegalSection heading="第11条（知的財産権）">
+      <LegalSection heading="第12条（知的財産権）">
         <p>
           本サービスを構成するプログラム、デザイン、文章などに関する知的財産権は
           当運営または正当な権利者に帰属します。利用者が本サービスに登録した
@@ -192,7 +261,7 @@ export default function TermsPage() {
         </p>
       </LegalSection>
 
-      <LegalSection heading="第12条（本規約の変更）">
+      <LegalSection heading="第13条（本規約の変更）">
         <p>
           当運営は、必要と判断した場合に本規約を変更することがあります。変更後の
           本規約は、本ページに掲載した時点から効力を生じるものとします。重要な変更を
@@ -200,7 +269,7 @@ export default function TermsPage() {
         </p>
       </LegalSection>
 
-      <LegalSection heading="第13条（準拠法・管轄）">
+      <LegalSection heading="第14条（準拠法・管轄）">
         <p>
           本規約の解釈および適用にあたっては日本法を準拠法とします。本サービスに
           関して当運営と利用者との間で紛争が生じた場合には、当運営の所在地を管轄する

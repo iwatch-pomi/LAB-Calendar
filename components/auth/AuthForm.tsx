@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { PRIVACY_PATH, TERMS_PATH } from "@/lib/site";
+import { DATA_POLICY_PATH, PRIVACY_PATH, TERMS_PATH } from "@/lib/site";
 import {
   resolveNext,
   afterLoginFrom,
@@ -318,6 +318,15 @@ export function AuthForm() {
           プライバシーポリシー
         </Link>
         に同意したものとみなします。
+        <br />
+        研究データそのものの保管には向きません。入力してよい情報の目安は
+        <Link
+          href={DATA_POLICY_PATH}
+          className="mx-0.5 text-brand-600 hover:underline dark:text-brand-400"
+        >
+          データの取り扱い
+        </Link>
+        をご覧ください。
       </p>
 
       {message && (

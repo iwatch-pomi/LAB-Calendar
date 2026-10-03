@@ -7,6 +7,9 @@ import { qk } from "@/lib/queries";
 import { useGuest } from "./GuestProvider";
 import { PALETTE_KEYS, paletteFor, type Template } from "@/lib/types";
 import { X, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { CODENAME_HINT } from "@/lib/dataPolicy";
+import { DATA_POLICY_PATH } from "@/lib/site";
 
 interface StepDraft {
   title: string;
@@ -211,6 +214,17 @@ export function TemplateBuilder({
                 placeholder="例: Western Blotting"
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
               />
+              {/* テンプレートは研究室で共有されやすく、工程名から条件が
+                  読み取れてしまうことがある。名前を決めるこの場所で促す。 */}
+              <p className="mt-1.5 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                {CODENAME_HINT}{" "}
+                <Link
+                  href={DATA_POLICY_PATH}
+                  className="whitespace-nowrap font-medium text-brand-600 hover:underline dark:text-brand-400"
+                >
+                  データの取り扱い →
+                </Link>
+              </p>
             </div>
             <div>
               <label className="mb-1 block text-xs font-semibold text-gray-500 dark:text-gray-400">

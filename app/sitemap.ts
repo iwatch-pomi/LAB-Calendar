@@ -4,9 +4,10 @@ import {
   SITE_URL,
   TERMS_PATH,
   PRIVACY_PATH,
+  DATA_POLICY_PATH,
 } from "@/lib/site";
 
-// 公開ページは公式サイトと、利用規約・プライバシーポリシー。
+// 公開ページは公式サイトと、利用規約・プライバシーポリシー・データの取り扱いガイドライン。
 // changeFrequency / priority は検索エンジンに無視されるので入れない。
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
@@ -20,6 +21,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${SITE_URL}${PRIVACY_PATH}`,
+      lastModified: SITE_LAST_MODIFIED,
+    },
+    {
+      url: `${SITE_URL}${DATA_POLICY_PATH}`,
       lastModified: SITE_LAST_MODIFIED,
     },
   ];

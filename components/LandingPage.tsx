@@ -5,6 +5,7 @@ import {
   SITE_NAME,
   TERMS_PATH,
   PRIVACY_PATH,
+  DATA_POLICY_PATH,
   CONTACT_EMAIL,
 } from "@/lib/site";
 import {
@@ -560,6 +561,12 @@ export function LandingPage() {
                 className="text-gray-500 transition hover:text-gray-800"
               >
                 プライバシーポリシー
+              </Link>
+              <Link
+                href={DATA_POLICY_PATH}
+                className="text-gray-500 transition hover:text-gray-800"
+              >
+                データの取り扱い
               </Link>
               <a
                 href={`mailto:${CONTACT_EMAIL}`}

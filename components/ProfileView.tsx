@@ -77,7 +77,12 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { ThemeRoot } from "./ThemeRoot";
-import { CONTACT_EMAIL, PRIVACY_PATH, TERMS_PATH } from "@/lib/site";
+import {
+  CONTACT_EMAIL,
+  DATA_POLICY_PATH,
+  PRIVACY_PATH,
+  TERMS_PATH,
+} from "@/lib/site";
 import { RESET_PASSWORD_PATH } from "@/lib/authRedirect";
 import { PendingDeletionBanner } from "./PendingDeletionBanner";
 import {
@@ -971,7 +976,7 @@ function DangerZoneSection({
   );
 }
 
-/** 利用規約・プライバシーポリシーへの導線（ログイン後の入口） */
+/** 利用規約・プライバシーポリシー・データの取り扱いへの導線（ログイン後の入口） */
 function LegalLinksSection() {
   return (
     <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 dark:bg-gray-900 dark:border-gray-800">
@@ -993,6 +998,12 @@ function LegalLinksSection() {
           className="font-medium text-brand-600 hover:underline dark:text-brand-400"
         >
           プライバシーポリシー
+        </Link>
+        <Link
+          href={DATA_POLICY_PATH}
+          className="font-medium text-brand-600 hover:underline dark:text-brand-400"
+        >
+          データの取り扱い
         </Link>
         {/* 再設定メールから来た人が /app に着地してしまった場合の受け皿も兼ねる */}
         <Link
