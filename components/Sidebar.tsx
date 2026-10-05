@@ -23,6 +23,7 @@ import {
 import { useCreateEmptyExperiment } from "@/lib/mutations";
 import { TOUR_ANCHORS, tourAttr } from "@/lib/tourAnchors";
 import { useGuest } from "./GuestProvider";
+import { AUTH_ENABLED } from "@/lib/authGate";
 import { fmtTime, jstInputToISO, isoToJstInput, nowMs } from "@/lib/calendar";
 import {
   Plus,
@@ -242,8 +243,9 @@ export function Sidebar({
         </div>
       )}
 
-      {/* ゲスト: ログイン導線（プロフィール/設定の代わり） */}
-      {isGuest && (
+      {/* ゲスト: ログイン導線（プロフィール/設定の代わり）。
+          受付を止めている間は出さない（lib/authGate.ts） */}
+      {isGuest && AUTH_ENABLED && (
         <div className="px-4 pb-3">
           <button
             onClick={openAuth}

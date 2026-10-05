@@ -11,6 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { guestStore } from "@/lib/guestStore";
+import { AUTH_ENABLED } from "@/lib/authGate";
 
 interface GuestContextValue {
   /** 未ログイン（ゲストモード）か */
@@ -60,7 +61,10 @@ export function GuestProvider({
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
 
+  // 受付を止めている間は何もしない（lib/authGate.ts）。
+  // 呼び出し側のボタンはすべて隠してあるが、ここでも止めておく。
   const openAuth = useCallback(() => {
+    if (!AUTH_ENABLED) return;
     setPromptOpen(false);
     setTutorialOpen(false);
     setAuthOpen(true);
@@ -118,7 +122,8 @@ export function GuestProvider({
     // そのままログインモーダルを開く。URL からは印を消して再表示を防ぐ。
     const params = new URLSearchParams(window.location.search);
     if (params.has("login")) {
-      setAuthOpen(true);
+      // 受付を止めている間は開かない。印だけは消して、普通のカレンダーとして使わせる。
+      if (AUTH_ENABLED) setAuthOpen(true);
       params.delete("login");
       const q = params.toString();
       window.history.replaceState(

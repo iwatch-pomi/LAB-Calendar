@@ -15,6 +15,17 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { AUTH_ENABLED } from "@/lib/authGate";
+
+/**
+ * ゲストには使えない機能に添える断り書き。
+ *
+ * 受付を止めている間（lib/authGate.ts）は「ログインすると使えます」が
+ * 案内として嘘になるので、文面を差し替える。
+ */
+const GUEST_ONLY_NOTE = AUTH_ENABLED
+  ? "ログインすると使えます。"
+  : "アカウントが必要な機能です。ただいま受付を停止しています。";
 import { TOUR_ANCHORS, type TourAnchor } from "@/lib/tourAnchors";
 import { placeCard, cardWidth, type Placement } from "@/lib/tourPlacement";
 import { TourSpotlight } from "./TourSpotlight";
@@ -146,7 +157,7 @@ export function TutorialModal({
           ツールはご要望に応じて今後も追加していく予定です。
         </>
       ),
-      guestNote: "ログインすると使えます。",
+      guestNote: GUEST_ONLY_NOTE,
       anchor: TOUR_ANCHORS.cultureLink,
       needsSidebar: true,
       prefer: ["right", "bottom"],
@@ -163,7 +174,7 @@ export function TutorialModal({
           に参加すれば、主宰がメンバーの予定をまとめて確認することもできます。
         </>
       ),
-      guestNote: "ログインすると使えます。",
+      guestNote: GUEST_ONLY_NOTE,
       anchor: TOUR_ANCHORS.shareLinks,
       needsSidebar: true,
       prefer: ["right", "bottom"],

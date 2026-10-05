@@ -8,6 +8,7 @@ import {
   DATA_POLICY_PATH,
   CONTACT_EMAIL,
 } from "@/lib/site";
+import { AUTH_ENABLED } from "@/lib/authGate";
 import {
   Archive,
   ArrowRight,
@@ -227,13 +228,16 @@ export function LandingPage() {
           </nav>
 
           <div className="ml-auto flex shrink-0 items-center gap-2 md:ml-0">
-            <Link
-              href="/teacher"
-              className="whitespace-nowrap rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-            >
-              <span className="sm:hidden">教授の方</span>
-              <span className="hidden sm:inline">教授・指導者の方</span>
-            </Link>
+            {/* 受付を止めている間は出さない（lib/authGate.ts） */}
+            {AUTH_ENABLED && (
+              <Link
+                href="/teacher"
+                className="whitespace-nowrap rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              >
+                <span className="sm:hidden">教授の方</span>
+                <span className="hidden sm:inline">教授・指導者の方</span>
+              </Link>
+            )}
             <Link
               href="/app"
               className="whitespace-nowrap rounded-lg bg-brand-500 px-3.5 py-1.5 text-sm font-semibold text-white transition hover:bg-brand-600"
@@ -264,12 +268,15 @@ export function LandingPage() {
                     登録なしで試す
                     <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
                   </Link>
-                  <Link
-                    href="/teacher"
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-                  >
-                    教授・指導者の方
-                  </Link>
+                  {/* 受付を止めている間は出さない（lib/authGate.ts） */}
+                  {AUTH_ENABLED && (
+                    <Link
+                      href="/teacher"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                    >
+                      教授・指導者の方
+                    </Link>
+                  )}
                 </div>
               </div>
 
@@ -480,13 +487,24 @@ export function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link
-                href="/teacher"
-                className="mt-6 flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-              >
-                <Users className="h-4 w-4" />
-                管理画面へ
-              </Link>
+              {/* 受付を止めている間は入口を出さない（lib/authGate.ts）。
+                  隣の学生向けカードにはボタンがあるので、ここだけ空にすると
+                  壊れて見える。理由を一行置いて埋める。 */}
+              {AUTH_ENABLED ? (
+                <Link
+                  href="/teacher"
+                  className="mt-6 flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                >
+                  <Users className="h-4 w-4" />
+                  管理画面へ
+                </Link>
+              ) : (
+                <p className="mt-6 rounded-lg bg-gray-50 px-4 py-2.5 text-center text-xs leading-relaxed text-gray-500">
+                  ただいま、アカウントの受付を停止しています。
+                  <br />
+                  再開まで今しばらくお待ちください。
+                </p>
+              )}
             </div>
           </div>
         </section>
@@ -534,12 +552,15 @@ export function LandingPage() {
                 登録なしで試す
                 <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
               </Link>
-              <Link
-                href="/teacher"
-                className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-              >
-                教授・指導者の方はこちら
-              </Link>
+              {/* 受付を止めている間は出さない（lib/authGate.ts） */}
+              {AUTH_ENABLED && (
+                <Link
+                  href="/teacher"
+                  className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                >
+                  教授・指導者の方はこちら
+                </Link>
+              )}
             </div>
           </div>
         </section>

@@ -8,6 +8,7 @@ import {
   NEXT_COOKIE,
 } from "@/lib/authRedirect";
 import { isTeacherServer } from "@/lib/supabase/serverFlags";
+import { AUTH_ENABLED } from "@/lib/authGate";
 
 // OAuth / メール確認のコールバック。code をセッションに交換する。
 // セッションcookieは「返すリダイレクトレスポンス」に直接書き込む（初回ログインで
@@ -17,6 +18,15 @@ import { isTeacherServer } from "@/lib/supabase/serverFlags";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+
+  // 受付を止めている間は、code をセッションに交換しない（lib/authGate.ts）。
+  // 画面の導線を隠すだけだと、停止前に送った確認メール・招待メール・
+  // パスワード再設定メールのリンクから、あとになってログインが成立してしまう。
+  // すでにログイン中の端末のセッションには触らない（ここは新規の交換だけを扱う）。
+  if (!AUTH_ENABLED) {
+    return done(NextResponse.redirect(`${originBase(request, origin)}/app`));
+  }
+
   // 行き先の取得元は「URLのnext → cookie」の順。
   // 通常は cookie 側に入っている（戻り先URLにクエリを付けると Supabase の
   // 許可リストに一致せず、公式サイトへ飛ばされてしまうため）。
@@ -28,20 +38,7 @@ export async function GET(request: NextRequest) {
     searchParams.get("next") ?? decodeCookie(request.cookies.get(NEXT_COOKIE)?.value);
   const next = rawNext ? resolveNext(rawNext) : null;
 
-  // Vercel のプロキシ配下でも正しい公開ホストへ戻す。
-  // x-forwarded-host は名乗られた値なので、自分たちのホストと一致したときだけ
-  // 採用する（一致しなければ origin に落ちる）。詳細は resolveRedirectBase を参照。
-  const base =
-    process.env.NODE_ENV === "development"
-      ? origin
-      : resolveRedirectBase({
-          origin,
-          forwardedHost: request.headers.get("x-forwarded-host"),
-          forwardedProto: request.headers.get("x-forwarded-proto"),
-          siteUrl: process.env.NEXT_PUBLIC_SITE_URL,
-          productionUrl: process.env.VERCEL_PROJECT_PRODUCTION_URL,
-          deploymentUrl: process.env.VERCEL_URL,
-        });
+  const base = originBase(request, origin);
 
   // 失敗時は元々ログインしようとしていた場所へ戻す（`next` が無ければカレンダーへ。
   // `/` は公式サイトでモーダルが無いため使わない）。教授が /teacher から失敗した場合に
@@ -97,6 +94,25 @@ export async function GET(request: NextRequest) {
     response.cookies.set(name, value, options),
   );
   return done(response);
+}
+
+/**
+ * 戻り先の組み立て規則。
+ *
+ * Vercel のプロキシ配下でも正しい公開ホストへ戻す。x-forwarded-host は
+ * 名乗られた値なので、自分たちのホストと一致したときだけ採用する
+ * （一致しなければ origin に落ちる）。詳細は resolveRedirectBase を参照。
+ */
+function originBase(request: NextRequest, origin: string): string {
+  if (process.env.NODE_ENV === "development") return origin;
+  return resolveRedirectBase({
+    origin,
+    forwardedHost: request.headers.get("x-forwarded-host"),
+    forwardedProto: request.headers.get("x-forwarded-proto"),
+    siteUrl: process.env.NEXT_PUBLIC_SITE_URL,
+    productionUrl: process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    deploymentUrl: process.env.VERCEL_URL,
+  });
 }
 
 /**

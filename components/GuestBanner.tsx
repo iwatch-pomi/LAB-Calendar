@@ -2,6 +2,7 @@
 
 import { Info, LogIn, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useGuest } from "./GuestProvider";
+import { AUTH_ENABLED } from "@/lib/authGate";
 
 /** ゲスト中に常時出す「このブラウザにのみ保存」の案内バー */
 export function GuestBanner() {
@@ -15,13 +16,17 @@ export function GuestBanner() {
           保存されています
         </span>
       </span>
-      <button
-        onClick={openAuth}
-        className="flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-1 text-xs font-semibold text-white transition hover:bg-brand-600"
-      >
-        <LogIn className="h-3.5 w-3.5" />
-        ログインして保存
-      </button>
+      {/* 受付を止めている間はボタンを出さない。
+          「このブラウザにのみ保存」という案内自体は今も正しいので残す。 */}
+      {AUTH_ENABLED && (
+        <button
+          onClick={openAuth}
+          className="flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-1 text-xs font-semibold text-white transition hover:bg-brand-600"
+        >
+          <LogIn className="h-3.5 w-3.5" />
+          ログインして保存
+        </button>
+      )}
     </div>
   );
 }

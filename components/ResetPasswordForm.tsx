@@ -8,6 +8,7 @@ import { Logo } from "./Logo";
 import { ThemeRoot } from "./ThemeRoot";
 import { DEFAULT_AFTER_LOGIN } from "@/lib/authRedirect";
 import { CONTACT_EMAIL } from "@/lib/site";
+import { AUTH_ENABLED } from "@/lib/authGate";
 
 /** Supabase の最小パスワード長に合わせる（signUp 側と同じ） */
 const MIN_LENGTH = 6;
@@ -106,11 +107,17 @@ export function ResetPasswordForm() {
                   <li>リンクには有効期限があります</li>
                   <li>リンクは一度しか使えません</li>
                 </ul>
+                {/* 受付を止めている間は押してもログイン画面が出ないので、
+                    行き先と文言を変える（lib/authGate.ts） */}
                 <Link
-                  href={`${DEFAULT_AFTER_LOGIN}?login=1`}
+                  href={
+                    AUTH_ENABLED
+                      ? `${DEFAULT_AFTER_LOGIN}?login=1`
+                      : DEFAULT_AFTER_LOGIN
+                  }
                   className="mt-5 block w-full rounded-xl bg-brand-500 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-brand-600"
                 >
-                  ログイン画面へ
+                  {AUTH_ENABLED ? "ログイン画面へ" : "カレンダーへ"}
                 </Link>
                 <p className="mt-4 text-center text-[11px] text-gray-400 dark:text-gray-500">
                   うまくいかない場合は {CONTACT_EMAIL} までご連絡ください。

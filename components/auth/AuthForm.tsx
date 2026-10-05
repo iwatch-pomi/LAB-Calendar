@@ -5,6 +5,13 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { DATA_POLICY_PATH, PRIVACY_PATH, TERMS_PATH } from "@/lib/site";
 import {
+  ANY_OAUTH_ENABLED,
+  AUTH_CLOSED_BODY,
+  AUTH_CLOSED_TITLE,
+  AUTH_ENABLED,
+  OAUTH_ENABLED,
+} from "@/lib/authGate";
+import {
   resolveNext,
   afterLoginFrom,
   destForRole,
@@ -59,7 +66,37 @@ async function landingFor(
   }
 }
 
+/**
+ * 受付を止めている間に出す案内。
+ *
+ * 導線はすべて隠してあるので普通は表示されないが、
+ * 閉じ忘れた入口があってもここで必ず止まるようにしておく。
+ */
+export function AuthClosedNotice() {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center dark:border-gray-700 dark:bg-gray-800/60">
+      <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+        {AUTH_CLOSED_TITLE}
+      </p>
+      <p className="mt-1.5 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+        {AUTH_CLOSED_BODY}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * ログイン・新規登録のフォーム。
+ *
+ * 受付を止めている間はフォームそのものを組み立てず、案内だけを出す。
+ * 中身を別の関数に分けているのは、フックを条件付きで呼ばないため。
+ */
 export function AuthForm() {
+  if (!AUTH_ENABLED) return <AuthClosedNotice />;
+  return <AuthFormInner />;
+}
+
+function AuthFormInner() {
   const supabase = createClient();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
@@ -218,31 +255,40 @@ export function AuthForm() {
 
   return (
     <div className="space-y-5">
-      {/* OAuth */}
-      <div className="space-y-2.5">
-        <button
-          onClick={() => oauth("google")}
-          disabled={loading !== null}
-          className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-        >
-          <GoogleIcon />
-          Google で続ける
-        </button>
-        <button
-          onClick={() => oauth("apple")}
-          disabled={loading !== null}
-          className="flex w-full items-center justify-center gap-2.5 rounded-xl bg-black px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-60 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
-        >
-          <AppleIcon />
-          Apple で続ける
-        </button>
-      </div>
+      {/* OAuth。lib/authGate.ts の OAUTH_ENABLED で出し分ける */}
+      {ANY_OAUTH_ENABLED && (
+        <>
+          <div className="space-y-2.5">
+            {OAUTH_ENABLED.google && (
+              <button
+                onClick={() => oauth("google")}
+                disabled={loading !== null}
+                className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+              >
+                <GoogleIcon />
+                Google で続ける
+              </button>
+            )}
+            {OAUTH_ENABLED.apple && (
+              <button
+                onClick={() => oauth("apple")}
+                disabled={loading !== null}
+                className="flex w-full items-center justify-center gap-2.5 rounded-xl bg-black px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-60 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+              >
+                <AppleIcon />
+                Apple で続ける
+              </button>
+            )}
+          </div>
 
-      <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
-        <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
-        または メールアドレス
-        <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
-      </div>
+          {/* 区切り線は、上にボタンがあるときだけ意味を持つ */}
+          <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
+            <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+            または メールアドレス
+            <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+          </div>
+        </>
+      )}
 
       {/* Email / Password（再設定モードではメールアドレスだけ） */}
       <form
